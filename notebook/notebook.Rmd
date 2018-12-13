@@ -2,7 +2,12 @@
 title: "notebook"
 author: "Luke Vawter"
 date: "December 13, 2018"
-output: html_document
+output: 
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '6'
+    toc_float: yes
 ---
 
 `r Sys.Date()`
@@ -37,12 +42,17 @@ run.md.acquistion <- FALSE
 
 ##MD eventdata and, phyto reported count, picophytoplankton reported count
 
-## 3 day window
-```{r child= 'sections/3_day_window', eval=FALSE}
+## CEDR water quality data
+```{r child= 'sections/wq_data.Rmd', eval=TRUE}
 
 ```
 
-## CEDR water quality data
+## 3 day window
+```{r child= 'sections/3_day_window.Rmd', eval=FALSE}
+
+```
+
+
 
 
 

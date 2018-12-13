@@ -28,12 +28,31 @@ clean_up <- function(x) {
     distinct()
 }
 
+url.root <- "http://datahub.chesapeakebay.net/api.JSON"
+todays.date <- format(Sys.Date(), "%m-%d-%Y")
+
+
 dir.create(file.path(project.dir, "data/VA_ODU/"),
-           recursive = TRUE, showWarnings = TRUE)
+           recursive = TRUE, showWarnings = FALSE)
 
 dir.create(file.path(project.dir, "data/CEDR/"),
-           recursive = TRUE, showWarnings = TRUE)
+           recursive = TRUE, showWarnings = FALSE)
 
 dir.create(file.path(project.dir, "data/MD_DNR/"),
-           recursive = TRUE, showWarnings = TRUE)
+           recursive = TRUE, showWarnings = FALSE)
+
+dir.create(file.path(project.dir, "data/water_quality"),
+           recursive = TRUE, showWarnings = FALSE)
+
+
+station.vec <- file.path(url.root,
+                       "LivingResources",
+                       "TidalPlankton",
+                       "Reported",
+                       "1-01-1970",
+                       todays.date,
+                       "17",
+                       "Station") %>% 
+  fromJSON() %>% 
+  pull(unique(MonitoringLocationId))
 ```

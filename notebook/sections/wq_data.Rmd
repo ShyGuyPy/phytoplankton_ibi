@@ -1,0 +1,38 @@
+---
+title: "wq_data"
+author: "Luke Vawter"
+date: "December 13, 2018"
+output: html_document
+---
+
+```{r echo=FALSE}
+knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
+```
+
+```{r}
+wq.df <- file.path(url.root,
+                   "WaterQuality",
+                   "WaterQuality",
+                   format(min(phyto.df$sampledate) - days(3), "%m-%d-%Y"),
+                   format(max(phyto.df$sampledate) + days(3), "%m-%d-%Y"), 
+                   "6",
+                   "7,16,23,24",
+                   "station",
+                   paste(station.vec, collapse = ","),
+                   "21,34,74,83") %>% 
+  fromJSON() %>% 
+  clean_up()
+```
+
+```{r}
+data.table::fwrite(wq.df, file.path(rprojroot::find_rstudio_root_file(), "data/water_quality", "cedr_wq.csv"))
+
+project.dir <- rprojroot::find_rstudio_root_file()
+wq.raw <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
+                            data.table = FALSE,
+                           na.strings = c("")) %>% 
+  filter(is.na(problem),
+         parameter %in% c("chla", "doc", "pheo", "salinity"))
+```
+         
+         
