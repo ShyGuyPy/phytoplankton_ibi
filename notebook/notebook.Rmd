@@ -1,0 +1,51 @@
+---
+title: "notebook"
+author: "Luke Vawter"
+date: "December 13, 2018"
+output: html_document
+---
+
+`r Sys.Date()`
+
+```{r, echo=FALSE, cache=FALSE}
+evaluate <- TRUE
+cache.me <- FALSE
+run.cedr.acquisition <- FALSE
+run.itis.acquisition <- FALSE
+run.va_odu.acquisition <- TRUE
+run.md.acquistion <- FALSE
+```
+
+## Load packages
+```{r child= 'sections/load_packages.Rmd', eval=TRUE}
+
+```
+
+## Custom functions and variables
+```{r child= 'sections/funcs_and_vars.Rmd', eval=TRUE}
+
+```
+
+
+##CEDR eventdata, phyto reported count, picophytoplankton reported count
+
+
+##VA_ODU eventdata, phyto reported count, picophytoplankton reported count
+```{r child= 'sections/va_odu_data.Rmd', eval=TRUE}
+
+```
+
+##MD eventdata and, phyto reported count, picophytoplankton reported count
+
+## 3 day window
+```{r child= 'sections/3_day_window', eval=FALSE}
+
+```
+
+## CEDR water quality data
+
+
+
+
+
+

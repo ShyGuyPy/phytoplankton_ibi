@@ -1,0 +1,39 @@
+---
+title: "func and var"
+author: "Luke Vawter"
+date: "December 13, 2018"
+output: html_document
+---
+
+```{r echo=FALSE}
+knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
+```
+
+```{r}
+project.dir <- rprojroot::find_rstudio_root_file()
+
+clean_string <- function(x) {
+  x %>% 
+    stringr::str_trim() %>% 
+    tolower() %>% 
+    stringr::str_replace_all("\\s+", " ") %>% 
+    stringr::str_replace_all(" ", "_") %>%  
+    if_else(. == "", as.character(NA), .)
+}
+
+clean_up <- function(x) {
+  x %>% 
+    rename_all(clean_string) %>% 
+    mutate_if(is.character, funs(clean_string))%>% 
+    distinct()
+}
+
+dir.create(file.path(project.dir, "data/VA_ODU/"),
+           recursive = TRUE, showWarnings = TRUE)
+
+dir.create(file.path(project.dir, "data/CEDR/"),
+           recursive = TRUE, showWarnings = TRUE)
+
+dir.create(file.path(project.dir, "data/MD_DNR/"),
+           recursive = TRUE, showWarnings = TRUE)
+```
