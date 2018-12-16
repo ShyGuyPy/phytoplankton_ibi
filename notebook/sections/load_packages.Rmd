@@ -24,6 +24,7 @@ library(data.table)
 library(jsonlite)
 library(rprojroot)
 library(ritis)
+library(parallel)
 ```
 
 ```{r}

@@ -21,18 +21,44 @@ wq.df <- file.path(url.root,
                    paste(station.vec, collapse = ","),
                    "21,34,74,83") %>% 
   fromJSON() %>% 
-  clean_up()
-```
-
-```{r}
-data.table::fwrite(wq.df, file.path(rprojroot::find_rstudio_root_file(), "data/water_quality", "cedr_wq.csv"))
-
-project.dir <- rprojroot::find_rstudio_root_file()
-wq.raw <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
-                            data.table = FALSE,
-                           na.strings = c("")) %>% 
+  clean_up() %>%
   filter(is.na(problem),
          parameter %in% c("chla", "doc", "pheo", "salinity"))
+        
+  
+wq.df <- wq.df %>%
+  select(station, sampledate, layer, depth, parameter, measurevalue) #%>% #eventid,
+  
 ```
-         
+
+```{r eval=FALSE}
+data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
+
+wq.raw <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
+                            data.table = FALSE,
+                           na.strings = c("")) #%>% 
+  # filter(is.na(problem),
+  #        parameter %in% c("chla", "doc", "pheo", "salinity"))
+
+wq.df <- wq.raw %>%
+  mutate(sampledate=as.Date(sampledate))
+```
+
+
+```{r}
+#test
+test_reported.df <- phyto.df %>%
+  select(sampledate, surveyid) %>%
+  mutate(sampledate = as.Date(sampledate))
+
+
+test_wq.df <- wq.df %>%
+  select(sampledate, eventid) %>%
+  mutate(sampledate = as.Date(sampledate))
+
+test_wq_reported <- left_join(test_reported.df, test_wq.df, by = "sampledate") %>%
+  distinct()
+
+```
+
          

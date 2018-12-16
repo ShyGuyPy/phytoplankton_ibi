@@ -10,7 +10,7 @@ knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
 ```
 
 ```{r}
-events.sub <- events.df %>% 
+event.sub <- event.df %>% 
   select(station, sampledate) %>% 
   distinct() %>% 
   mutate(sampledate = as.Date(sampledate)) %>%
@@ -20,12 +20,12 @@ events.sub <- events.df %>%
 library(parallel)
 n.cores <- detectCores() - 1
 cl <- makeCluster(n.cores)
-clusterExport(cl = cl, varlist = c("wq.df", "events.sub"))
+clusterExport(cl = cl, varlist = c("wq.df", "event.sub"))
 clusterEvalQ(cl, c(library(dplyr))) %>% invisible()
 
-env.df <- parLapply(cl, 1:nrow(events.sub), function(row.i) {
+env.df <- parLapply(cl, 1:nrow(event.sub), function(row.i) {
   
-  sub.df <- slice(events.sub, row.i)
+  sub.df <- slice(event.sub, row.i)
   #----------------------------------------------------------------------------
   sub.env <- wq.df %>% 
     filter(station == sub.df$station,
