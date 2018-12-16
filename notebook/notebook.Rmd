@@ -48,7 +48,7 @@ run.md.acquistion <- FALSE
 ```
 
 ## 3 day window
-```{r child= 'sections/3_day_window.Rmd', eval=FALSE}
+```{r child= 'sections/3_day_window.Rmd', eval=TRUE}
 
 ```
 

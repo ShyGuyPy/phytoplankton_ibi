@@ -27,9 +27,45 @@ wq.df <- file.path(url.root,
         
   
 wq.df <- wq.df %>%
-  select(station, sampledate, layer, depth, parameter, measurevalue) #%>% #eventid,
+  select(station, sampledate, layer, depth, parameter, measurevalue) %>% #eventid,
+  mutate(sampledate=as.Date(sampledate))
+```
+
+adds s_chla by changing those with pararmeter of chla and layer of surface to s_chla:
+```{r}
+wq.df <- wq.df %>% 
+  filter(layer == "s", 
+         parameter == "chla") %>% 
+  unite(parameter, c("layer", "parameter"), remove = FALSE) %>% 
+  bind_rows(wq.df)  
   
 ```
+
+
+```{r}
+pdepth.df <- event.df %>% 
+  filter(layer %in% c("ap", "wc")) %>% 
+  mutate(sampledate = as.Date(sampledate)) %>% 
+  select(station, sampledate, pdepth) %>% 
+  dplyr::distinct()
+
+wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
+```
+
+filter out all below pycnocline values
+```{R}
+wq.df <- wq.df %>% 
+  filter(depth <= pdepth) #%>% 
+
+```
+
+to work with Zach's 3 day window code
+```{r eval=FALSE}
+wq.df <- wq.df %>%
+  rename(date = sampledate)
+
+```
+
 
 ```{r eval=FALSE}
 data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
@@ -45,20 +81,6 @@ wq.df <- wq.raw %>%
 ```
 
 
-```{r}
-#test
-test_reported.df <- phyto.df %>%
-  select(sampledate, surveyid) %>%
-  mutate(sampledate = as.Date(sampledate))
 
-
-test_wq.df <- wq.df %>%
-  select(sampledate, eventid) %>%
-  mutate(sampledate = as.Date(sampledate))
-
-test_wq_reported <- left_join(test_reported.df, test_wq.df, by = "sampledate") %>%
-  distinct()
-
-```
 
          

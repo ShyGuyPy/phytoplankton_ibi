@@ -1,0 +1,28 @@
+## ----echo=FALSE----------------------------------------------------------
+## knitr::opts_chunk$set(eval=run.va_odu.acquisition)
+
+## ------------------------------------------------------------------------
+## phyto.df <- readxl::read_excel(file.path(project.dir, "data/Va_phyto_count_and_event/data-dev_2013_2016_ODU_Phyto_Reported_Data_05mar18.xlsx"))
+## 
+## phyto.df <- clean_up(phyto.df)
+## 
+## phyto.df %>%
+##   mutate(reportingvalue = as.character(reportingvalue)) %>% #need this?
+## data.table::fwrite(file.path(project.dir, "data/VA_ODU/", "VA_ODU_phyto_taxa.csv"))
+
+## ------------------------------------------------------------------------
+## pico.df <- readxl::read_excel(file.path(project.dir, "data/Va_phyto_count_and_event/data-dev_2013_2016_ODU_Pico_Reported_Data_05mar18.xlsx"))
+## 
+## pico.df <- clean_up(pico.df)
+## 
+## pico.df %>%
+##   mutate(reportingvalue = as.character(reportingvalue)) %>% #need this?
+## data.table::fwrite(file.path(project.dir, "data/VA_ODU/", "VA_ODU_pico_taxa.csv"))
+
+## ------------------------------------------------------------------------
+## event.df <- readxl::read_excel(file.path(project.dir, "data/Va_phyto_count_and_event/data-dev_2013_2016_ODU_Phyto_Events_05mar18.xlsx"))
+## 
+## event.df <- clean_up(event.df)
+## 
+## data.table::fwrite(event.df, file.path(project.dir, "data/VA_ODU/", "VA_ODU_phyto_event.csv"))
+

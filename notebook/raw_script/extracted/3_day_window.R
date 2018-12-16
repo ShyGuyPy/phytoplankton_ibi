@@ -1,0 +1,51 @@
+## ----echo=FALSE----------------------------------------------------------
+## knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
+
+## ------------------------------------------------------------------------
+## event.sub <- event.df %>%
+##   select(station, sampledate) %>%
+##   distinct() %>%
+##   mutate(sampledate = as.Date(sampledate)) %>%
+##   mutate(lower_date = sampledate - lubridate::days(3),
+##          upper_date = sampledate + lubridate::days(3))
+## 
+## library(parallel)
+## n.cores <- detectCores() - 1
+## cl <- makeCluster(n.cores)
+## clusterExport(cl = cl, varlist = c("wq.df", "event.sub"))
+## clusterEvalQ(cl, c(library(dplyr))) %>% invisible()
+## 
+## env.df <- parLapply(cl, 1:nrow(event.sub), function(row.i) {
+## 
+##   sub.df <- slice(event.sub, row.i)
+##   #----------------------------------------------------------------------------
+##   sub.env <- wq.df %>%
+##     filter(station == sub.df$station,
+##            date >= sub.df$lower_date,
+##            date <= sub.df$upper_date)
+##   #----------------------------------------------------------------------------
+##   if (nrow(sub.env) == 0) return(data.frame(
+##     station = NA,
+##     date = NA,
+##     parameter = NA,
+##     measurevalue = NA
+##   ))
+##   #----------------------------------------------------------------------------
+##   final.df <- sub.env %>%
+##     mutate(date_diff = date - sub.df$sampledate,
+##            abs_date_diff = abs(date_diff),
+##            sampledate = sub.df$sampledate) %>%
+##     filter(abs_date_diff == min(abs_date_diff))
+##   #----------------------------------------------------------------------------
+##   if (nrow(final.df) > 1) {
+##     final.df <- final.df %>%
+##       filter(date == min(date))
+##   }
+##   #----------------------------------------------------------------------------
+##   return(final.df)
+## }) %>%
+##   bind_rows() %>%
+##   filter(!is.na(station))
+## 
+## stopCluster(cl)
+
