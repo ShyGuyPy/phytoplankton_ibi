@@ -95,8 +95,9 @@ wq_mindepth_test.df <-wq.df %>%
 
 ```{r}
 wq_mindepth_test.df <-wq.df %>%
-  group_by_at(vars(station, sampledate)) %>%
-  summarize(min_depth = min(depth)) %>%
+  group_by(station, sampledate) %>%
+  mutate(count = count(layer)) %>%
+  mutate(mindepth=min(depth))
   ungroup()
   
 ```

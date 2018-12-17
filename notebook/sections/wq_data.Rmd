@@ -59,14 +59,13 @@ pdepth.df <- event.df %>%
   dplyr::distinct()
 
 wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
-wq.df <- wq.df %>%
-  mutate(type = typeof(depth))
+
 ```
 
 filter out all below pycnocline values
 ```{R}
-wq.df <- wq.df %>% 
-  filter(depth <= pdepth) #%>% 
+wq_test.df <- wq.df %>%
+  filter(as.double(depth) <= as.double(pdepth)) #%>%
 
 ```
 
