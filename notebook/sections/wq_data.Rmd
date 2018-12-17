@@ -31,16 +31,25 @@ wq.df <- wq.df %>%
   mutate(sampledate=as.Date(sampledate))
 ```
 
-adds s_chla by changing those with pararmeter of chla and layer of surface to s_chla:
+adds s_chla by changing those with pararmeter of chla and layer of surface to s_chla
+(updated code so that it replaces the extracted chla with s_chla value):
 ```{r}
-wq.df <- wq.df %>% 
+s_chla.df <- wq.df %>% 
   filter(layer == "s", 
          parameter == "chla") %>% 
-  unite(parameter, c("layer", "parameter"), remove = FALSE) %>% 
-  bind_rows(wq.df)  
-  
-```
+  unite(parameter, c("layer", "parameter"), remove = FALSE) #%>% 
+    
+not_chla.df <- wq.df %>%
+  filter(parameter != "chla") %>%
+  bind_rows(s_chla.df)
 
+chla_not_s_chla.df <- wq.df %>%
+  filter(parameter == "chla") %>%
+  filter(layer != "s") %>%
+  bind_rows(not_chla.df)
+
+wq.df <- chla_not_s_chla.df
+```
 
 ```{r}
 pdepth.df <- event.df %>% 
@@ -50,6 +59,8 @@ pdepth.df <- event.df %>%
   dplyr::distinct()
 
 wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
+wq.df <- wq.df %>%
+  mutate(type = typeof(depth))
 ```
 
 filter out all below pycnocline values
@@ -67,7 +78,7 @@ wq.df <- wq.df %>%
 ```
 
 
-```{r eval=FALSE}
+```{r}
 data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 
 wq.raw <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
@@ -76,11 +87,6 @@ wq.raw <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.c
   # filter(is.na(problem),
   #        parameter %in% c("chla", "doc", "pheo", "salinity"))
 
-wq.df <- wq.raw %>%
-  mutate(sampledate=as.Date(sampledate))
 ```
-
-
-
 
          
