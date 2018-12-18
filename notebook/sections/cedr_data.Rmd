@@ -1,0 +1,58 @@
+---
+title: "cedr_data"
+author: "Luke Vawter"
+date: "December 18, 2018"
+output: html_document
+---
+
+```{r echo=FALSE}
+knitr::opts_chunk$set(eval=run.cedr.acquisition)
+```
+
+```{r}
+phyto.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "Reported",
+                      "1-01-1970",
+                      todays.date, 
+                      "17",
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+
+
+dir.create(file.path(project.dir, "data/CEDR"),
+           recursive = TRUE, showWarnings = FALSE)
+phyto.df %>% 
+  mutate(reportingvalue = as.character(reportingvalue)) %>% 
+data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_taxa.csv"))
+
+
+
+
+
+event.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "MonitorEvent",
+                      "1-01-1970",
+                      todays.date, 
+                      "17",
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+
+
+
+dir.create(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR"),
+           recursive = TRUE, showWarnings = FALSE)
+
+data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_event.csv"))
+```

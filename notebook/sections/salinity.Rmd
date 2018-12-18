@@ -1,0 +1,52 @@
+---
+title: "salinity"
+author: "Luke Vawter"
+date: "December 18, 2018"
+output: html_document
+---
+
+```{r}
+#get pdepth from event.df
+pdepth.df <- events.df %>% 
+  filter(layer %in% c("ap", "wc")) %>% 
+  mutate(sampledate = as.Date(sampledate)) %>% 
+  select(station, sampledate, pdepth) %>% 
+  dplyr::distinct()
+
+#filter out below pdepth samples in wq.df
+wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
+wq.df <- wq.df %>% 
+  filter(depth <= pdepth) #%>% 
+  
+s_chla.df <- wq.df %>%
+  filter(parameter=="s_chla")
+
+
+di_doc.df <- wq.df %>%
+  filter(parameter=="doc")
+
+di_chla <- wq.df %>%
+  filter(parameter == "chla")
+
+di_salinity <- wq.df %>%
+  filter(parameter == "salinity")
+
+di_pheo <- wq.df %>%
+  filter(parameter == "pheo")
+
+avg_sal.df <- di_salinity %>%
+
+  group_by(station, sampledate) %>%
+  mutate(avg_sal = mean(measurevalue, na.rm = TRUE)) %>%
+  ungroup()
+
+avg_salzone.df <- avg_sal.df %>%
+
+  mutate(salzone = case_when(
+    measurevalue >0 & measurevalue <= 0.5 ~ "F",
+    measurevalue > .5 &  measurevalue <= 5 ~ "O",
+    measurevalue > 5 & measurevalue <= 18 ~ "M",
+    measurevalue > 18~ "P")
+  )
+```
+

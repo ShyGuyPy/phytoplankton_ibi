@@ -116,3 +116,12 @@ wq_mindepth_test.df <-wq.df %>%
   group_by()
 ```
 
+```{r}
+print(typeof(event.df$pdepth))
+```
+
+```{r}
+event_test.df <- event.df %>%
+  filter()
+```
+

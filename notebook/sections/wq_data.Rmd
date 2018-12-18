@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
 ```
 
+download water quality data:
 ```{r}
 wq.df <- file.path(url.root,
                    "WaterQuality",
@@ -26,9 +27,9 @@ wq.df <- file.path(url.root,
          parameter %in% c("chla", "doc", "pheo", "salinity"))
         
   
-wq.df <- wq.df %>%
-  select(station, sampledate, layer, depth, parameter, measurevalue) %>% #eventid,
-  mutate(sampledate=as.Date(sampledate))
+# wq.df <- wq.df %>%
+#   select(station, sampledate, layer, depth, parameter, measurevalue) %>% #eventid,
+#   mutate(sampledate=as.Date(sampledate))
 ```
 
 adds s_chla by changing those with pararmeter of chla and layer of surface to s_chla
@@ -51,16 +52,24 @@ chla_not_s_chla.df <- wq.df %>%
 wq.df <- chla_not_s_chla.df
 ```
 
+this needs to happen after 3 day window is applied
 ```{r}
-pdepth.df <- event.df %>% 
-  filter(layer %in% c("ap", "wc")) %>% 
-  mutate(sampledate = as.Date(sampledate)) %>% 
-  select(station, sampledate, pdepth) %>% 
-  dplyr::distinct()
-
-wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
+# pdepth.df <- event.df %>% 
+#   filter(layer %in% c("ap", "wc")) %>% 
+#   mutate(sampledate = as.Date(sampledate)) %>% 
+#   select(station, sampledate, pdepth) %>% 
+#   dplyr::distinct()
+# 
+# wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
 
 ```
+
+filter out wq that don't have a pdepth(no, apply 3 day and then compare against pdepth instead)
+```{r}
+# wq.df <- wq.df %>% 
+#   filter(!is.na(pdepth))
+```
+
 
 filter out all below pycnocline values
 ```{R}

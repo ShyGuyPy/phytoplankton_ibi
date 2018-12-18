@@ -1,0 +1,27 @@
+---
+title: "assign_df"
+author: "Luke Vawter"
+date: "December 18, 2018"
+output: html_document
+---
+
+```{r echo=FALSE}
+knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
+```
+
+read in to dataframes based on datasource
+
+VA ODU
+```{r }
+# phyto.df <- data.table::fread(file.path(project.dir, "data/VA_ODU/", "VA_ODU_phyto_taxa.csv"))
+# 
+# event.df <- data.table::fread(file.path(project.dir, "data/VA_ODU/", "VA_ODU_phyto_event.csv"))
+```
+
+CEDR
+```{r}
+phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "VA_ODU_phyto_taxa.csv"))
+
+event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "VA_ODU_phyto_event.csv"))
+```
+

@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
 ```
 
+create a dataframe
 ```{r}
 event.sub <- event.df %>% 
   select(station, sampledate) %>% 

@@ -17,7 +17,7 @@ evaluate <- TRUE
 cache.me <- FALSE
 run.cedr.acquisition <- FALSE
 run.itis.acquisition <- FALSE
-run.va_odu.acquisition <- TRUE
+run.va_odu.acquisition <- FALSE
 run.md.acquistion <- FALSE
 ```
 
@@ -33,7 +33,9 @@ run.md.acquistion <- FALSE
 
 
 ##CEDR eventdata, phyto reported count, picophytoplankton reported count
+```{r child= 'section/cedr_data.Rmd', eval=TRUE}
 
+```
 
 ##VA_ODU eventdata, phyto reported count, picophytoplankton reported count
 ```{r child= 'sections/va_odu_data.Rmd', eval=TRUE}
@@ -41,6 +43,11 @@ run.md.acquistion <- FALSE
 ```
 
 ##MD eventdata and, phyto reported count, picophytoplankton reported count
+
+##assign data to dataframes
+```{r child= 'sections/assign_df.Rmd', eval=TRUE}
+
+```
 
 ## CEDR water quality data
 ```{r child= 'sections/wq_data.Rmd', eval=TRUE}
@@ -52,10 +59,7 @@ run.md.acquistion <- FALSE
 
 ```
 
+## salinity
+```{r child= 'sections/ssalinity.Rmd', eval=TRUE}
 
-
-
-
-
-
-
+```
