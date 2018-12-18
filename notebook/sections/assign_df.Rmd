@@ -13,15 +13,16 @@ read in to dataframes based on datasource
 
 VA ODU
 ```{r }
-# phyto.df <- data.table::fread(file.path(project.dir, "data/VA_ODU/", "VA_ODU_phyto_taxa.csv"))
-# 
-# event.df <- data.table::fread(file.path(project.dir, "data/VA_ODU/", "VA_ODU_phyto_event.csv"))
+phyto.df <- data.table::fread(file.path(project.dir, "data/VA_ODU/", "VA_ODU_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+event.df <- data.table::fread(file.path(project.dir, "data/VA_ODU/", "VA_ODU_phyto_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
 ```
 
 CEDR
 ```{r}
-phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "VA_ODU_phyto_taxa.csv"))
+phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
 
-event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "VA_ODU_phyto_event.csv"))
+event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
 ```
 

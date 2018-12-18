@@ -57,5 +57,14 @@ env.df <- parLapply(cl, 1:nrow(event.sub), function(row.i) {
   filter(!is.na(station))
 
 stopCluster(cl)
+
+
+
+
+#is this necessary?
+env.wide <- env.df %>% 
+  spread(parameter, measurevalue)
+
+tri_test.df <- left_join(event.df, env.df, by = c("station", "sampledate"))
 ```
 

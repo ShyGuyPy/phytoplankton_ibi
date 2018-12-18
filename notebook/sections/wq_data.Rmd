@@ -22,14 +22,31 @@ wq.df <- file.path(url.root,
                    paste(station.vec, collapse = ","),
                    "21,34,74,83") %>% 
   fromJSON() %>% 
-  clean_up() %>%
+  clean_up()
+
+```
+
+
+```{r}
+data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
+```
+
+
+```{r}
+wq.raw <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
+                            data.table = FALSE,
+                           na.strings = c(""))
+```
+
+
+```{r}
+wq.df <- wq.df %>%
   filter(is.na(problem),
          parameter %in% c("chla", "doc", "pheo", "salinity"))
-        
-  
-# wq.df <- wq.df %>%
-#   select(station, sampledate, layer, depth, parameter, measurevalue) %>% #eventid,
-#   mutate(sampledate=as.Date(sampledate))
+
+wq.df <- wq.df %>%
+  select(station, sampledate, layer, depth, parameter, measurevalue) %>% #eventid,
+  mutate(sampledate=as.Date(sampledate))
 ```
 
 adds s_chla by changing those with pararmeter of chla and layer of surface to s_chla
@@ -71,10 +88,10 @@ filter out wq that don't have a pdepth(no, apply 3 day and then compare against 
 ```
 
 
-filter out all below pycnocline values
+filter out all below pycnocline values(after 3 day)
 ```{R}
-wq_test.df <- wq.df %>%
-  filter(as.double(depth) <= as.double(pdepth)) #%>%
+# wq_test.df <- wq.df %>%
+#   filter(as.double(depth) <= as.double(pdepth)) 
 
 ```
 
@@ -85,13 +102,13 @@ wq.df <- wq.df %>%
 
 ```
 
-
+removed. better to save the raw data(at teh beginning)
 ```{r}
-data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
-
-wq.raw <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
-                            data.table = FALSE,
-                           na.strings = c("")) #%>% 
+# data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
+# 
+# wq.raw <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
+#                             data.table = FALSE,
+#                            na.strings = c("")) #%>% 
   # filter(is.na(problem),
   #        parameter %in% c("chla", "doc", "pheo", "salinity"))
 

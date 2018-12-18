@@ -15,9 +15,12 @@ pdepth.df <- events.df %>%
 
 #filter out below pdepth samples in wq.df
 wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
-wq.df <- wq.df %>% 
+wq_test.df <- wq.df %>% 
   filter(depth <= pdepth) #%>% 
-  
+
+```
+
+```{r}
 s_chla.df <- wq.df %>%
   filter(parameter=="s_chla")
 
