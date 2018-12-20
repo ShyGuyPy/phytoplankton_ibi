@@ -65,6 +65,6 @@ stopCluster(cl)
 env.wide <- env.df %>% 
   spread(parameter, measurevalue)
 
-tri_test.df <- left_join(event.df, env.df, by = c("station", "sampledate"))
+event.df <- left_join(event.df, env.df, by = c("station", "sampledate"))
 ```
 

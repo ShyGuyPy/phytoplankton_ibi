@@ -6,15 +6,60 @@ output: html_document
 ---
 
 ```{r}
+test_event.df <- event.df %>%
+  mutate(uniqueid= paste0(as.character(station),as.character(sampledate)))
+```
+
+
+```{r}
+test_wq.df <- wq.df %>%
+  mutate(uniqueid= paste0(as.character(station),as.character(sampledate)))
+```
+
+```{r}
+pdepth.df <- test_wq.df %>%
+  mutate(pdepth = case_when(wq.df$uniqueid == test.df$uniqueid ~ wq.df$depth))
+```
+```{r}
+test_event_id.df <- test_event.df %>%
+  select(uniqueid) %>%
+  filter(uniqueid == "cb7.3e2016-06-27") %>%
+  distinct()
+   
+```
+
+
+
+```{r}
+test_wq_id.df <- test_wq.df %>%
+  select(uniqueid) %>%
+  distinct()
+  
+```
+
+```{r}
+pdepth.df <- test_event.df %>%
+  select(uniqueid, pdepth) %>%
+  distinct()
+```
+
+
+```{r}
+wq2.df <- left_join(test_wq.df, pdepth.df, by = c("uniqueid")) %>%
+  distinct()
+```
+
+
+```{r}
 #get pdepth from event.df
-pdepth.df <- events.df %>% 
-  filter(layer %in% c("ap", "wc")) %>% 
-  mutate(sampledate = as.Date(sampledate)) %>% 
-  select(station, sampledate, pdepth) %>% 
-  dplyr::distinct()
+# pdepth.df <- event.df %>%
+#   filter(layer %in% c("ap","wc")) %>%
+#   mutate(sampledate = as.Date(sampledate)) %>%
+#   select(station, sampledate, pdepth) %>%
+#   dplyr::distinct()
 
 #filter out below pdepth samples in wq.df
-wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
+#wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
 wq_test.df <- wq.df %>% 
   filter(depth <= pdepth) #%>% 
 

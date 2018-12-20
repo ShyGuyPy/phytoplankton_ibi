@@ -1,0 +1,49 @@
+---
+title: "prep_event"
+author: "Luke Vawter"
+date: "December 20, 2018"
+output: html_document
+---
+
+```{r echo=FALSE}
+knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
+```
+
+```{r}
+pdepth.df <- event.df %>%
+  filter(layer %in% c("ap","wc")) %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  select(station, sampledate, pdepth) %>%
+  dplyr::distinct()
+```
+
+```{r}
+with_id_event.df <- pdepth.df %>%
+  mutate(uniqueid= paste0(as.character(station),as.character(sampledate)))
+```
+
+```{r}
+with_id_wq.df <- wq.df %>%
+  mutate(uniqueid= paste0(as.character(station),as.character(sampledate)))
+```
+
+```{r}
+wq_with_test <- with_id_wq.df %>%
+  mutate(test= case_when(uniqueid == with_id_event.df$uniqueid ~ with_id_event.df$pdepth))
+  
+```
+```{r}
+nope.df <- left_join(with_id_wq.df, with_id_event.df, by = c("uniqueid"))
+
+nope_na <- nope.df %>%
+  filter(is.na(pdepth))
+
+nope_not_na <- nope.df %>%
+  filter(!is.na(pdepth))
+
+stat_samp <- left_join(with_id_wq.df, with_id_event.df, by = c("station", "sampledate"))
+
+test <- nope.df %>%
+  filter(station.x == "cb5.2")
+```
+

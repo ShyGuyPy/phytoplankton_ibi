@@ -49,6 +49,11 @@ run.md.acquistion <- FALSE
 
 ```
 
+## prep event data
+```{r child= 'sections/prep_event.Rmd', eval=TRUE}
+
+```
+
 ## CEDR water quality data
 ```{r child= 'sections/wq_data.Rmd', eval=TRUE}
 

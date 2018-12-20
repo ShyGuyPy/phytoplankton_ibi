@@ -33,7 +33,7 @@ data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.
 
 
 ```{r}
-wq.raw <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
+wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
                             data.table = FALSE,
                            na.strings = c(""))
 ```

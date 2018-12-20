@@ -49,8 +49,10 @@ station.vec <- file.path(url.root,
                        "LivingResources",
                        "TidalPlankton",
                        "Reported",
-                       "1-01-1970",
-                       todays.date,
+                       #"1-01-1970"
+                       "1-1-2013",
+                       #todays.date, 
+                       "12-31-2016",
                        "17",
                        "Station") %>% 
   fromJSON() %>% 
