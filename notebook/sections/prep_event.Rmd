@@ -10,6 +10,19 @@ knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
 ```
 
 ```{r}
+event.df <- event.df %>%
+  mutate(sampledate = as.Date(sampledate),
+         salzone = case_when(
+           salzone %in% c("tf", "fe") ~ "f",
+           salzone %in% c("m", "me") ~ "m",
+           salzone %in% c("o", "oe") ~ "o",
+           salzone %in% c("p", "pe") ~ "p",
+           TRUE ~ as.character(NA)
+         ))
+```
+
+
+```{r}
 pdepth.df <- event.df %>%
   filter(layer %in% c("ap","wc")) %>%
   mutate(sampledate = as.Date(sampledate)) %>%
