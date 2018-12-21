@@ -58,3 +58,58 @@ station.vec <- file.path(url.root,
   fromJSON() %>% 
   pull(unique(MonitoringLocationId))
 ```
+
+####CEDR data
+```{r}
+phyto.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "Reported",
+                      #"1-01-1970"
+                      "01-01-2013",
+                      #todays.date, 
+                      "12-31-2016",
+                      "17",
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+
+
+dir.create(file.path(project.dir, "data/CEDR"),
+           recursive = TRUE, showWarnings = FALSE)
+phyto.df %>% 
+  mutate(reportingvalue = as.character(reportingvalue)) %>% 
+data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_taxa.csv"))
+
+
+
+
+
+event.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "MonitorEvent",
+                      #"1-01-1970"
+                      "01-01-2013",
+                      #todays.date, 
+                      "12-31-2016", 
+                      "17",
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+
+
+
+dir.create(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR"),
+           recursive = TRUE, showWarnings = FALSE)
+
+data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_event.csv"))
+```
+
+####

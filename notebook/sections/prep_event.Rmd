@@ -10,6 +10,17 @@ knitr::opts_chunk$set(eval=evaluate, cache=cache.me)
 ```
 
 ```{r}
+phyto.df <- phyto.df %>%
+  mutate(sampledate = as.Date(sampledate))
+```
+
+```{r}
+event.df <- event.df %>%
+  mutate(sampledate = as.Date(sampledate))
+```
+
+
+```{r}
 event.df <- event.df %>%
   mutate(sampledate = as.Date(sampledate),
          salzone = case_when(
@@ -45,6 +56,7 @@ wq_with_test <- with_id_wq.df %>%
   mutate(test= case_when(uniqueid == with_id_event.df$uniqueid ~ with_id_event.df$pdepth))
   
 ```
+
 ```{r}
 nope.df <- left_join(with_id_wq.df, with_id_event.df, by = c("uniqueid"))
 
@@ -54,7 +66,7 @@ nope_na <- nope.df %>%
 nope_not_na <- nope.df %>%
   filter(!is.na(pdepth))
 
-stat_samp <- left_join(with_id_wq.df, with_id_event.df, by = c("station", "sampledate"))
+stat_samp <- left_join(wq.df, event.df, by = c("station", "sampledate"))
 
 test <- nope.df %>%
   filter(station.x == "cb5.2")

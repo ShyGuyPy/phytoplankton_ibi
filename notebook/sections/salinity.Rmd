@@ -60,26 +60,32 @@ wq2.df <- left_join(test_wq.df, pdepth.df, by = c("uniqueid")) %>%
 
 #filter out below pdepth samples in wq.df
 #wq.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
-wq_test.df <- wq.df %>% 
-  filter(depth <= pdepth) #%>% 
+# wq_test.df <- wq.df %>% 
+#   filter(depth <= pdepth) #%>% 
 
 ```
 
 ```{r}
 s_chla.df <- wq.df %>%
-  filter(parameter=="s_chla")
+  filter(depth <= pdepth) %>%
+  filter(parameter=="s_chla") 
+  
 
 
 di_doc.df <- wq.df %>%
+  filter(depth <= pdepth) %>%
   filter(parameter=="doc")
 
 di_chla <- wq.df %>%
+  filter(depth <= pdepth) %>%
   filter(parameter == "chla")
 
 di_salinity <- wq.df %>%
+  filter(depth <= pdepth) %>%
   filter(parameter == "salinity")
 
 di_pheo <- wq.df %>%
+  filter(depth <= pdepth) %>%
   filter(parameter == "pheo")
 
 avg_sal.df <- di_salinity %>%

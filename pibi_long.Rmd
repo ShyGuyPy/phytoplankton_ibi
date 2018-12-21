@@ -1,0 +1,247 @@
+---
+title: "pibi_long"
+author: "Luke Vawter"
+date: "December 21, 2018"
+output: html_document
+---
+
+####Download Packages
+```{r load_packages, message=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(purrr)
+library(stringr)
+library(leaflet)
+library(lubridate)
+library(readxl)
+library(httr)
+library(RCurl)
+library(data.table)
+library(jsonlite)
+library(rprojroot)
+library(ritis)
+library(parallel)
+```
+
+mmir is Zach Smith's custom package
+```{r}
+library(mmir)
+```
+
+
+####Funcs and Variables
+```{r}
+project.dir <- rprojroot::find_rstudio_root_file()
+
+clean_string <- function(x) {
+  x %>% 
+    stringr::str_trim() %>% 
+    tolower() %>% 
+    stringr::str_replace_all("\\s+", " ") %>% 
+    stringr::str_replace_all(" ", "_") %>%  
+    if_else(. == "", as.character(NA), .)
+}
+
+clean_up <- function(x) {
+  x %>% 
+    rename_all(clean_string) %>% 
+    mutate_if(is.character, funs(clean_string))%>% 
+    distinct()
+}
+
+url.root <- "http://datahub.chesapeakebay.net/api.JSON"
+todays.date <- format(Sys.Date(), "%m-%d-%Y")
+
+
+dir.create(file.path(project.dir, "data/VA_ODU/"),
+           recursive = TRUE, showWarnings = FALSE)
+
+dir.create(file.path(project.dir, "data/CEDR/"),
+           recursive = TRUE, showWarnings = FALSE)
+
+dir.create(file.path(project.dir, "data/MD_DNR/"),
+           recursive = TRUE, showWarnings = FALSE)
+
+dir.create(file.path(project.dir, "data/water_quality"),
+           recursive = TRUE, showWarnings = FALSE)
+
+
+station.vec <- file.path(url.root,
+                       "LivingResources",
+                       "TidalPlankton",
+                       "Reported",
+                       #"1-01-1970"
+                       "1-1-2013",
+                       #todays.date, 
+                       "12-31-2016",
+                       "17",
+                       "Station") %>% 
+  fromJSON() %>% 
+  pull(unique(MonitoringLocationId))
+```
+
+####CEDR data
+
+```{r}
+
+```
+
+
+this pulls the sample and event data from cedr
+```{r}
+phyto.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "Reported",
+                      #"1-01-1970"
+                      "1-01-2013",
+                      #todays.date, 
+                      "12-31-2016",
+                      "17",
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+
+
+dir.create(file.path(project.dir, "data/CEDR"),
+           recursive = TRUE, showWarnings = FALSE)
+phyto.df %>% 
+  mutate(reportingvalue = as.character(reportingvalue)) %>% 
+data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_taxa.csv"))
+
+
+
+
+
+event.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "MonitorEvent",
+                      #"1-01-1970"
+                      "1-01-2013",
+                      #todays.date, 
+                      "12-31-2016", 
+                      "17",
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+
+
+
+dir.create(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR"),
+           recursive = TRUE, showWarnings = FALSE)
+
+data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_event.csv"))
+```
+
+### Read csv's t dataframes
+
+CEDR
+```{r}
+phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+```
+
+####water quality data
+
+download water quality data:
+```{r}
+wq.df <- file.path(url.root,
+                   "WaterQuality",
+                   "WaterQuality",
+                   format(min(phyto.df$sampledate) - days(3), "%m-%d-%Y"),
+                   format(max(phyto.df$sampledate) + days(3), "%m-%d-%Y"), 
+                   "6",
+                   "7,16,23,24",
+                   "station",
+                   paste(station.vec, collapse = ","),
+                   "21,34,74,83") %>% 
+  fromJSON() %>% 
+  clean_up()
+
+```
+
+
+```{r}
+data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
+```
+
+
+```{r}
+wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
+                            data.table = FALSE,
+                           na.strings = c(""))
+```
+
+
+```{r}
+wq.df <- wq.df %>%
+  filter(is.na(problem),
+         parameter %in% c("chla", "doc", "pheo", "salinity"))
+
+wq.df <- wq.df %>%
+  select(station, sampledate, layer, depth, parameter, measurevalue) %>% #eventid,
+  mutate(sampledate=as.Date(sampledate))
+```
+
+####Prep Event
+
+```{r}
+phyto.df <- phyto.df %>%
+  mutate(sampledate = as.Date(sampledate))
+```
+
+```{r}
+event.df <- event.df %>%
+  mutate(sampledate = as.Date(sampledate))
+```
+
+
+```{r}
+event.df <- event.df %>%
+  mutate(sampledate = as.Date(sampledate),
+         salzone = case_when(
+           salzone %in% c("tf", "fe") ~ "f",
+           salzone %in% c("m", "me") ~ "m",
+           salzone %in% c("o", "oe") ~ "o",
+           salzone %in% c("p", "pe") ~ "p",
+           TRUE ~ as.character(NA)
+         ))
+```
+
+```{r}
+pdepth.df <- event.df %>%
+  filter(layer %in% c("ap","wc")) %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  select(station, sampledate, pdepth) %>%
+  dplyr::distinct()
+```
+
+applies pdepth to water quality dataframe
+(should be wq.df not stat_samp when fixed)
+
+
+
+
+```{r}
+stat_samp <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
+```
+
+####Testing
+```{r}
+na <- stat_samp %>%
+  filter(is.na(stat_samp$pdepth))
+
+not_na <- stat_samp %>%
+  filter(!is.na(stat_samp$pdepth))
+```
+
