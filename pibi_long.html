@@ -151,6 +151,12 @@ library(parallel)</code></pre>
 </div>
 <div id="funcs-and-variables" class="section level4">
 <h4>Funcs and Variables</h4>
+<p>these varaible should be changed by the user as needed</p>
+<pre class="r"><code>#this is the minimum date to be included
+min_date = &quot;1-1-2013&quot;
+#this is the minimum date to be included sdd the variable todays.date intot his variable if you want the most recent data
+max_date = &quot;12-31-2016&quot;</code></pre>
+<p>variables and functions that will likely not be changed</p>
 <pre class="r"><code>project.dir &lt;- rprojroot::find_rstudio_root_file()
 
 clean_string &lt;- function(x) {
@@ -190,10 +196,10 @@ station.vec &lt;- file.path(url.root,
                        &quot;LivingResources&quot;,
                        &quot;TidalPlankton&quot;,
                        &quot;Reported&quot;,
-                       #&quot;1-01-1970&quot;
-                       &quot;1-1-2013&quot;,
-                       #todays.date, 
-                       &quot;12-31-2016&quot;,
+                       min_date,
+                       # &quot;1-1-2013&quot;,
+                       max_date, 
+                       # &quot;12-31-2016&quot;,
                        &quot;17&quot;,
                        &quot;Station&quot;) %&gt;% 
   fromJSON() %&gt;% 
@@ -206,10 +212,10 @@ station.vec &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
                       &quot;TidalPlankton&quot;,
                       &quot;Reported&quot;,
-                      #&quot;1-01-1970&quot;
-                      &quot;1-01-2013&quot;,
-                      #todays.date, 
-                      &quot;12-31-2016&quot;,
+                       min_date,
+                       # &quot;1-1-2013&quot;,
+                       max_date, 
+                       # &quot;12-31-2016&quot;,
                       &quot;17&quot;,
                       &quot;Station&quot;,
                       paste(station.vec, collapse = &quot;,&quot;)) %&gt;%
@@ -233,10 +239,10 @@ event.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
                       &quot;TidalPlankton&quot;,
                       &quot;MonitorEvent&quot;,
-                      #&quot;1-01-1970&quot;
-                      &quot;1-01-2013&quot;,
-                      #todays.date, 
-                      &quot;12-31-2016&quot;, 
+                       min_date,
+                       # &quot;1-1-2013&quot;,
+                       max_date, 
+                       # &quot;12-31-2016&quot;,
                       &quot;17&quot;,
                       &quot;Station&quot;,
                       paste(station.vec, collapse = &quot;,&quot;)) %&gt;%
@@ -277,9 +283,14 @@ event.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, 
 <pre class="r"><code>wq.df &lt;- data.table::fread(file.path(project.dir, &quot;data/water_quality/cedr_wq.csv&quot;),
                             data.table = FALSE,
                            na.strings = c(&quot;&quot;))</code></pre>
+<pre class="r"><code>wq_test.df &lt;- wq.df %&gt;%
+  filter(!parameter %in% c(&quot;chla&quot;, &quot;doc&quot;, &quot;pheo&quot;, &quot;salinity&quot;))</code></pre>
+<p>this snippet of Zach’s code removes any row flagged in the problem column(anything other than na) 28 items are removed from the list</p>
 <pre class="r"><code>wq.df &lt;- wq.df %&gt;%
-  filter(is.na(problem),
-         parameter %in% c(&quot;chla&quot;, &quot;doc&quot;, &quot;pheo&quot;, &quot;salinity&quot;))
+  filter(is.na(problem)#,
+         #parameter %in% c(&quot;chla&quot;, &quot;doc&quot;, &quot;pheo&quot;, &quot;salinity&quot;) ...removed because these are the only 4 parameters included so
+         #the code doesn't actually do anything
+         )
 
 wq.df &lt;- wq.df %&gt;%
   select(station, sampledate, layer, depth, parameter, measurevalue) %&gt;% #eventid,
@@ -291,6 +302,7 @@ wq.df &lt;- wq.df %&gt;%
   mutate(sampledate = as.Date(sampledate))</code></pre>
 <pre class="r"><code>event.df &lt;- event.df %&gt;%
   mutate(sampledate = as.Date(sampledate))</code></pre>
+<p>this is Zach’s code for use with use for (I believe) older data that uses older salzone designations, it’s doing nothing for our current data set (2013-2016)</p>
 <pre class="r"><code>event.df &lt;- event.df %&gt;%
   mutate(sampledate = as.Date(sampledate),
          salzone = case_when(
@@ -305,16 +317,111 @@ wq.df &lt;- wq.df %&gt;%
   mutate(sampledate = as.Date(sampledate)) %&gt;%
   select(station, sampledate, pdepth) %&gt;%
   dplyr::distinct()</code></pre>
-<p>applies pdepth to water quality dataframe (should be wq.df not stat_samp when fixed)</p>
-<pre class="r"><code>stat_samp &lt;- left_join(wq.df, pdepth.df, by = c(&quot;station&quot;, &quot;sampledate&quot;))</code></pre>
+<p>applies pdepth to water quality dataframe (should be wq.df or wq_w_pdepth not stat_samp when fixed) currently wq-9821 na pdepth wq values-2494</p>
+<pre class="r"><code>wq_w_pdepth.df &lt;- left_join(wq.df, pdepth.df, by = c(&quot;station&quot;, &quot;sampledate&quot;))</code></pre>
+<p>generates new dataframe with new parameter s_chla (539 items)</p>
+<pre class="r"><code>s_chla.df &lt;- wq_w_pdepth.df %&gt;%
+  filter(layer == &quot;s&quot;, 
+         parameter == &quot;chla&quot;) %&gt;% 
+  unite(parameter, c(&quot;layer&quot;, &quot;parameter&quot;), remove = FALSE) %&gt;%
+  filter(depth &lt;= pdepth) #%&gt;%
+  #filter(parameter==&quot;s_chla&quot;)</code></pre>
+<p>extracting depth integrated dataframe for each parameter note:doc has 559, and salinity 1578 items where all others have 665</p>
+<pre class="r"><code>di_doc.df &lt;- wq_w_pdepth.df %&gt;%
+  filter(depth &lt;= pdepth) %&gt;%
+  filter(parameter==&quot;doc&quot;) %&gt;%
+
+  group_by(station, sampledate) %&gt;%
+  mutate(avg_di_doc = mean(measurevalue, na.rm = TRUE)) %&gt;%
+  ungroup()
+
+di_chla.df &lt;- wq_w_pdepth.df %&gt;%
+  filter(depth &lt;= pdepth) %&gt;%
+  filter(parameter == &quot;chla&quot;) %&gt;%
+
+  group_by(station, sampledate) %&gt;%
+  mutate(avg_di_chla = mean(measurevalue, na.rm = TRUE)) %&gt;%
+  ungroup()
+
+di_salinity.df &lt;- wq_w_pdepth.df %&gt;%
+  filter(depth &lt;= pdepth) %&gt;%
+  filter(parameter == &quot;salinity&quot;) %&gt;%
+
+  group_by(station, sampledate) %&gt;%
+  mutate(avg_di_salinity = mean(measurevalue, na.rm = TRUE)) %&gt;%
+  ungroup()
+
+di_pheo.df &lt;- wq_w_pdepth.df %&gt;%
+  filter(depth &lt;= pdepth) %&gt;%
+  filter(parameter == &quot;pheo&quot;) %&gt;%
+
+  group_by(station, sampledate) %&gt;%
+  mutate(avg_di_pheo = mean(measurevalue, na.rm = TRUE)) %&gt;%
+  ungroup()</code></pre>
+<p>C- need to apply this to all sample, date combos but want to review with Claire first</p>
+<pre class="r"><code>di_salinity.df &lt;-di_salinity.df %&gt;%
+
+  mutate(salzone = case_when(
+    avg_di_salinity &gt;0 &amp; avg_di_salinity &lt;= 0.5 ~ &quot;F&quot;,
+    avg_di_salinity &gt; .5 &amp;  avg_di_salinity &lt;= 5 ~ &quot;O&quot;,
+    avg_di_salinity &gt; 5 &amp; avg_di_salinity &lt;= 18 ~ &quot;M&quot;,
+    avg_di_salinity &gt; 18~ &quot;P&quot;)
+  )</code></pre>
+<p>C- need to add s_chla as well but need to review process with Claire</p>
+<pre class="r"><code>#wq_joined.df &lt;- left_join(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df, by = c(&quot;station&quot;, &quot;sampledate&quot;))
+wq_all.df &lt;- Reduce(function(x, y) merge(x, y, all=TRUE), list(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df))</code></pre>
 </div>
+</div>
+<div id="taxanmoic-data-itis" class="section level3">
+<h3>Taxanmoic data (ITIS)</h3>
+<p>this is Zach’s code. It’s pretty neat.</p>
+<pre class="r"><code>col.class.vec &lt;- c(&quot;samplenumber&quot; = &quot;character&quot;,
+                   &quot;tsn&quot; = &quot;character&quot;,
+                   &quot;speccode&quot; = &quot;character&quot;,
+                   &quot;reportingvalue&quot; = &quot;integer&quot;)
+
+bay.temp &lt;- data.table::fread(file.path(project.dir,  &quot;data/CEDR/cedr_phyto_taxa.csv&quot;
+                                        #&quot;data/phytoplankton2/VA_ODU_phyto_taxa.csv&quot;
+                                        ),
+                            data.table = FALSE,
+                            colClasses = col.class.vec)</code></pre>
+<p>this test shows that 1794 have a tsn of 0(Zach explains there are no na, only 0, which is annoying)</p>
+<pre class="r"><code>need_tsn.df &lt;- bay.temp %&gt;%
+  filter(tsn==0)</code></pre>
+<p>changed all org_tsn references to tsn, because org_tsn does not exist in bay.temp. Also, first row is na’s and 0’s suggesting that the data has a space between the header, and that total number of ojects(3065) may be one over our actual values</p>
+<pre class="r"><code>hier.wide &lt;- lapply(unique(bay.temp$tsn), function(tsn.i) {
+ #print(tsn.i)
+  
+  if(ncol(usage(tsn.i)) == 0) return(data.frame(tsn = as.integer(tsn.i),
+                                                stringsAsFactors = FALSE))
+  if(!ritis::usage(tsn.i)$taxonUsageRating %in% c(&quot;accepted&quot;, &quot;valid&quot;)) {
+    tsn.accepted &lt;- ritis::accepted_names(as.integer(tsn.i))$acceptedTsn
+  } else {
+    tsn.accepted &lt;- as.integer(tsn.i)
+  }
+
+  full.df &lt;- ritis::hierarchy_full(tsn.accepted) %&gt;%
+    select(rankname, taxonname, tsn) %&gt;%
+    slice(1:which(tsn == tsn.accepted)) %&gt;%
+    mutate(tsn = as.integer(tsn.i),
+           final_tsn = as.integer(tsn.accepted),
+           final_id = slice(., which(tsn == tsn.accepted))$taxonname)
+}
+) %&gt;%
+  bind_rows() %&gt;%
+#   select(-tsn) %&gt;% 
+  #spread(rankname, taxonname) %&gt;%
+  clean_up()</code></pre>
+<p>removes the gap mentioned above</p>
+<pre class="r"><code>hier.wide&lt;- hier.wide %&gt;%
+  filter(!is.na(taxonname) &amp; !is.na(rankname))</code></pre>
 <div id="testing" class="section level4">
 <h4>Testing</h4>
-<pre class="r"><code>na &lt;- stat_samp %&gt;%
-  filter(is.na(stat_samp$pdepth))
-
-not_na &lt;- stat_samp %&gt;%
-  filter(!is.na(stat_samp$pdepth))</code></pre>
+<pre class="r"><code># na &lt;- stat_samp %&gt;%
+#   filter(is.na(stat_samp$pdepth))
+# 
+# not_na &lt;- stat_samp %&gt;%
+#   filter(!is.na(stat_samp$pdepth))</code></pre>
 </div>
 </div>
 
