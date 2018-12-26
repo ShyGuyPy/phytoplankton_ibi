@@ -415,6 +415,18 @@ bay.temp &lt;- data.table::fread(file.path(project.dir,  &quot;data/CEDR/cedr_ph
 <p>removes the gap mentioned above</p>
 <pre class="r"><code>hier.wide&lt;- hier.wide %&gt;%
   filter(!is.na(taxonname) &amp; !is.na(rankname))</code></pre>
+<pre class="r"><code>column.vec &lt;- c(&quot;org_tsn&quot;, &quot;final_tsn&quot;, &quot;final_id&quot;,
+                &quot;kingdom&quot;, &quot;subkingdom&quot;, &quot;infrakingdom&quot;, 
+                &quot;superdivision&quot;, &quot;division&quot;, &quot;subdivision&quot;, &quot;infradivision&quot;,
+                &quot;superphylum&quot;, &quot;phylum&quot;, &quot;subphylum&quot;, &quot;infraphylum&quot;, 
+                &quot;superclass&quot;, &quot;class&quot;, &quot;subclass&quot;, &quot;infraclass&quot;, 
+                &quot;superorder&quot;, &quot;order&quot;, &quot;suborder&quot;, &quot;infraorder&quot;, 
+                &quot;superfamily&quot;, &quot;family&quot;, &quot;subfamily&quot;, 
+                &quot;tribe&quot;, &quot;subtribe&quot;, 
+                &quot;genus&quot;, &quot;subgenus&quot;, 
+                &quot;species&quot;, &quot;subspecies&quot;)
+
+column.vec &lt;- column.vec[column.vec %in% names(hier.wide)]</code></pre>
 <div id="testing" class="section level4">
 <h4>Testing</h4>
 <pre class="r"><code># na &lt;- stat_samp %&gt;%

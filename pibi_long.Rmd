@@ -2,7 +2,12 @@
 title: "pibi_long"
 author: "Luke Vawter"
 date: "December 21, 2018"
-output: html_document
+output: 
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '6'
+    toc_float: yes
 ---
 
 ####Download Packages
@@ -298,7 +303,66 @@ di_pheo.df <- wq_w_pdepth.df %>%
 
 C-  need to apply this to all sample, date combos but want to review with Claire first
 ```{r}
-di_salinity.df <-di_salinity.df %>%
+# di_salinity.df <-di_salinity.df %>%
+# 
+#   mutate(salzone = case_when(
+#     avg_di_salinity >0 & avg_di_salinity <= 0.5 ~ "F",
+#     avg_di_salinity > .5 &  avg_di_salinity <= 5 ~ "O",
+#     avg_di_salinity > 5 & avg_di_salinity <= 18 ~ "M",
+#     avg_di_salinity > 18~ "P")
+#   )
+```
+
+C- need to add s_chla as well but need to review process with Claire
+```{r}
+#wq_joined.df <- left_join(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df, by = c("station", "sampledate"))
+wq_all.df <- Reduce(function(x, y) merge(x, y, all=TRUE), list(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df))
+```
+
+```{r}
+# wq_sz.df <- wq_all.df %>%
+#   select(station, sampledate, salzone) %>%
+#   distinct() %>%
+#   filter(!is.na(salzone))
+```
+
+```{r}
+# sal.df <- wq_all.df %>%
+#   group_by(station, sampledate) %>%
+#   mutate(apple= case_when(parameter == "salinity"~avg_di_salinity, 
+#                           parameter %in% c("pheo", "doc", "chla")~0)
+#          ) %>%
+#   summarise(apple = max(apple)) %>%
+#   ungroup() 
+# 
+# wq_sal.df <- left_join(wq_all.df, sal.df, by = c("station", "sampledate"))
+```
+
+generate dataframe...
+```{r}
+sal.df <- wq_all.df %>%
+  mutate(avg_di_salinity= case_when(parameter %in% c("pheo", "doc", "chla")~0, TRUE~avg_di_salinity)
+         ) %>%
+  filter(!is.na(avg_di_salinity))
+
+sal.df <- sal.df %>%
+  group_by(station, sampledate) %>%
+  summarise(avg_di_salinity = max(avg_di_salinity)) %>%
+  ungroup() 
+```
+
+
+```{r}
+wq_all.temp<- wq_all.df %>%
+  select(-avg_di_salinity)
+
+#wq_all_test.df < left_join(wq_all.temp, sal.df, by = c("station", "sampledate"))
+wq_all_test.df <- Reduce(function(x, y) merge(x, y, all=TRUE), list(wq_all.temp, sal.df))
+  
+```
+
+```{r}
+wq_all_test.df <-wq_all_test.df %>%
 
   mutate(salzone = case_when(
     avg_di_salinity >0 & avg_di_salinity <= 0.5 ~ "F",
@@ -308,11 +372,6 @@ di_salinity.df <-di_salinity.df %>%
   )
 ```
 
-C- need to add s_chla as well but need to review process with Claire
-```{r}
-#wq_joined.df <- left_join(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df, by = c("station", "sampledate"))
-wq_all.df <- Reduce(function(x, y) merge(x, y, all=TRUE), list(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df))
-```
 
 ###Taxanmoic data (ITIS)
 
@@ -335,6 +394,83 @@ this test shows that 1794 have a tsn of 0(Zach explains there are no na, only 0,
 need_tsn.df <- bay.temp %>%
   filter(tsn==0)
 ```
+
+tsn assignment code(reduces number of tsn not assinged to 1514 from 1794)
+```{r}
+taxa.df <- bay.temp %>% 
+  mutate(
+    tsn = as.integer(tsn),
+    tsn = case_when(
+      latinname == "navicula_notablis" ~ as.integer(4327),
+      latinname == "pleurosigma_macrum" ~ as.integer(4650),
+      latinname == "pleurosigma_obscurum" ~ as.integer(591383),
+      latinname == "polykrikos_hartmannii" ~ as.integer(331299),
+      latinname == "protoperidinium_aciculiderum" ~ as.integer(10329),
+      latinname == "protoperidinium_paulseni" ~ as.integer(3568),
+      latinname == "scrippsiella_favionese" ~ as.integer(10537),
+      latinname == "tetrastrum_caudatum" ~ as.integer(5691),
+      latinname == "didymocystis" ~ as.integer(5810),
+      latinname == "lauterborniella_elegantissima" ~ as.integer(6097),
+      latinname == "characium_sp." ~ as.integer(5756),
+      latinname == "cylindrospermopsis_sp." ~ as.integer(203689),
+      latinname == "chaetoceros_neogracilis" ~ as.integer(1004011),
+      latinname == "navicula_retusa_cancellata" ~ as.integer(1020372),
+      latinname == "karlodinium_micrum" ~ as.integer(180904),
+      latinname == "lagerheimia" ~ as.integer(6017),
+      latinname == "quadricoccus_euryhalinicus" ~ as.integer(957939),
+      latinname == "scrippsiella_precaria" ~ as.integer(10536),
+      latinname == "psuedosolenia_calcar-avis" ~ as.integer(970064),
+      latinname == "centronella" ~ as.integer(970064),
+      latinname == "amphidinium_tatrae" ~ as.integer(9997),
+      latinname == "navicula_lata" ~ as.integer(4450),
+      latinname == "nitzschia_vitrea_recta" ~ as.integer(5204),
+      latinname == "rhaphoneis_gemmifera" ~ as.integer(3145),
+      latinname == "delphineis_surirella" ~ as.integer(969978),
+      latinname == "navicula_annulata" ~ as.integer(3649),
+      latinname == "proboscia_alata_gracillima" ~ as.integer(610099),
+      latinname == "guinardia_striata" ~ as.integer(2921),
+      latinname == "guinardia_cylindrus" ~ as.integer(2921),
+      latinname == "aphanizomenon_issatschenkoi" ~ as.integer(1191),
+      latinname == "helicotheca_tamesis" ~ as.integer(590815),
+      latinname == "corethron_valdivae" ~ as.integer(2386),
+      latinname == "gonyaulax_conjuncta" ~ as.integer(10359),
+      latinname == "lioloma_delicatulum" ~ as.integer(573597),
+      latinname == "syracosphaera_histrica" ~ as.integer(2234),
+      latinname == "rhizosolenia_formosa" ~ as.integer(2879),
+      latinname == "proboscla_alata_curvirostris" ~ as.integer(610099),
+      latinname == "membraneis_challengeri" ~ as.integer(3648),
+      latinname == "chrysococcus_tesselatus" ~ as.integer(1751),
+      latinname == "rhoicosphenia_abbreviata" ~ as.integer(3633),
+      latinname == "protoperidinium_aciculiferum" ~ as.integer(10340),
+      latinname == "protoperidinium_fimbriatum" ~ as.integer(10340),
+      latinname == "licmophora_inflata" ~ as.integer(3155),
+      latinname == "biddulphia_reticulata" ~ as.integer(2678),
+      latinname == "caloneis_lepidula" ~ as.integer(4369),
+      latinname == "caloneis_trinodis" ~ as.integer(4369),
+      latinname == "amphiprora_cholnokyi" ~ as.integer(4674),
+      latinname == "navicula_interrupta" ~ as.integer(3649),
+      latinname == "cerataulus_radiatus" ~ as.integer(2709),
+      latinname == "gyrosigma_balticum_silimis" ~ as.integer(4623),
+      latinname == "dictyocha_siderea" ~ as.integer(1804),
+      latinname == "odontella_alternans" ~ as.integer(573604),
+      latinname == "nitzschia_vitrea_salinarum" ~ as.integer(5204),
+      latinname == "proboscla_alata_indica" ~ as.integer(610099),
+      latinname == "attheya_decora" ~ as.integer(2876),
+      latinname == "synedra_closterioides" ~ as.integer(970065),
+      latinname == "trinacria_regina" ~ as.integer(2747),
+      latinname == "chattonella" ~ as.integer(969917),
+      latinname == "chattonella_subsalsa" ~ as.integer(969917),
+      latinname == "heterosigma_akashiwo" ~ as.integer(969917),
+      latinname == "vibrio_fisheri" ~ as.integer(959178),
+      TRUE ~ as.integer(tsn)
+    )
+  )
+```
+
+```{r}
+taxa_need_tsn.df <- taxa.df %>%
+  filter(tsn==0)
+``` 
 
 changed all org_tsn references to tsn, because org_tsn does not exist in bay.temp.
 Also, first row is na's and 0's suggesting that the data has a space between the header, and that total number of
@@ -371,6 +507,27 @@ hier.wide<- hier.wide %>%
   filter(!is.na(taxonname) & !is.na(rankname))
 ```
 
+```{r}
+column.vec <- c("org_tsn", "final_tsn", "final_id",
+                "kingdom", "subkingdom", "infrakingdom", 
+                "superdivision", "division", "subdivision", "infradivision",
+                "superphylum", "phylum", "subphylum", "infraphylum", 
+                "superclass", "class", "subclass", "infraclass", 
+                "superorder", "order", "suborder", "infraorder", 
+                "superfamily", "family", "subfamily", 
+                "tribe", "subtribe", 
+                "genus", "subgenus", 
+                "species", "subspecies")
+
+column.vec <- column.vec[column.vec %in% names(hier.wide)]
+```
+
+```{r}
+dir.create(file.path(project.dir, "data/itis"),
+           recursive = TRUE, showWarnings = FALSE)
+
+data.table::fwrite(hier.wide, file.path(rprojroot::find_rstudio_root_file(), "data/itis", "itis_hierarchy.csv"))
+```
 
 
 ####Testing
