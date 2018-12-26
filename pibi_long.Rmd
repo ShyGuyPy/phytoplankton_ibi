@@ -565,23 +565,25 @@ data.table::fwrite(hier.wide, file.path(rprojroot::find_rstudio_root_file(), "da
 # not_na <- stat_samp %>%
 #   filter(!is.na(stat_samp$pdepth))
 
-pico.df <- file.path(url.root,
-                      "LivingResources",
-                      "TidalPlankton",
-                      "Reported",
-                       min_date,
-                       # "1-1-2013",
-                       max_date, 
-                       # "12-31-2016",
-                      #"Picoplankton",
-                       "18",
-                      "Station",
-                      paste(station.vec, collapse = ",")) %>%
-  fromJSON() %>% 
-  clean_up()
+# pico.df <- file.path(url.root,
+#                       "LivingResources",
+#                       "TidalPlankton",
+#                       "Reported",
+#                        min_date,
+#                        # "1-1-2013",
+#                        max_date, 
+#                        # "12-31-2016",
+#                       #"Picoplankton",
+#                        "18",
+#                       "Station",
+#                       paste(station.vec, collapse = ",")) %>%
+#   fromJSON() %>% 
+#   clean_up()
+# 
+# stat <- pico_test.df %>%
+#   select(station) %>%
+#   distinct()
 
-stat <- pico_test.df %>%
-  select(station) %>%
-  distinct()
+
 ```
 
