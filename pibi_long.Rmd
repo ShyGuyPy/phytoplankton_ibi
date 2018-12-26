@@ -152,6 +152,29 @@ dir.create(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR"),
 data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_event.csv"))
 ```
 
+pico data(note that the number above "station" is now 18 rather than 17.  The project id for picoplankton is 18, and 17 for phytoplankton)
+```{r}
+pico.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "Reported",
+                       min_date,
+                       # "1-1-2013",
+                       max_date, 
+                       # "12-31-2016",
+                       "18",
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+pico.df %>% 
+  mutate(reportingvalue = as.character(reportingvalue)) %>% #need this?
+data.table::fwrite(file.path(project.dir, "data/VA_ODU/", "VA_ODU_pico_taxa.csv"))
+```
+
+
 ### Read csv's t dataframes
 
 CEDR
@@ -159,6 +182,8 @@ CEDR
 phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
 
 event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+pico.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
 
 ```
 
@@ -361,8 +386,9 @@ wq_all_test.df <- Reduce(function(x, y) merge(x, y, all=TRUE), list(wq_all.temp,
   
 ```
 
+assign salzones
 ```{r}
-wq_all_test.df <-wq_all_test.df %>%
+wq_sal.df <-wq_all_test.df %>%
 
   mutate(salzone = case_when(
     avg_di_salinity >0 & avg_di_salinity <= 0.5 ~ "F",
@@ -522,6 +548,7 @@ column.vec <- c("org_tsn", "final_tsn", "final_id",
 column.vec <- column.vec[column.vec %in% names(hier.wide)]
 ```
 
+save the itis data to a csv
 ```{r}
 dir.create(file.path(project.dir, "data/itis"),
            recursive = TRUE, showWarnings = FALSE)
@@ -537,5 +564,24 @@ data.table::fwrite(hier.wide, file.path(rprojroot::find_rstudio_root_file(), "da
 # 
 # not_na <- stat_samp %>%
 #   filter(!is.na(stat_samp$pdepth))
+
+pico.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "Reported",
+                       min_date,
+                       # "1-1-2013",
+                       max_date, 
+                       # "12-31-2016",
+                      #"Picoplankton",
+                       "18",
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+stat <- pico_test.df %>%
+  select(station) %>%
+  distinct()
 ```
 
