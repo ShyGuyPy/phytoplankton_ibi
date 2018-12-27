@@ -154,11 +154,16 @@ data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), "dat
 
 
 COMPARE STEP 1
-note: 824 to 835 in your excel
+note: both have 824 elements
 ```{r}
 step_1.df <- event.df
 
 data.table::fwrite(step_1.df, file.path(project.dir, "data/test", "step_1.csv"))
+
+s1_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step1.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+library(compare)
+
+compare::compare(step_1.df, s1_compare.df)
 ```
 
 
@@ -284,10 +289,13 @@ pdepth.df <- event.df %>%
 ```
 
 COMPARE STEP 2
+both 533
 ```{r}
 step_2.df <- pdepth.df
 
 data.table::fwrite(step_2.df, file.path(project.dir, "data/test", "step_2.csv"))
+
+s2_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step2.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
 ```
 
 
@@ -308,17 +316,29 @@ wq_w_pdepth.df <- wq_w_pdepth.df %>%
 
 
 COMPARE STEP 3
-note: 9821 to 7369 in Claire's excel
+note: 9821 to 7358 in Claire's excel
 ```{r}
 step_3.df <- wq_w_pdepth.df
 
 data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
+
+s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+
 ```
 
 
 ```{r}
 wq_w_pdepth.df <- wq_w_pdepth.df%>%
   filter(depth <= pdepth)
+```
+
+
+COMPARE STEP 4
+note: 3467 to 3492 in Claire's excel
+```{r}
+step_4.df <- wq_w_pdepth.df
+
+data.table::fwrite(step_4.df, file.path(project.dir, "data/test", "step_4.csv"))
 ```
 
 
