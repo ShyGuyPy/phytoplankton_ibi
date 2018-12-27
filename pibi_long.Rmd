@@ -42,6 +42,8 @@ these varaible should be changed by the user as needed
 min_date = "1-1-2013"
 #this is the minimum date to be included sdd the variable todays.date intot his variable if you want the most recent data
 max_date = "12-31-2016"
+
+#data_source = ""
 ```
 
 variables and functions that will likely not be changed
@@ -78,6 +80,9 @@ dir.create(file.path(project.dir, "data/MD_DNR/"),
            recursive = TRUE, showWarnings = FALSE)
 
 dir.create(file.path(project.dir, "data/water_quality"),
+           recursive = TRUE, showWarnings = FALSE)
+
+dir.create(file.path(project.dir, "data/itis"),
            recursive = TRUE, showWarnings = FALSE)
 
 
@@ -118,8 +123,6 @@ phyto.df <- file.path(url.root,
 
 
 
-dir.create(file.path(project.dir, "data/CEDR"),
-           recursive = TRUE, showWarnings = FALSE)
 phyto.df %>% 
   mutate(reportingvalue = as.character(reportingvalue)) %>% 
 data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_taxa.csv"))
@@ -146,11 +149,19 @@ event.df <- file.path(url.root,
 
 
 
-dir.create(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR"),
-           recursive = TRUE, showWarnings = FALSE)
-
 data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_event.csv"))
 ```
+
+
+COMPARE STEP 1
+note: 824 to 835 in your excel
+```{r}
+step_1.df <- event.df
+
+data.table::fwrite(step_1.df, file.path(project.dir, "data/test", "step_1.csv"))
+```
+
+
 
 pico data(note that the number above "station" is now 18 rather than 17.  The project id for picoplankton is 18, and 17 for phytoplankton)
 ```{r}
@@ -171,7 +182,7 @@ pico.df <- file.path(url.root,
 
 pico.df %>% 
   mutate(reportingvalue = as.character(reportingvalue)) %>% #need this?
-data.table::fwrite(file.path(project.dir, "data/VA_ODU/", "VA_ODU_pico_taxa.csv"))
+data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
 ```
 
 
@@ -183,7 +194,7 @@ phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_t
 
 event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
 
-pico.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+pico.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
 
 ```
 
@@ -272,6 +283,14 @@ pdepth.df <- event.df %>%
   dplyr::distinct()
 ```
 
+COMPARE STEP 2
+```{r}
+step_2.df <- pdepth.df
+
+data.table::fwrite(step_2.df, file.path(project.dir, "data/test", "step_2.csv"))
+```
+
+
 applies pdepth to water quality dataframe
 (should be wq.df or wq_w_pdepth not stat_samp when fixed)
 currently wq-9821
@@ -280,13 +299,36 @@ na pdepth wq values-2494
 wq_w_pdepth.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
 ```
 
+determine if depth is above pdepth
+```{r}
+wq_w_pdepth.df <- wq_w_pdepth.df %>%
+  mutate(above_pdepth = case_when(depth <= pdepth~FALSE,
+                                  depth > pdepth~TRUE))
+```
+
+
+COMPARE STEP 3
+note: 9821 to 7369 in Claire's excel
+```{r}
+step_3.df <- wq_w_pdepth.df
+
+data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
+```
+
+
+```{r}
+wq_w_pdepth.df <- wq_w_pdepth.df%>%
+  filter(depth <= pdepth)
+```
+
+
 generates new dataframe with new parameter s_chla (539 items)
 ```{r}
 s_chla.df <- wq_w_pdepth.df %>%
   filter(layer == "s", 
          parameter == "chla") %>% 
-  unite(parameter, c("layer", "parameter"), remove = FALSE) %>%
-  filter(depth <= pdepth) #%>%
+  unite(parameter, c("layer", "parameter"), remove = FALSE) #%>%
+  # filter(depth <= pdepth) #%>%
   #filter(parameter=="s_chla")
 ```
 
@@ -294,7 +336,7 @@ extracting depth integrated dataframe for each parameter
 note:doc has 559, and salinity 1578 items where all others have 665
 ```{r}
 di_doc.df <- wq_w_pdepth.df %>%
-  filter(depth <= pdepth) %>%
+  #filter(depth <= pdepth) %>%
   filter(parameter=="doc") %>%
 
   group_by(station, sampledate) %>%
@@ -302,7 +344,7 @@ di_doc.df <- wq_w_pdepth.df %>%
   ungroup()
 
 di_chla.df <- wq_w_pdepth.df %>%
-  filter(depth <= pdepth) %>%
+  #filter(depth <= pdepth) %>%
   filter(parameter == "chla") %>%
 
   group_by(station, sampledate) %>%
@@ -310,7 +352,7 @@ di_chla.df <- wq_w_pdepth.df %>%
   ungroup()
 
 di_salinity.df <- wq_w_pdepth.df %>%
-  filter(depth <= pdepth) %>%
+  #filter(depth <= pdepth) %>%
   filter(parameter == "salinity") %>%
 
   group_by(station, sampledate) %>%
@@ -318,7 +360,7 @@ di_salinity.df <- wq_w_pdepth.df %>%
   ungroup()
 
 di_pheo.df <- wq_w_pdepth.df %>%
-  filter(depth <= pdepth) %>%
+  #filter(depth <= pdepth) %>%
   filter(parameter == "pheo") %>%
 
   group_by(station, sampledate) %>%
@@ -338,10 +380,12 @@ C-  need to apply this to all sample, date combos but want to review with Claire
 #   )
 ```
 
-C- need to add s_chla as well but need to review process with Claire
 ```{r}
 #wq_joined.df <- left_join(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df, by = c("station", "sampledate"))
-wq_all.df <- Reduce(function(x, y) merge(x, y, all=TRUE), list(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df))
+wq_all.df <- Reduce(function(x, y) merge(x, y, all=TRUE), list(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df))#, s_chla.df))
+
+di_wq_all.df <- wq_all.df %>%
+  filter(above_pdepth == TRUE) #depth <= pdepth) 
 ```
 
 ```{r}
@@ -550,8 +594,7 @@ column.vec <- column.vec[column.vec %in% names(hier.wide)]
 
 save the itis data to a csv
 ```{r}
-dir.create(file.path(project.dir, "data/itis"),
-           recursive = TRUE, showWarnings = FALSE)
+
 
 data.table::fwrite(hier.wide, file.path(rprojroot::find_rstudio_root_file(), "data/itis", "itis_hierarchy.csv"))
 ```
@@ -584,6 +627,11 @@ data.table::fwrite(hier.wide, file.path(rprojroot::find_rstudio_root_file(), "da
 #   select(station) %>%
 #   distinct()
 
+# no_p.df<- pdepth.df %>%
+#   filter(!station%in%c("tf3.3","tf4.2","tf5.5","ret3.1","ret4.3","ret3.1") & is.na(pdepth) & layer %in% c("ap", "wc"))
+
+
+            
 
 ```
 
