@@ -161,9 +161,6 @@ step_1.df <- event.df
 data.table::fwrite(step_1.df, file.path(project.dir, "data/test", "step_1.csv"))
 
 s1_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step1.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
-library(compare)
-
-compare::compare(step_1.df, s1_compare.df)
 ```
 
 
@@ -339,6 +336,8 @@ note: 3467 to 3492 in Claire's excel
 step_4.df <- wq_w_pdepth.df
 
 data.table::fwrite(step_4.df, file.path(project.dir, "data/test", "step_4.csv"))
+
+s4_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step4.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
 ```
 
 
