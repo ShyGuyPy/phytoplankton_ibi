@@ -219,7 +219,6 @@ wq.df <- file.path(url.root,
 
 ```
 
-
 ```{r}
 data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
@@ -231,23 +230,58 @@ wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.cs
                            na.strings = c(""))
 ```
 
+run from war wq(right after CEDR pull) note: this is actually STEP 3
 ```{r}
-wq_test.df <- wq.df %>%
-  filter(!parameter %in% c("chla", "doc", "pheo", "salinity"))
+#create concatinated id for phyto events
+phyto.df <- phyto.df %>%
+  mutate( sampledate =  as.Date(sampledate)) %>%
+  mutate(concat = paste0(station, sampledate))
+
+#create concatinated id for water quality data
+wq.df <- wq.df %>%
+  mutate( sampledate =  as.Date(sampledate)) %>%
+  mutate(concat = paste0(station, sampledate))
+
+#create a vector to store concatinated ids from phyto events
+concat_vector <- pull(phyto.df, concat)
+
+#include only the data in water quality data that has a matching concat id with phyto events
+wq.df <-wq.df %>%
+  filter(concat %in% concat_vector)
+  
 ```
 
+COMPARE STEP 3
+note: 9821 to 7358 in Claire's excel
+```{r}
+step_3.df <- wq.df
+
+data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
+
+s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+
+```
 
 this snippet of Zach's code removes any row flagged in the problem column(anything other than na)
 28 items are removed from the list
+do we want this?
 ```{r}
-wq.df <- wq.df %>%
-  filter(is.na(problem)#,
+# wq.df <- wq.df %>%
+#   filter(is.na(problem)
+        #) 
+
+
+         #,
          #parameter %in% c("chla", "doc", "pheo", "salinity") ...removed because these are the only 4 parameters included so
          #the code doesn't actually do anything
-         )
+         
+#)
+```
 
+selects columns from wq (eventid recently added)
+```{r}
 wq.df <- wq.df %>%
-  select(station, sampledate, layer, depth, parameter, measurevalue) %>% #eventid,
+  select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %>% #eventid,
   mutate(sampledate=as.Date(sampledate))
 ```
 
@@ -312,15 +346,68 @@ wq_w_pdepth.df <- wq_w_pdepth.df %>%
 ```
 
 
-COMPARE STEP 3
-note: 9821 to 7358 in Claire's excel
+
+
+test script for step 3
 ```{r}
-step_3.df <- wq_w_pdepth.df
+step_3_test.df <- step_3.df %>%
+  group_by(eventid) %>% #, sampledate) %>%
+  mutate(total_in_group = n()) %>%
+  summarise() %>%
+  ungroup()
+  
+s3_compare.df <- s3_compare.df %>%
+  mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
 
-data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
+s3_compare_test.df <- s3_compare.df %>%
+  group_by(wq_eventid) %>%
+  mutate(total_in_group = n()) %>%
+  summarise() %>%
+  ungroup()
 
-s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+id_vector <- pull(s3_compare_test.df, wq_eventid)
 
+step_3_by_id <-wq.df %>%
+  filter(eventid %in% id_vector)
+
+step_3_to_exclude <- wq.df %>%
+  filter(!eventid %in% id_vector)
+
+s3_wq_dates.df <- data.table::fread(file.path(project.dir, "data/test/", "wq_dates.csv")) %>% clean_up() %>%
+  mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
+  # group_by(sampledate) %>%
+  # mutate(total_in_group = n()) %>%
+  # summarise() %>%
+  # ungroup()
+
+test_7358 <- step_3.df %>%
+  #filter(is.na(problem))
+  filter(layer %in% c("s","a","p","m")) %>%
+
+test_missing <-  
+
+  
+```
+
+run from war wq(right after CEDR pull)
+```{r}
+#create concatinated id for phyto events
+phyto.df <- phyto.df %>%
+  mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y')) %>%
+  mutate(concat = paste0(station, sampledate))
+
+#create concatinated id for water quality data
+wq.df <- wq.df %>%
+  mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y')) %>%
+  mutate(concat = paste0(station, sampledate))
+
+#create a vector to store concatinated ids from phyto events
+concat_vector <- pull(phyto.df, concat)
+
+#include only the data in water quality data that has a matching concat id with phyto events
+wq.df <-wq.df %>%
+  filter(concat %in% concat_vector)
+  
 ```
 
 
