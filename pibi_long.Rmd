@@ -247,18 +247,7 @@ concat_vector <- pull(phyto.df, concat)
 
 #include only the data in water quality data that has a matching concat id with phyto events
 wq.df <-wq.df %>%
-  filter(concat %in% concat_vector)
-  
-```
-
-COMPARE STEP 3
-note: 9821 to 7358 in Claire's excel
-```{r}
-step_3.df <- wq.df
-
-data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
-
-s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+  filter(concat %in% concat_vector) 
 
 ```
 
@@ -284,6 +273,13 @@ wq.df <- wq.df %>%
   select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %>% #eventid,
   mutate(sampledate=as.Date(sampledate))
 ```
+
+```{r}
+# step_3_test.df <- wq.df
+# 
+# data.table::fwrite(step_3_test.df, file.path(project.dir, "data/test", "step_3_test.csv"))
+```
+
 
 ####Prep Event
 
@@ -345,74 +341,62 @@ wq_w_pdepth.df <- wq_w_pdepth.df %>%
                                   depth > pdepth~TRUE))
 ```
 
+COMPARE STEP 3
+note: 7358 to 7358 in Claire's excel
+```{r}
+step_3.df <- wq_w_pdepth.df
 
+data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
+
+s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+
+```
 
 
 test script for step 3
 ```{r}
-step_3_test.df <- step_3.df %>%
-  group_by(eventid) %>% #, sampledate) %>%
-  mutate(total_in_group = n()) %>%
-  summarise() %>%
-  ungroup()
-  
-s3_compare.df <- s3_compare.df %>%
-  mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
+# step_3_test.df <- step_3.df %>%
+#   group_by(eventid) %>% #, sampledate) %>%
+#   mutate(total_in_group = n()) %>%
+#   summarise() %>%
+#   ungroup()
+#   
+# s3_compare.df <- s3_compare.df %>%
+#   mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
+# 
+# s3_compare_test.df <- s3_compare.df %>%
+#   group_by(wq_eventid) %>%
+#   mutate(total_in_group = n()) %>%
+#   summarise() %>%
+#   ungroup()
+# 
+# id_vector <- pull(s3_compare_test.df, wq_eventid)
+# 
+# step_3_by_id <-wq.df %>%
+#   filter(eventid %in% id_vector)
+# 
+# step_3_to_exclude <- wq.df %>%
+#   filter(!eventid %in% id_vector)
+# 
+# s3_wq_dates.df <- data.table::fread(file.path(project.dir, "data/test/", "wq_dates.csv")) %>% clean_up() %>%
+#   mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
+#   # group_by(sampledate) %>%
+#   # mutate(total_in_group = n()) %>%
+#   # summarise() %>%
+#   # ungroup()
+# 
+# test_7358 <- step_3.df %>%
+#   #filter(is.na(problem))
+#   filter(layer %in% c("s","a","p","m")) %>%
+# 
+# test_missing <-  
 
-s3_compare_test.df <- s3_compare.df %>%
-  group_by(wq_eventid) %>%
-  mutate(total_in_group = n()) %>%
-  summarise() %>%
-  ungroup()
-
-id_vector <- pull(s3_compare_test.df, wq_eventid)
-
-step_3_by_id <-wq.df %>%
-  filter(eventid %in% id_vector)
-
-step_3_to_exclude <- wq.df %>%
-  filter(!eventid %in% id_vector)
-
-s3_wq_dates.df <- data.table::fread(file.path(project.dir, "data/test/", "wq_dates.csv")) %>% clean_up() %>%
-  mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
-  # group_by(sampledate) %>%
-  # mutate(total_in_group = n()) %>%
-  # summarise() %>%
-  # ungroup()
-
-test_7358 <- step_3.df %>%
-  #filter(is.na(problem))
-  filter(layer %in% c("s","a","p","m")) %>%
-
-test_missing <-  
-
-  
-```
-
-run from war wq(right after CEDR pull)
-```{r}
-#create concatinated id for phyto events
-phyto.df <- phyto.df %>%
-  mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y')) %>%
-  mutate(concat = paste0(station, sampledate))
-
-#create concatinated id for water quality data
-wq.df <- wq.df %>%
-  mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y')) %>%
-  mutate(concat = paste0(station, sampledate))
-
-#create a vector to store concatinated ids from phyto events
-concat_vector <- pull(phyto.df, concat)
-
-#include only the data in water quality data that has a matching concat id with phyto events
-wq.df <-wq.df %>%
-  filter(concat %in% concat_vector)
   
 ```
 
-
+filters out dpeths below pdepth
 ```{r}
-wq_w_pdepth.df <- wq_w_pdepth.df%>%
+wq_above_pdepth.df <- wq_w_pdepth.df%>%
   filter(depth <= pdepth)
 ```
 
@@ -420,12 +404,48 @@ wq_w_pdepth.df <- wq_w_pdepth.df%>%
 COMPARE STEP 4
 note: 3467 to 3492 in Claire's excel
 ```{r}
-step_4.df <- wq_w_pdepth.df
+step_4.df <- wq_above_pdepth.df
 
 data.table::fwrite(step_4.df, file.path(project.dir, "data/test", "step_4.csv"))
 
 s4_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step4.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
 ```
+
+```{r}
+step_4_modified.df <- step_4.df %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  #select(-sampledate, above_pdepth) %>%
+  mutate(author = "Luke")
+
+# s4_compare.df <- s4_compare.df %>%
+#   mutate(sampledate = as.Date(sampledate))
+
+s4_compare_modified.df <- s4_compare.df %>%
+  rename(above_pdepth = `above_p_depth?`) %>%
+  rename(eventid = wq_eventid) %>%
+  rename(pdepth = p_depth) %>%
+  select(station, sampledate, layer, depth, parameter, measurevalue, eventid, pdepth, above_pdepth) %>%
+  #select(-sampledate, -above_pdepth) %>%
+  mutate(author = "Claire")
+
+
+```
+
+
+the objects in diff_check2.df are the 4 entries that exist in Claire's data but not in mine.  Weird
+```{r}
+
+#diff_check.df <- left_join(step_4_modified.df, s4_compare_modified.df)
+
+diff_check2.df <- anti_join(s4_compare_modified.df, step_4_modified.df, by = c("station", "layer", "depth", "parameter", "measurevalue", "eventid", "pdepth")) 
+
+# author_check.df <- diff_check.df %>%
+#   filter(author == "Claire")
+```
+
+
+
+##################
 
 
 generates new dataframe with new parameter s_chla (539 items)
