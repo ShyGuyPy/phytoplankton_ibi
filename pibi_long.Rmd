@@ -231,6 +231,7 @@ wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.cs
 ```
 
 run from war wq(right after CEDR pull) note: this is actually STEP 3
+we reduce the wq data to match teh phyto data
 ```{r}
 #create concatinated id for phyto events
 phyto.df <- phyto.df %>%
@@ -402,7 +403,7 @@ wq_above_pdepth.df <- wq_w_pdepth.df%>%
 
 
 COMPARE STEP 4
-note: 3467 to 3492 in Claire's excel
+note: 3477 to 3481(83?) in Claire's excel
 ```{r}
 step_4.df <- wq_above_pdepth.df
 
@@ -432,7 +433,7 @@ s4_compare_modified.df <- s4_compare.df %>%
 ```
 
 
-the objects in diff_check2.df are the 4 entries that exist in Claire's data but not in mine.  Weird
+the objects in diff_check2.df are the 4 entries that exist in Claire's data but not in mine.  An exception needs to be written for such cases:
 ```{r}
 
 #diff_check.df <- left_join(step_4_modified.df, s4_compare_modified.df)
@@ -444,24 +445,66 @@ diff_check2.df <- anti_join(s4_compare_modified.df, step_4_modified.df, by = c("
 ```
 
 
-
-##################
-
-
-generates new dataframe with new parameter s_chla (539 items)
+generates new dataframe with new parameter s_chla (539 items, should be 533)
 ```{r}
-s_chla.df <- wq_w_pdepth.df %>%
+s_chla.df <- wq_above_pdepth.df %>%
   filter(layer == "s", 
          parameter == "chla") %>% 
   unite(parameter, c("layer", "parameter"), remove = FALSE) #%>%
   # filter(depth <= pdepth) #%>%
   #filter(parameter=="s_chla")
+
+```
+
+```{r}
+s_chla.df <- s_chla.df %>%
+  group_by(station, sampledate) %>%
+  mutate(avg_di_s_chla = mean(measurevalue, na.rm = TRUE)) %>%
+  ungroup()
+```
+
+Average replicates from s_chla ...measure value average
+```{r}
+s_chla.df <- s_chla.df %>%
+  group_by(station, sampledate, depth) %>%
+  #do not remove NAs
+  mutate(measurevalue_average = mean(measurevalue)) %>%
+  ungroup()
+
+```
+
+STEP 5 COMPARE
+my 539 to Claire's 533
+```{r}
+step_5.df <- s_chla.df
+
+data.table::fwrite(step_5.df, file.path(project.dir, "data/test", "step_5.csv"))
+
+s4_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step5.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+```
+
+
+
+
+
+Averge replicates for the rest of the data ...measure value average
+```{r}
+wq_above_pdepth.df <- wq_above_pdepth.df %>%
+  group_by(station, sampledate, depth) %>%
+  #do not remove NAs
+  mutate(measurevalue_average = mean(measurevalue)) %>%
+  ungroup()
+```
+
+COMPARE STEP 6 (Claire's is 3360)
+```{r}
+
 ```
 
 extracting depth integrated dataframe for each parameter
-note:doc has 559, and salinity 1578 items where all others have 665
+note:doc has 560, and salinity 1585 items where all others have 666
 ```{r}
-di_doc.df <- wq_w_pdepth.df %>%
+di_doc.df <- wq_above_pdepth.df %>%
   #filter(depth <= pdepth) %>%
   filter(parameter=="doc") %>%
 
@@ -469,7 +512,7 @@ di_doc.df <- wq_w_pdepth.df %>%
   mutate(avg_di_doc = mean(measurevalue, na.rm = TRUE)) %>%
   ungroup()
 
-di_chla.df <- wq_w_pdepth.df %>%
+di_chla.df <- wq_above_pdepth.df %>%
   #filter(depth <= pdepth) %>%
   filter(parameter == "chla") %>%
 
@@ -477,7 +520,7 @@ di_chla.df <- wq_w_pdepth.df %>%
   mutate(avg_di_chla = mean(measurevalue, na.rm = TRUE)) %>%
   ungroup()
 
-di_salinity.df <- wq_w_pdepth.df %>%
+di_salinity.df <- wq_above_pdepth.df %>%
   #filter(depth <= pdepth) %>%
   filter(parameter == "salinity") %>%
 
@@ -485,7 +528,7 @@ di_salinity.df <- wq_w_pdepth.df %>%
   mutate(avg_di_salinity = mean(measurevalue, na.rm = TRUE)) %>%
   ungroup()
 
-di_pheo.df <- wq_w_pdepth.df %>%
+di_pheo.df <- wq_above_pdepth.df %>%
   #filter(depth <= pdepth) %>%
   filter(parameter == "pheo") %>%
 
@@ -493,6 +536,13 @@ di_pheo.df <- wq_w_pdepth.df %>%
   mutate(avg_di_pheo = mean(measurevalue, na.rm = TRUE)) %>%
   ungroup()
 ```
+
+
+COMPARE STEP 7 (Claire's is 2024)
+```{r}
+
+```
+
 
 C-  need to apply this to all sample, date combos but want to review with Claire first
 ```{r}
@@ -513,6 +563,16 @@ wq_all.df <- Reduce(function(x, y) merge(x, y, all=TRUE), list(di_doc.df, di_chl
 di_wq_all.df <- wq_all.df %>%
   filter(above_pdepth == TRUE) #depth <= pdepth) 
 ```
+
+```{r}
+wq_all.df <- wq_all.df %>%
+  mutate(salzone = case_when(
+    avg_di_salinity >0 & avg_di_salinity <= 0.5 ~ "F",
+    avg_di_salinity > .5 &  avg_di_salinity <= 5 ~ "O",
+    avg_di_salinity > 5 & avg_di_salinity <= 18 ~ "M",
+    avg_di_salinity > 18~ "P"))
+```
+
 
 ```{r}
 # wq_sz.df <- wq_all.df %>%
