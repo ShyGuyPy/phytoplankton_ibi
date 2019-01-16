@@ -43,6 +43,12 @@ min_date = "1-1-2013"
 #this is the minimum date to be included sdd the variable todays.date intot his variable if you want the most recent data
 max_date = "12-31-2016"
 
+#number for picoplankton in CEDR api
+pico_num = "18"
+
+#number for phytoplankton in CEDR api
+phyto_num <- "17"
+
 #data_source = ""
 ```
 
@@ -94,10 +100,11 @@ station.vec <- file.path(url.root,
                        # "1-1-2013",
                        max_date, 
                        # "12-31-2016",
-                       "17",
+                       phyto_num,
                        "Station") %>% 
   fromJSON() %>% 
   pull(unique(MonitoringLocationId))
+
 ```
 
 ####CEDR data
@@ -106,6 +113,7 @@ station.vec <- file.path(url.root,
 
 this pulls the sample and event data from cedr
 ```{r}
+
 phyto.df <- file.path(url.root,
                       "LivingResources",
                       "TidalPlankton",
@@ -114,7 +122,7 @@ phyto.df <- file.path(url.root,
                        # "1-1-2013",
                        max_date, 
                        # "12-31-2016",
-                      "17",
+                      phyto_num,
                       "Station",
                       paste(station.vec, collapse = ",")) %>%
   fromJSON() %>% 
@@ -139,7 +147,7 @@ event.df <- file.path(url.root,
                        # "1-1-2013",
                        max_date, 
                        # "12-31-2016",
-                      "17",
+                      phyto_num,
                       "Station",
                       paste(station.vec, collapse = ",")) %>%
   fromJSON() %>% 
@@ -175,7 +183,7 @@ pico.df <- file.path(url.root,
                        # "1-1-2013",
                        max_date, 
                        # "12-31-2016",
-                       "18",
+                       pico_num,
                       "Station",
                       paste(station.vec, collapse = ",")) %>%
   fromJSON() %>% 
@@ -396,14 +404,26 @@ test script for step 3
 ```
 
 filters out dpeths below pdepth
+making an exception for any data missing pdepth of station tf4.2
+by joining data that meet that criteria back in
 ```{r}
+missing_pdepth.df <- wq_w_pdepth.df %>%
+  filter(is.na(pdepth)& station %in% c("tf4.2")
+)
+
 wq_above_pdepth.df <- wq_w_pdepth.df%>%
   filter(depth <= pdepth)
+
+wq_above_pdepth.df <- full_join(wq_above_pdepth.df, missing_pdepth.df)
+
+#& (!station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1") & layer != "ap"))
+
+
 ```
 
 
 COMPARE STEP 4
-note: 3477 to 3481(83?) in Claire's excel
+note: 3480 to 3481 in Claire's excel
 ```{r}
 step_4.df <- wq_above_pdepth.df
 
@@ -412,6 +432,7 @@ data.table::fwrite(step_4.df, file.path(project.dir, "data/test", "step_4.csv"))
 s4_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step4.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
 ```
 
+code to compare dataframes for testing step 4:
 ```{r}
 step_4_modified.df <- step_4.df %>%
   mutate(sampledate = as.Date(sampledate)) %>%
@@ -433,19 +454,19 @@ s4_compare_modified.df <- s4_compare.df %>%
 ```
 
 
-the objects in diff_check2.df are the 4 entries that exist in Claire's data but not in mine.  An exception needs to be written for such cases:
+the objects in diff_check_step_4.df were the 4 entries that exist in Claire's data but not in mine. Exceptions written for such cases, except one which does not exist in my data:
 ```{r}
 
 #diff_check.df <- left_join(step_4_modified.df, s4_compare_modified.df)
 
-diff_check2.df <- anti_join(s4_compare_modified.df, step_4_modified.df, by = c("station", "layer", "depth", "parameter", "measurevalue", "eventid", "pdepth")) 
+diff_check_step_4.df <- anti_join(s4_compare_modified.df, step_4_modified.df,  by = c("station", "layer", "depth", "parameter", "measurevalue", "eventid", "pdepth")) 
 
 # author_check.df <- diff_check.df %>%
 #   filter(author == "Claire")
 ```
 
 
-generates new dataframe with new parameter s_chla (539 items, should be 533)
+generates new dataframe with new parameter s_chla (540 items, should be 533)
 ```{r}
 s_chla.df <- wq_above_pdepth.df %>%
   filter(layer == "s", 
@@ -474,14 +495,46 @@ s_chla.df <- s_chla.df %>%
 ```
 
 STEP 5 COMPARE
-my 539 to Claire's 533
+my 540 to Claire's 533
 ```{r}
 step_5.df <- s_chla.df
 
 data.table::fwrite(step_5.df, file.path(project.dir, "data/test", "step_5.csv"))
 
-s4_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step5.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+s5_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step5.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
 ```
+
+```{r}
+step_5_modified.df <- step_5.df %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  #select(-sampledate, above_pdepth) %>%
+  mutate(author = "Luke")
+
+# s5_compare.df <- s5_compare.df %>%
+#   mutate(sampledate = as.Date(sampledate))
+
+s5_compare_modified.df <- s5_compare.df %>%
+  rename(eventid = wq_eventid) %>%
+  rename(measurevalue_average = average_of_measurevalue) %>%
+  #rename(pdepth = p_depth) %>%
+  #select(station, sampledate, layer, depth, parameter, measurevalue, eventid, pdepth, above_pdepth) %>%
+  #select(-sampledate, -above_pdepth) %>%
+  mutate(author = "Claire")
+
+
+C_diff_check_step_5.df <- anti_join(step_5_modified.df,s5_compare_modified.df, by = c("station", "layer", "parameter", "measurevalue_average", "eventid")) 
+
+LV_diff_check_step_5.df <- anti_join(s5_compare_modified.df, step_5_modified.df, by = c("station", "layer", "parameter", "measurevalue_average", "eventid")) 
+```
+
+this code makes exceptions for special cases found in diff_check_step5.df
+(there are 16 exceptions, 9 are from Claire's while 3 are from Luke's document)
+```{r}
+
+```
+
+
+
 
 
 
