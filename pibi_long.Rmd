@@ -42,12 +42,20 @@ these varaible should be changed by the user as needed
 min_date = "1-1-2013"
 #this is the minimum date to be included sdd the variable todays.date intot his variable if you want the most recent data
 max_date = "12-31-2016"
+```
 
+these variables references values found in the API guide at http://datahub.chesapeakebay.net (or int eh case of parameters, fonud from trial and error)
+```{r}
 #number for picoplankton in CEDR api
 pico_num = "18"
 
 #number for phytoplankton in CEDR api
 phyto_num <- "17"
+
+chla=21
+doc=34 
+pheo=74 
+salinity=83
 
 #data_source = ""
 ```
@@ -215,17 +223,52 @@ download water quality data:
 wq.df <- file.path(url.root,
                    "WaterQuality",
                    "WaterQuality",
-                   format(min(phyto.df$sampledate) - days(3), "%m-%d-%Y"),
-                   format(max(phyto.df$sampledate) + days(3), "%m-%d-%Y"), 
-                   "6",
-                   "7,16,23,24",
+                   min_date,
+                   max_date,
+                   # format(min(phyto.df$sampledate) - days(3), "%m-%d-%Y"),
+                   # format(max(phyto.df$sampledate) + days(3), "%m-%d-%Y"),
+                   "6",  #programIds...2, 4 and/or 6
+                   "7,16,23,24",  #projectIds
                    "station",
                    paste(station.vec, collapse = ","),
-                   "21,34,74,83") %>% 
+                   paste(chla,doc,pheo,salinity, sep=",")) %>%
+                   #"21,34,74,83") %>% #parameter:21=chla, 34=doc, 74=pheo, 83=salinity
   fromJSON() %>% 
   clean_up()
 
 ```
+"ProjectId":7,"ProjectIdentifier":"MAIN","ProjectName":"Tidal Mainstem Water Quality Monitoring Project"
+"ProjectId":16,"ProjectIdentifier":"PART","ProjectName":"Tidal Non-Traditional Partners"
+"ProjectId":23,"ProjectIdentifier":"TRIB","ProjectName":"Tidal Tributary Water Quality Monitoring Project"
+"ProjectId":24,"ProjectIdentifier":"TSPECIAL","ProjectName":"Special Tidal Water Quality Monitoring Project"
+
+this is a check to see if any wq.df sampledate values fall outside of the date range.  None do
+```{r}
+print(min(wq.df$sampledate))
+
+print(max(wq.df$sampledate))
+
+narrow_date_range.df <-  wq.df %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  filter( sampledate < as.Date("2013-1-1'") |  sampledate > as.Date("2016-12-31"))
+
+
+```
+
+```{r}
+s3_compare_modified.df <- s3_compare.df %>%
+  rename(eventid = wq_eventid) 
+ 
+
+compare_wq_raw.df <- anti_join(wq.df, s3_compare_modified.df, by = c("eventid"))
+```
+
+```{r}
+station_check <- s3_compare_modified.df %>%
+  filter(station %in% c("sbe5"))
+```
+
+
 
 ```{r}
 data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
@@ -361,7 +404,6 @@ s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3
 
 ```
 
-
 test script for step 3
 ```{r}
 # step_3_test.df <- step_3.df %>%
@@ -408,7 +450,7 @@ making an exception for any data missing pdepth of station tf4.2
 by joining data that meet that criteria back in
 ```{r}
 missing_pdepth.df <- wq_w_pdepth.df %>%
-  filter(is.na(pdepth)& station %in% c("tf4.2")
+  filter(is.na(pdepth)& station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")  
 )
 
 wq_above_pdepth.df <- wq_w_pdepth.df%>%
@@ -420,7 +462,6 @@ wq_above_pdepth.df <- full_join(wq_above_pdepth.df, missing_pdepth.df)
 
 
 ```
-
 
 COMPARE STEP 4
 note: 3480 to 3481 in Claire's excel
@@ -478,10 +519,10 @@ s_chla.df <- wq_above_pdepth.df %>%
 ```
 
 ```{r}
-s_chla.df <- s_chla.df %>%
-  group_by(station, sampledate) %>%
-  mutate(avg_di_s_chla = mean(measurevalue, na.rm = TRUE)) %>%
-  ungroup()
+# s_chla.df <- s_chla.df %>%
+#   group_by(station, sampledate) %>%
+#   mutate(avg_di_s_chla = mean(measurevalue, na.rm = TRUE)) %>%
+#   ungroup()
 ```
 
 Average replicates from s_chla ...measure value average
@@ -528,7 +569,7 @@ LV_diff_check_step_5.df <- anti_join(s5_compare_modified.df, step_5_modified.df,
 ```
 
 this code makes exceptions for special cases found in diff_check_step5.df
-(there are 16 exceptions, 9 are from Claire's while 3 are from Luke's document)
+(there are 16 exceptions, 9 are from Claire's while 7 are from Luke's document)
 ```{r}
 
 ```
