@@ -656,7 +656,7 @@ mine is 2027 to Claire's is 2024)
 
 
 ```{r}
-wq_all.df <- left_join(wq_above_pdepth.df, s_chla.df, by = c("join"))
+wq_all.df <- left_join(wq_above_pdepth.df, s_chla.df, by = c("an as yet to be determined varaible..."))
   
 ```
 
