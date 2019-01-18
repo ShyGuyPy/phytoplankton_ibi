@@ -31,7 +31,7 @@ library(parallel)
 
 mmir is Zach Smith's custom package
 ```{r}
-library(mmir)
+#library(mmir)
 ```
 
 
@@ -52,6 +52,7 @@ pico_num = "18"
 #number for phytoplankton in CEDR api
 phyto_num <- "17"
 
+#these are the parameter codes for the CEDR api
 chla=21
 doc=34 
 pheo=74 
@@ -206,6 +207,8 @@ data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
 
 ### Read csv's t dataframes
 
+
+You can run the code from here if you've already pulled from the api
 CEDR
 ```{r}
 phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
@@ -223,15 +226,18 @@ download water quality data:
 wq.df <- file.path(url.root,
                    "WaterQuality",
                    "WaterQuality",
+
                    min_date,
                    max_date,
                    # format(min(phyto.df$sampledate) - days(3), "%m-%d-%Y"),
                    # format(max(phyto.df$sampledate) + days(3), "%m-%d-%Y"),
-                   "6",  #programIds...2, 4 and/or 6
-                   "7,16,23,24",  #projectIds
+                   "6",  #programIds..."6"" or, "2,4,6""
+                   "7,23",#"7,16,23,24",  #projectIds
                    "station",
                    paste(station.vec, collapse = ","),
-                   paste(chla,doc,pheo,salinity, sep=",")) %>%
+                   paste(
+                     chla,doc,pheo,salinity
+                     , sep=",")) %>%
                    #"21,34,74,83") %>% #parameter:21=chla, 34=doc, 74=pheo, 83=salinity
   fromJSON() %>% 
   clean_up()
@@ -241,6 +247,14 @@ wq.df <- file.path(url.root,
 "ProjectId":16,"ProjectIdentifier":"PART","ProjectName":"Tidal Non-Traditional Partners"
 "ProjectId":23,"ProjectIdentifier":"TRIB","ProjectName":"Tidal Tributary Water Quality Monitoring Project"
 "ProjectId":24,"ProjectIdentifier":"TSPECIAL","ProjectName":"Special Tidal Water Quality Monitoring Project"
+
+search for mutant ret3.1
+```{r}
+wq_mutant.df <- wq.df %>%
+  filter(eventid == 425680) %>%
+  filter(is.na(parameter)) 
+```
+
 
 this is a check to see if any wq.df sampledate values fall outside of the date range.  None do
 ```{r}
@@ -255,19 +269,31 @@ narrow_date_range.df <-  wq.df %>%
 
 ```
 
+
+```{r}
+# step_3.df <- wq_w_pdepth.df
+# 
+# data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
+
+s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+
+```
+
+
+step 3 anti
 ```{r}
 s3_compare_modified.df <- s3_compare.df %>%
-  rename(eventid = wq_eventid) 
- 
+  rename(eventid = wq_eventid)
+
 
 compare_wq_raw.df <- anti_join(wq.df, s3_compare_modified.df, by = c("eventid"))
 ```
+
 
 ```{r}
 station_check <- s3_compare_modified.df %>%
   filter(station %in% c("sbe5"))
 ```
-
 
 
 ```{r}
@@ -450,7 +476,8 @@ making an exception for any data missing pdepth of station tf4.2
 by joining data that meet that criteria back in
 ```{r}
 missing_pdepth.df <- wq_w_pdepth.df %>%
-  filter(is.na(pdepth)& station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")  
+  filter( (is.na(pdepth)& station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")) #| 
+            #(depth > pdepth & station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1"))
 )
 
 wq_above_pdepth.df <- wq_w_pdepth.df%>%
@@ -464,7 +491,7 @@ wq_above_pdepth.df <- full_join(wq_above_pdepth.df, missing_pdepth.df)
 ```
 
 COMPARE STEP 4
-note: 3480 to 3481 in Claire's excel
+note: 3480 to 3483 in Claire's excel
 ```{r}
 step_4.df <- wq_above_pdepth.df
 
@@ -578,65 +605,117 @@ this code makes exceptions for special cases found in diff_check_step5.df
 
 
 
+```{r}
+wq_rep_check <- wq_above_pdepth.df %>%
+  select(station, sampledate, depth, parameter) %>%
+  distinct()
+```
 
 
 
-Averge replicates for the rest of the data ...measure value average
+Averge replicates for the rest of the data ...measure value average 
 ```{r}
 wq_above_pdepth.df <- wq_above_pdepth.df %>%
-  group_by(station, sampledate, depth) %>%
+  group_by(station, sampledate, depth, parameter) %>%
   #do not remove NAs
-  mutate(measurevalue_average = mean(measurevalue)) %>%
+  mutate(measurevalue_averaged = mean(measurevalue)) %>%
+  distinct(station, sampledate, depth, parameter,measurevalue_averaged) %>%
   ungroup()
 ```
 
-COMPARE STEP 6 (Claire's is 3360)
+COMPARE STEP 6 
+my 3363 to Claire's is 3360
+```{r}
+step_6.df <- wq_above_pdepth.df
+
+data.table::fwrite(step_6.df, file.path(project.dir, "data/test", "step_6.csv"))
+
+s6_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step6.csv")) %>% clean_up()
+
+C_diff_check_step_6.df <- anti_join(step_6.df,s6_compare.df, by = c("station", "depth","parameter", "measurevalue_averaged")) 
+
+LV_diff_check_step_6.df <- anti_join(s6_compare.df, step_6.df, by = c("station", "depth", "parameter", "measurevalue_averaged")) 
+
+
+```
+
+
+```{r}
+wq_above_pdepth.df <- wq_above_pdepth.df %>%
+  group_by(station, sampledate, parameter) %>%
+  mutate(depth_integrated_value = mean(measurevalue_averaged)) %>%
+  distinct(station, sampledate, depth_integrated_value) %>%
+  ungroup()
+```
+
+COMPARE STEP 7 
+mine is 2027 to Claire's is 2024)
 ```{r}
 
 ```
+
+
+```{r}
+wq_all.df <- left_join(wq_above_pdepth.df, s_chla.df, by = c("join"))
+  
+```
+
+
+COMPARE STEP 8
+Claire's 2554
+```{r}
+
+```
+
+
+
+
+
+
 
 extracting depth integrated dataframe for each parameter
 note:doc has 560, and salinity 1585 items where all others have 666
+this is another way of doing
+STEP 7
 ```{r}
-di_doc.df <- wq_above_pdepth.df %>%
-  #filter(depth <= pdepth) %>%
-  filter(parameter=="doc") %>%
+# di_doc.df <- wq_above_pdepth.df %>%
+#   #filter(depth <= pdepth) %>%
+#   filter(parameter=="doc") %>%
+# 
+#   group_by(station, sampledate) %>%
+#   mutate(avg_di_doc = mean(measurevalue_averaged, na.rm = TRUE)) %>%
+#   ungroup()
+# 
+# di_chla.df <- wq_above_pdepth.df %>%
+#   #filter(depth <= pdepth) %>%
+#   filter(parameter == "chla") %>%
+# 
+#   group_by(station, sampledate) %>%
+#   mutate(avg_di_chla = mean(measurevalue_averaged, na.rm = TRUE)) %>%
+#   ungroup()
+# 
+# di_salinity.df <- wq_above_pdepth.df %>%
+#   #filter(depth <= pdepth) %>%
+#   filter(parameter == "salinity") %>%
+# 
+#   group_by(station, sampledate) %>%
+#   mutate(avg_di_salinity = mean(measurevalue_averaged, na.rm = TRUE)) %>%
+#   ungroup()
+# 
+# di_pheo.df <- wq_above_pdepth.df %>%
+#   #filter(depth <= pdepth) %>%
+#   filter(parameter == "pheo") %>%
+# 
+#   group_by(station, sampledate) %>%
+#   mutate(avg_di_pheo = mean(measurevalue_averaged, na.rm = TRUE)) %>%
+#   ungroup()
 
-  group_by(station, sampledate) %>%
-  mutate(avg_di_doc = mean(measurevalue, na.rm = TRUE)) %>%
-  ungroup()
+#step7 <- left_join(di_doc.df, di_chla.df, di_salinity.df, di_pheo.df, by = c("station", "sampledate"))
 
-di_chla.df <- wq_above_pdepth.df %>%
-  #filter(depth <= pdepth) %>%
-  filter(parameter == "chla") %>%
+#join the four dataframes created above into one dataframe
 
-  group_by(station, sampledate) %>%
-  mutate(avg_di_chla = mean(measurevalue, na.rm = TRUE)) %>%
-  ungroup()
-
-di_salinity.df <- wq_above_pdepth.df %>%
-  #filter(depth <= pdepth) %>%
-  filter(parameter == "salinity") %>%
-
-  group_by(station, sampledate) %>%
-  mutate(avg_di_salinity = mean(measurevalue, na.rm = TRUE)) %>%
-  ungroup()
-
-di_pheo.df <- wq_above_pdepth.df %>%
-  #filter(depth <= pdepth) %>%
-  filter(parameter == "pheo") %>%
-
-  group_by(station, sampledate) %>%
-  mutate(avg_di_pheo = mean(measurevalue, na.rm = TRUE)) %>%
-  ungroup()
+# wq_all.df <- Reduce(function(x, y) merge(x, y, all=TRUE), list(di_doc.df, di_chla.df,di_salinity.df,di_pheo.df))
 ```
-
-
-COMPARE STEP 7 (Claire's is 2024)
-```{r}
-
-```
-
 
 C-  need to apply this to all sample, date combos but want to review with Claire first
 ```{r}
@@ -657,6 +736,10 @@ wq_all.df <- Reduce(function(x, y) merge(x, y, all=TRUE), list(di_doc.df, di_chl
 di_wq_all.df <- wq_all.df %>%
   filter(above_pdepth == TRUE) #depth <= pdepth) 
 ```
+
+
+
+assign salzones
 
 ```{r}
 wq_all.df <- wq_all.df %>%
