@@ -251,10 +251,17 @@ wq.df <- file.path(url.root,
 search for mutant ret3.1
 ```{r}
 wq_mutant.df <- wq.df %>%
-  filter(eventid == 425680) %>%
-  filter(is.na(parameter)) 
+  filter(eventid == 425680) #%>%
+  #filter(is.na(parameter)) 
 ```
 
+```{r}
+missing_other.df <- wq.df %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  #filter(eventid == 394855 %>% 
+  filter(totaldepth <= 5 & station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")) 
+  #filter( station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1") &  (is.na(layer)) |!layer %in% c("s","f","m","p", "ap","b", "bp"))
+```
 
 this is a check to see if any wq.df sampledate values fall outside of the date range.  None do
 ```{r}
@@ -405,19 +412,26 @@ s2_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step2
 
 
 applies pdepth to water quality dataframe
-(should be wq.df or wq_w_pdepth not stat_samp when fixed)
-currently wq-9821
-na pdepth wq values-2494
 ```{r}
 wq_w_pdepth.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
 ```
 
 determine if depth is above pdepth
+with exception for RET stations
 ```{r}
 wq_w_pdepth.df <- wq_w_pdepth.df %>%
-  mutate(above_pdepth = case_when(depth <= pdepth~FALSE,
-                                  depth > pdepth~TRUE))
+  mutate(above_pdepth = case_when(depth <= pdepth~"Yes",
+                                  #depth > pdepth & station %in% c("ret3.1","ret4.3","ret3.1")~"No, but RET",
+                                  depth > pdepth~"No"
+
+                                  ))
 ```
+
+```{r}
+# test <- wq_w_pdepth.df %>%
+#   filter(above_pdepth == "No, but RET")
+```
+
 
 COMPARE STEP 3
 note: 7358 to 7358 in Claire's excel
@@ -475,23 +489,112 @@ filters out dpeths below pdepth
 making an exception for any data missing pdepth of station tf4.2
 by joining data that meet that criteria back in
 ```{r}
-missing_pdepth.df <- wq_w_pdepth.df %>%
-  filter( (is.na(pdepth)& station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")) #| 
-            #(depth > pdepth & station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1"))
-)
+# missing_pdepth.df <- wq_w_pdepth.df %>%
+#   filter( (is.na(pdepth)& station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")) 
+# )
+# 
+# missing_other_pd.df <- left_join(missing_other.df, pdepth.df, by = c("station", "sampledate")) %>%
+#   filter(totaldepth <= 5 & station %in% c("ret3.1","ret4.3") & pdepth <=1 ) 
 
+```
+
+```{r}
 wq_above_pdepth.df <- wq_w_pdepth.df%>%
   filter(depth <= pdepth)
 
-wq_above_pdepth.df <- full_join(wq_above_pdepth.df, missing_pdepth.df)
+
+#wq_above_pdepth.df <- full_join(wq_above_pdepth.df, missing_pdepth.df)
 
 #& (!station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1") & layer != "ap"))
 
 
 ```
 
+
+check for missing(station and date combos that are present in event.df but not represtented in wq_above_pdepth.df) 
+```{r}
+step_4.vec <- c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid")
+
+#function for finding backbone values missing from recently modified data and add them into recently modified(latest) date
+find_missing <- function(data_backbone, appended_data, modified_appended_data, step_vector) {
+  missing.df <- anti_join(data_backbone, modified_appended_data, by = c("station","sampledate"))
+  
+  missing.df <-  missing.df %>%
+    mutate( sampledate =  as.Date(sampledate)) %>%
+    mutate(concat = paste0(station, sampledate))
+  
+  appended_data <- appended_data %>%
+    mutate( sampledate =  as.Date(sampledate)) %>%
+    mutate(concat = paste0(station, sampledate))
+  
+  concat_vector2 <- pull(missing.df, concat)
+  
+  missing_full.df <-appended_data %>%
+    filter(concat %in% concat_vector2) 
+  
+  modified_appended_data <- modified_appended_data %>%
+  mutate( sampledate =  as.Date(sampledate)) %>%
+  mutate(concat = paste0(station, sampledate))
+
+  final.df <- full_join(modified_appended_data, missing_full.df, by = step_vector)
+                          #c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid"))
+  
+  return(final.df)
+}
+#show the mssing values
+name_missing <- function(data_backbone, appended_data, modified_appended_data, step_vector) {
+  missing.df <- anti_join(data_backbone, modified_appended_data, by = c("station","sampledate"))
+  
+  missing.df <-  missing.df %>%
+    mutate( sampledate =  as.Date(sampledate)) %>%
+    mutate(concat = paste0(station, sampledate))
+  
+  appended_data <- appended_data %>%
+    mutate( sampledate =  as.Date(sampledate)) %>%
+    mutate(concat = paste0(station, sampledate))
+  
+  concat_vector2 <- pull(missing.df, concat)
+  
+  final.df <-appended_data %>%
+    filter(concat %in% concat_vector2) 
+  
+    return(final.df)
+}
+
+wq_above_pdepth.df <- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, step_4.vec)
+
+# #finds instances of station/sampledate combo that are missing from wq
+# missing.df <- anti_join(event.df,wq_above_pdepth.df, by = c("station", "sampledate"))
+# 
+# #standardize date format and add a unique identifier to missing 
+# missing.df <- missing.df %>%
+#   mutate( sampledate =  as.Date(sampledate)) %>%
+#   mutate(concat = paste0(station, sampledate))
+# 
+# #standardize date format and add a unique identifier to wq
+# wq_w_pdepth.df <- wq_w_pdepth.df %>%
+#   mutate( sampledate =  as.Date(sampledate)) %>%
+#   mutate(concat = paste0(station, sampledate))
+# 
+# #create a vector to store concatinated ids from the missing combos
+# concat_vector2 <- pull(missing.df, concat)
+# 
+# #uses the combos in missing.df to retrieve the event data for the missing values
+# missing_full.df <-wq_w_pdepth.df %>%
+#   filter(concat %in% concat_vector2) 
+# 
+# #adds a concat id to wq_above_pdepth
+# wq_above_pdepth.df <- wq_above_pdepth.df %>%
+#   mutate( sampledate =  as.Date(sampledate)) %>%
+#   mutate(concat = paste0(station, sampledate))
+# 
+# #joins the missing values back into most recent wq df
+# wq_above_pdepth.df <- full_join(wq_above_pdepth.df, missing_full.df, by = c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid"))
+```
+
+
 COMPARE STEP 4
-note: 3480 to 3483 in Claire's excel
+note: 3483 to 3483 in Claire's excel
 ```{r}
 step_4.df <- wq_above_pdepth.df
 
@@ -527,14 +630,29 @@ the objects in diff_check_step_4.df were the 4 entries that exist in Claire's da
 
 #diff_check.df <- left_join(step_4_modified.df, s4_compare_modified.df)
 
-diff_check_step_4.df <- anti_join(s4_compare_modified.df, step_4_modified.df,  by = c("station", "layer", "depth", "parameter", "measurevalue", "eventid", "pdepth")) 
+
+LV_diff_check_step_4.df <- anti_join(step_4_modified.df, s4_compare_modified.df, by = c("station", "depth", "parameter", "measurevalue", "eventid", "pdepth")) #"layer",
+
+C_diff_check_step_4.df <- anti_join(s4_compare_modified.df, step_4_modified.df,  by = c("station", "depth", "parameter", "measurevalue", "eventid", "pdepth")) #"layer",
 
 # author_check.df <- diff_check.df %>%
 #   filter(author == "Claire")
 ```
 
 
-generates new dataframe with new parameter s_chla (540 items, should be 533)
+Step 5:
+
+this code isolates exceptions that need to be added back in after the following chunk of code
+```{r}
+# 
+# step5_exceptions <- wq_above_pdepth.df %>%
+#   filter(above_pdepth == "No, but RET")
+#   filter(!layer %in% c("s","f","m","p", "ap"))
+
+```
+
+
+generates new dataframe with new parameter s_chla (531 items, should be 533)
 ```{r}
 s_chla.df <- wq_above_pdepth.df %>%
   filter(layer == "s", 
@@ -542,7 +660,7 @@ s_chla.df <- wq_above_pdepth.df %>%
   unite(parameter, c("layer", "parameter"), remove = FALSE) #%>%
   # filter(depth <= pdepth) #%>%
   #filter(parameter=="s_chla")
-
+  #filter(eventid==425680 | eventid==394855)
 ```
 
 ```{r}
@@ -554,18 +672,28 @@ s_chla.df <- wq_above_pdepth.df %>%
 
 Average replicates from s_chla ...measure value average
 ```{r}
-s_chla.df <- s_chla.df %>%
+di_s_chla.df <- s_chla.df %>%
   group_by(station, sampledate, depth) %>%
   #do not remove NAs
-  mutate(measurevalue_average = mean(measurevalue)) %>%
+  mutate(measurevalue_averaged = mean(measurevalue)) %>%
+  distinct(station, sampledate, depth, eventid, layer, parameter, measurevalue_averaged) %>%
   ungroup()
 
 ```
 
-STEP 5 COMPARE
-my 540 to Claire's 533
 ```{r}
-step_5.df <- s_chla.df
+step_5.vec <- c("station", "sampledate", "layer", "concat", "depth", "parameter", "eventid")
+
+
+#wrong parameter somewhere I think
+missing_s_chla <- find_missing(event.df, di_s_chla.df, di_s_chla.df, step_5.vec)
+```
+
+
+STEP 5 COMPARE
+my 531 to Claire's 533
+```{r}
+step_5.df <- di_s_chla.df
 
 data.table::fwrite(step_5.df, file.path(project.dir, "data/test", "step_5.csv"))
 
@@ -576,23 +704,34 @@ s5_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step5
 step_5_modified.df <- step_5.df %>%
   mutate(sampledate = as.Date(sampledate)) %>%
   #select(-sampledate, above_pdepth) %>%
-  mutate(author = "Luke")
+  mutate(author = "Luke") %>%
+  clean_up() %>%
+  mutate(measurevalue_averaged = as.numeric(measurevalue_averaged))
 
 # s5_compare.df <- s5_compare.df %>%
 #   mutate(sampledate = as.Date(sampledate))
 
 s5_compare_modified.df <- s5_compare.df %>%
   rename(eventid = wq_eventid) %>%
-  rename(measurevalue_average = average_of_measurevalue) %>%
+  rename(measurevalue_averaged = average_of_measurevalue) %>%
   #rename(pdepth = p_depth) %>%
   #select(station, sampledate, layer, depth, parameter, measurevalue, eventid, pdepth, above_pdepth) %>%
   #select(-sampledate, -above_pdepth) %>%
-  mutate(author = "Claire")
+  mutate(author = "Claire") %>%
+  clean_up() %>%
+  mutate(measurevalue_averaged = as.numeric(measurevalue_averaged))
 
 
-C_diff_check_step_5.df <- anti_join(step_5_modified.df,s5_compare_modified.df, by = c("station", "layer", "parameter", "measurevalue_average", "eventid")) 
+C_diff_check_step_5.df <- anti_join(s5_compare_modified.df, step_5_modified.df, by = c("station",  "parameter", "measurevalue_averaged", "eventid", "layer"))
 
-LV_diff_check_step_5.df <- anti_join(s5_compare_modified.df, step_5_modified.df, by = c("station", "layer", "parameter", "measurevalue_average", "eventid")) 
+C_diff_check_step_5.df <- C_diff_check_step_5.df%>%
+  mutate(measure_type = typeof(measurevalue_averaged)) %>%
+  filter(eventid==425680 | eventid==394855)
+
+LV_diff_check_step_5.df <- anti_join(step_5_modified.df, s5_compare_modified.df, by = c("station", "measurevalue_averaged", "parameter", "eventid","layer")) 
+
+LV_diff_check_step_5.df <- LV_diff_check_step_5.df%>%
+  mutate(measure_type = typeof(measurevalue_averaged))
 ```
 
 this code makes exceptions for special cases found in diff_check_step5.df
@@ -649,7 +788,7 @@ wq_above_pdepth.df <- wq_above_pdepth.df %>%
 ```
 
 COMPARE STEP 7 
-mine is 2027 to Claire's is 2024)
+mine is 2027 to Claire's 2024)
 ```{r}
 
 ```
