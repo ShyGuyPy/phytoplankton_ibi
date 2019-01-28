@@ -731,7 +731,7 @@ mystery4.df <- di_s_chla.df %>%
 
 
 STEP 5 COMPARE
-my 533 to Claire's 533
+my 533 to Claire's 531(was 533?)
 ```{r}
 step_5.df <- di_s_chla.df
 
@@ -794,7 +794,7 @@ wq_above_pdepth.df <- wq_above_pdepth.df %>%
 ```
 
 COMPARE STEP 6 
-my 3366 to Claire's is 3366
+my 3366 to Claire's is 3357(was 3366)
 ```{r}
 step_6.df <- wq_above_pdepth.df
 
@@ -802,9 +802,14 @@ data.table::fwrite(step_6.df, file.path(project.dir, "data/test", "step_6.csv"))
 
 s6_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step6.csv")) %>% clean_up()
 
-C_diff_check_step_6.df <- anti_join(step_6.df,s6_compare.df, by = c("station", "depth","parameter", "measurevalue_averaged")) 
+C_diff_check_step_6.df <- anti_join(step_6.df,s6_compare.df, by = c(
+  #"station", "depth","parameter", 
+  "measurevalue_averaged"
+  )) 
 
-LV_diff_check_step_6.df <- anti_join(s6_compare.df, step_6.df, by = c("station", "depth", "parameter", "measurevalue_averaged")) 
+LV_diff_check_step_6.df <- anti_join(s6_compare.df, step_6.df, by = c(
+  #"station", "depth", "parameter", 
+  "measurevalue_averaged")) 
 
 
 ```
@@ -819,7 +824,7 @@ wq_above_pdepth.df <- wq_above_pdepth.df %>%
 ```
 
 COMPARE STEP 7 
-mine is 2028 to Claire's 2028)
+mine is 2028 to Claire's 2026(was 2028)
 ```{r}
 step_7.df <- wq_above_pdepth.df
 
@@ -829,23 +834,31 @@ s7_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step7
   rename(depth_integrated_value =`depth-integrated_value`)
 
 
-C_diff_check_step_7.df <- anti_join(step_7.df,s7_compare.df, by = c("station", "parameter", "depth_integrated_value")) 
+C_diff_check_step_7.df <- anti_join(step_7.df,s7_compare.df, by = c(#"station", "parameter", 
+  "depth_integrated_value")) 
 
-LV_diff_check_step_7.df <- anti_join(s7_compare.df, step_7.df, by = c("station", "parameter", "depth_integrated_value")) 
+LV_diff_check_step_7.df <- anti_join(s7_compare.df, step_7.df, by = c(#"station", "parameter", 
+  "depth_integrated_value")) 
 ```
 
-
+join surface chloraphyl into water quality data
+measurevalued_averaged is renamed depth_integrated_value to match water quality naming convention
+(note:check against Claire's data to confirm that s_chla depth integrated values look right just to be sure)
 ```{r}
-wq_all.df <- full_join(wq_above_pdepth.df, di_s_chla.df, by = c("station", "sampledate", "parameter"))
+di_s_chla.df <- di_s_chla.df %>% 
+  rename(depth_integrated_value = measurevalue_averaged)
+  
 
-wq_all.df <- wq_all.df %>%
-  filter(parameter != "s_chla")
+wq_all.df <- full_join(wq_above_pdepth.df, di_s_chla.df, by = c("station", "sampledate", "parameter", "depth_integrated_value"))
+
+# wq_all.df <- wq_all.df %>%
+#   filter(parameter != "s_chla")
   
 ```
 
 
 COMPARE STEP 8
-my 2561 to Claire's 2558
+my 2561 to Claire's 2555(was 2558)
 ```{r}
 print(2028 + 533)
 
@@ -856,11 +869,11 @@ data.table::fwrite(step_8.df, file.path(project.dir, "data/test", "step_8.csv"))
 
 s8_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step8.csv")) %>% clean_up() %>% 
   rename(depth_integrated_value =`depth-integrated_value`)
+
+C_diff_check_step_8.df <- anti_join(step_8.df,s8_compare.df, by = c("depth_integrated_value")) 
+
+LV_diff_check_step_8.df <- anti_join(s8_compare.df, step_8.df, by = c("depth_integrated_value")) 
 ```
-
-
-
-
 
 filter out dates outside Mar-May and Jul-Sept
 borrowed this chunck from Zach
@@ -871,8 +884,9 @@ wq_warm.df <- wq_all.df %>%
            month %in% c(3, 4, 5) ~ "spring",
            month %in% c(7, 8, 9) ~ "summer",
            TRUE ~ "remove"
-         )) %>% 
-  filter(season %in% c("spring", "summer"))
+          )) 
+  #%>% 
+  # filter(season %in% c("spring", "summer"))
 ```
 
 
@@ -886,16 +900,20 @@ wq_sal.df <- wq_sal.df %>%
     parameter == "salinity" & depth_integrated_value >0 & depth_integrated_value <= 0.5 ~ "F",
     parameter == "salinity" & depth_integrated_value > .5 &  depth_integrated_value <= 5 ~ "O",
     parameter == "salinity" & depth_integrated_value > 5 & depth_integrated_value <= 18 ~ "M",
-    parameter == "salinity" & depth_integrated_value > 18~ "P")) 
- 
+    parameter == "salinity" & depth_integrated_value > 18~ "P")) %>%
+    mutate(concat = paste0(station, sampledate)) 
+
+wq_sal_id.df <- wq_sal.df %>%
+  distinct(concat, salzone)
+
+wq_warm.df <- wq_warm.df %>%
+    mutate(concat = paste0(station, sampledate))   
 
 
-# wq_w_sal.df <- wq_warm.df %>%
-#   mutate(salzone = case_when(
-#     avg_di_salinity >0 & avg_di_salinity <= 0.5 ~ "F",
-#     avg_di_salinity > .5 &  avg_di_salinity <= 5 ~ "O",
-#     avg_di_salinity > 5 & avg_di_salinity <= 18 ~ "M",
-#     avg_di_salinity > 18~ "P"))
+wq_sal_test.df <- left_join(wq_warm.df, wq_sal_id.df, by = c("concat"))#, "salzone"))
+
+
+
 ```
 
 ```{r}
@@ -903,15 +921,116 @@ wq_sal.df <- wq_sal.df %>%
 #   filter(parameter == "salinity")
 ```
 
+find salinity blanks
+```{r}
+wq_sal_test_blank.df <- wq_sal_test.df %>%
+  filter(is.na(salzone) | salzone == 0)
+```
+
+
+Assign F salzone to some station/season instances based on known salinity profiles
+```{r}
+# salinities are less than 0.5 ppt, or "F" more than 90% of the time: CB1.1, ET5.1, TF1.5, TF2.3, TF4.2, TF5.5 in Spring;								
+# CB1.1, TF2.3, TF4.2, TF5.5 in Summer. We can assume their Salzone is F and replace 61 of the 78 blanks.								
+
+wq_sal_test_fill.df <-  wq_sal_test.df %>%
+  mutate(salzone = case_when((station %in% c("cb1.1", "tf2.3", "tf4.2","tf5.5" ) & is.na(salzone)) | (season == "spring" & station %in% c("et5.1", "tf1.5")& is.na(salzone))
+         ~ "test", TRUE ~ salzone  ))
+
+#test number of exceptions above code is catching
+test.df <- wq_sal_test_fill.df %>%
+  filter(salzone == "test")
+
+test_na.df <- wq_sal_test_fill.df %>%
+  filter(is.na(salzone))
+```
+
+bring in Jackies data to compare salzones against
+import jackie's salzones if data falls within the applicable date range and is missing salzone data
+note:this should be the last method of acquiring salzone data implemented
+```{r}
+#jackie.df <- data.table::fread(file.path(project.dir, "data/Jackie/", "JMJ_PIBI_Salzone_Data.csv"))
+jackie_salzones.df <- readxl::read_excel(file.path(project.dir, "data/Jackie/JMJ_PIBI_Salzone_Data.xlsx"),
+                         sheet = "JMJ Salzone+Scores") %>% clean_up() 
+
+wq_need_sal.df <- wq_sal_test.df %>%
+  mutate(year = year(sampledate)) %>%
+  filter(year >= 1984 & year <= 2011 & is.na(salzone))
+
+#join jackie salzone values to wq_need_sal by id
+wq_has_sal.df <- left_join(wq_need_sal.df, jackie_salzones.df, by= c("concat", "salzone"))
+
+#join wq_need_sal to main wq data
+wq_has_sal.df <- left_join(wq_sal_test.df, wq_has_sal.df, by= c("concat", "salzone"))
+             
+```
+
+
+```{r}
+wq_warm.wide <- wq_warm.df %>%
+  select(-layer, -depth,-eventid,-concat) %>%
+  spread(parameter, depth_integrated_value)
+```
+
 
 COMPARE STEP 9
 ```{r}
-step_9.df <- wq_w_sal.df
+step_9.df <- wq_warm.wide
 
 data.table::fwrite(step_9.df, file.path(project.dir, "data/test", "step_9.csv"))
 
 s9_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step9.csv")) %>% clean_up() 
+
+C_diff_check_step_9.df <- anti_join(step_9.df,s9_compare.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
+
+LV_diff_check_step_9.df <- anti_join(s9_compare.df, step_9.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
 ```
+
+```{r}
+wq_final.df <- wq_warm.wide %>%
+
+ filter(season %in% c("spring", "summer"))
+```
+COMPARE STEP 10
+
+```{r}
+step_10.df <- wq_final.df
+
+data.table::fwrite(step_10.df, file.path(project.dir, "data/test", "step_10.csv"))
+
+s10_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step10.csv")) %>% clean_up() 
+
+C_diff_check_step_10.df <- anti_join(step_10.df,s10_compare.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
+
+LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla", "s_chla", "pheo", "salinity", "doc"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 extracting depth integrated dataframe for each parameter
