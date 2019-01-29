@@ -910,40 +910,43 @@ wq_warm.df <- wq_warm.df %>%
     mutate(concat = paste0(station, sampledate))   
 
 
-wq_sal_test.df <- left_join(wq_warm.df, wq_sal_id.df, by = c("concat"))#, "salzone"))
+wq_warm_sal.df <- left_join(wq_warm.df, wq_sal_id.df, by = c("concat"))#, "salzone"))
 
 
 
 ```
 
-```{r}
-# wq_sal.df <- wq_warm.df %>% 
-#   filter(parameter == "salinity")
-```
-
-find salinity blanks
-```{r}
-wq_sal_test_blank.df <- wq_sal_test.df %>%
-  filter(is.na(salzone) | salzone == 0)
-```
 
 
-Assign F salzone to some station/season instances based on known salinity profiles
+
+Find events without salinity and assign salinity when possible...Assign F salzone to some station/season instances based on known salinity profiles
 ```{r}
 # salinities are less than 0.5 ppt, or "F" more than 90% of the time: CB1.1, ET5.1, TF1.5, TF2.3, TF4.2, TF5.5 in Spring;								
 # CB1.1, TF2.3, TF4.2, TF5.5 in Summer. We can assume their Salzone is F and replace 61 of the 78 blanks.								
+wq_no_sal.df <- anti_join(wq_warm_sal.df, wq_sal_id.df, by = c("concat"))
 
-wq_sal_test_fill.df <-  wq_sal_test.df %>%
+wq_sal_fill.df <-  wq_no_sal.df %>%
+  distinct(concat, station, sampledate, season, salzone) %>%
   mutate(salzone = case_when((station %in% c("cb1.1", "tf2.3", "tf4.2","tf5.5" ) & is.na(salzone)) | (season == "spring" & station %in% c("et5.1", "tf1.5")& is.na(salzone))
-         ~ "test", TRUE ~ salzone  ))
+         ~ "F", TRUE ~ salzone  ))
 
 #test number of exceptions above code is catching
-test.df <- wq_sal_test_fill.df %>%
-  filter(salzone == "test")
+wq_sal_filled.df <- wq_sal_fill.df %>%
+  filter(salzone == "F")
 
-test_na.df <- wq_sal_test_fill.df %>%
+test_na.df <- wq_sal_fill.df %>%
   filter(is.na(salzone))
 ```
+
+Add the data assigned salzones back into backbone
+```{r}
+wq_warm_sal_added.df <- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c("concat", "salzone","station","sampledate", "season"))
+
+# test to determine if we are retaining the right values
+test.df <- anti_join(wq_warm.df, wq_warm_sal_added.df,  by = c("concat", "station","sampledate", "season", "parameter", "month", "depth_integrated_value"))
+```
+
+
 
 bring in Jackies data to compare salzones against
 import jackie's salzones if data falls within the applicable date range and is missing salzone data
@@ -967,7 +970,7 @@ wq_has_sal.df <- left_join(wq_sal_test.df, wq_has_sal.df, by= c("concat", "salzo
 
 
 ```{r}
-wq_warm.wide <- wq_warm.df %>%
+wq_warm.wide <- wq_warm_sal_added.df %>%
   select(-layer, -depth,-eventid,-concat) %>%
   spread(parameter, depth_integrated_value)
 ```
@@ -986,6 +989,7 @@ C_diff_check_step_9.df <- anti_join(step_9.df,s9_compare.df, by = c("chla", "s_c
 LV_diff_check_step_9.df <- anti_join(s9_compare.df, step_9.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
 ```
 
+remove winter and fall
 ```{r}
 wq_final.df <- wq_warm.wide %>%
 
