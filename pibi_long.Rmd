@@ -1012,8 +1012,38 @@ LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla",
 
 
 
+Taxanomic steps
+currently using Zach's code mostly unmodified at this point(change as needed)
+
+update TSNs
+
+```{r}
+col.class.vec <- c("samplenumber" = "character",
+                   "tsn" = "character",
+                   "speccode" = "character",
+                   "reportingvalue" = "integer")
+
+bay.temp <- data.table::fread(file.path(project.dir,  "data/CEDR/cedr_phyto_taxa.csv"
+                                        #"data/phytoplankton2/VA_ODU_phyto_taxa.csv"
+                                        ),
+                            data.table = FALSE,
+                            colClasses = col.class.vec)
+```
 
 
+grab old carbon
+```{r}
+carbon.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014.xlsx"),
+                                sheet = "carbon_list_2014") %>% 
+  clean_up() %>% 
+  
+  #deselcting several fields
+  dplyr::select(-dplyr::contains("new"),
+                -smyayda_carbon,
+                -difference,
+                -shape_change) %>% 
+  dplyr::rename(carbon = old_carbon)
+```
 
 
 
