@@ -120,7 +120,7 @@ station.vec <- file.path(url.root,
 
 
 
-this pulls the sample and event data from cedr
+this uploads the sample and event data from cedr to a dataframe(phyto.df)
 ```{r}
 
 phyto.df <- file.path(url.root,
@@ -1012,5 +1012,83 @@ C_diff_check_step_10.df <- anti_join(step_10.df,s10_compare.df, by = c("chla", "
 
 LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla", "s_chla", "pheo", "salinity", "doc"))
 ```
+
+
+
+ITIS
+```{r}
+col.class.vec <- c("samplenumber" = "character",
+                   "tsn" = "character",
+                   "speccode" = "character",
+                   "reportingvalue" = "integer")
+
+bay.temp <- data.table::fread(file.path(project.dir, "data/CEDR/cedr_phyto_taxa.csv"),
+                            data.table = FALSE,
+                            colClasses = col.class.vec)
+```
+
+
+```{r}
+hier.wide <- lapply(unique(bay.temp$org_tsn), function(tsn.i) {
+ #print(tsn.i)
+  
+  if(ncol(usage(tsn.i)) == 0) return(data.frame(org_tsn = as.integer(tsn.i),
+                                                stringsAsFactors = FALSE))
+  if(!ritis::usage(tsn.i)$taxonUsageRating %in% c("accepted", "valid")) {
+    tsn.accepted <- ritis::accepted_names(as.integer(tsn.i))$acceptedTsn
+  } else {
+    tsn.accepted <- as.integer(tsn.i)
+  }
+  
+  full.df <- ritis::hierarchy_full(tsn.accepted) %>% 
+    select(rankname, taxonname, tsn) %>% 
+    slice(1:which(tsn == tsn.accepted)) %>% 
+    mutate(org_tsn = as.integer(tsn.i),
+           final_tsn = as.integer(tsn.accepted),
+           final_id = slice(., which(tsn == tsn.accepted))$taxonname)
+}) %>% 
+  bind_rows() %>% 
+  #select(-tsn) %>% 
+  #spread(rankname, taxonname) %>% 
+  clean_up()
+                                                
+```
+
+```{r}
+  full.df <- ritis::hierarchy_full(tsn.accepted) %>% 
+    select(rankname, taxonname, tsn) %>% 
+    slice(1:which(tsn == tsn.accepted)) %>% 
+    mutate(org_tsn = as.integer(tsn.i),
+           final_tsn = as.integer(tsn.accepted),
+           final_id = slice(., which(tsn == tsn.accepted))$taxonname)
+```
+
+
+
+```{r}
+hier.wide <- lapply(unique(bay.temp$org_tsn), function(tsn.i) {
+ #print(tsn.i)
+  
+  if(ncol(usage(tsn.i)) == 0) return(data.frame(org_tsn = as.integer(tsn.i),
+                                                stringsAsFactors = FALSE))
+  if(!ritis::usage(tsn.i)$taxonUsageRating %in% c("accepted", "valid")) {
+    tsn.accepted <- ritis::accepted_names(as.integer(tsn.i))$acceptedTsn
+  } else {
+    tsn.accepted <- as.integer(tsn.i)
+  }
+  
+  full.df <- ritis::hierarchy_full(tsn.accepted) %>% 
+    select(rankname, taxonname, tsn) %>% 
+    slice(1:which(tsn == tsn.accepted)) %>% 
+    mutate(org_tsn = as.integer(tsn.i),
+           final_tsn = as.integer(tsn.accepted),
+           final_id = slice(., which(tsn == tsn.accepted))$taxonname)
+}) %>% 
+  bind_rows() %>% 
+  select(-tsn) %>% 
+  spread(rankname, taxonname) %>% 
+  clean_up()
+```
+
 
 
