@@ -1062,7 +1062,7 @@ hier.wide <- lapply(unique(bay.temp$org_tsn), function(tsn.i) {
 ```
 
 ```{r}
-column.vec <- c("org_tsn", "final_tsn", "final_id",
+column.vec <- c("tsn","org_tsn", "final_tsn", "final_id",
                 "kingdom", "subkingdom", "infrakingdom", 
                 "superdivision", "division", "subdivision", "infradivision",
                 "superphylum", "phylum", "subphylum", "infraphylum", 
@@ -1077,7 +1077,7 @@ column.vec <- column.vec[column.vec %in% names(hier.wide)]
 ```
 
 ```{r}
-hier.wide_test <- hier.wide[, column.vec]
+hier.wide <- hier.wide[, column.vec]
 ```
 
 ```{r}
@@ -1089,11 +1089,11 @@ data.table::fwrite(hier.wide, file.path(rprojroot::find_rstudio_root_file(), "da
 
 test old itis data vs new
 ```{r}
-# itis_old.df <- data.table::fread(file.path(project.dir, "data/itis/", "old_itis_hierarchy.csv")) %>% clean_up() 
-# itis_new.df <- data.table::fread(file.path(project.dir, "data/itis/", "itis_hierarchy.csv")) %>% clean_up() 
+# itis_old.df <- data.table::fread(file.path(project.dir, "data/itis/", "old_itis_hierarchy.csv")) %>% clean_up()
+# itis_new.df <- data.table::fread(file.path(project.dir, "data/itis/", "itis_hierarchy.csv")) %>% clean_up()
 # 
-# itis_compare.df <- anti_join(itis_old.df,itis_new.df, by = c("final_id", "tsn")) 
-# itis_also_compare.df <- anti_join(itis_new.df,itis_old.df, by = c("final_id", "tsn")) 
+# itis_compare.df <- anti_join(itis_old.df,itis_new.df, by = c("final_id", "final_tsn"))
+# itis_also_compare.df <- anti_join(itis_new.df,itis_old.df, by = c("final_id", "final_tsn"))
 ```
 
 
@@ -1122,7 +1122,7 @@ bay.df <- phyto.df %>%
 ```
 
 
-If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon.
+If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon. (currently removes a single value)
 ```{r}
 bay.df <- bay.df %>% 
   group_by_at(vars(-reportingvalue)) %>% 
