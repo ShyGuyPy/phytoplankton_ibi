@@ -739,3 +739,21 @@ data.table::fwrite(hier.wide, file.path(rprojroot::find_rstudio_root_file(), "da
             
 
 ```
+
+
+```{r}
+test <-  lapply(unique(bay.temp$tsn), function(placeholder)
+  {
+  if(ncol(usage(placeholder))== 0) return(data.frame(tsn = as.integer(placeholder),
+                                                stringsAsFactors = FALSE))
+  if(!ritis::usage(placeholder)$taxonUsageRating %in% c("accepted", "valid")) {
+  tsn.accepted <- ritis::accepted_names(as.integer(placeholder))$acceptedTsn
+    #test <- mutate(test="worked"
+  } else {
+    tsn.accepted <- as.integer(placeholder)
+  }
+  
+
+  })
+#rm(test)
+```
