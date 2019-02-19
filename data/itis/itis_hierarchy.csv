@@ -1,4 +1,4 @@
-org_tsn,final_tsn,final_id,kingdom,subkingdom,infrakingdom,superdivision,division,subdivision,superphylum,phylum,subphylum,class,subclass,order,suborder,superfamily,family,genus,species,subspecies
+tsn,final_tsn,final_id,kingdom,subkingdom,infrakingdom,superdivision,division,subdivision,superphylum,phylum,subphylum,class,subclass,order,suborder,superfamily,family,genus,species,subspecies
 0,,,,,,,,,,,,,,,,,,,,
 625,625,aphanocapsa,bacteria,negibacteria,,,,,,cyanobacteria,,cyanophyceae,,chroococcales,,,chroococcaceae,aphanocapsa,,
 654,654,chroococcus,bacteria,negibacteria,,,,,,cyanobacteria,,cyanophyceae,,chroococcales,,,chroococcaceae,chroococcus,,

@@ -1035,25 +1035,51 @@ Simplest way to get Zach's code working was to add a org_tsn category that equal
 #   mutate(org_tsn = tsn)
 ```
 
-
+Zach's original itis code
 ```{r}
-hier.wide <- lapply(unique(bay.temp$org_tsn), function(tsn.i) {
- #print(tsn.i)
-  
-  if(ncol(usage(tsn.i)) == 0) return(data.frame(org_tsn = as.integer(tsn.i),
+# hier.wide <- lapply(unique(bay.temp$org_tsn), function(tsn.i) {
+#  #print(tsn.i)
+#   
+#   if(ncol(usage(tsn.i)) == 0) return(data.frame(org_tsn = as.integer(tsn.i),
+#                                                 stringsAsFactors = FALSE))
+#   if(!ritis::usage(tsn.i)$taxonUsageRating %in% c("accepted", "valid")) {
+#     tsn.accepted <- ritis::accepted_names(as.integer(tsn.i))$acceptedTsn
+#   } else {
+#     tsn.accepted <- as.integer(tsn.i)
+#   }
+#   
+#   full.df <- ritis::hierarchy_full(tsn.accepted) %>% 
+#     select(rankname, taxonname, tsn) %>% 
+#     slice(1:which(tsn == tsn.accepted)) %>% 
+#     mutate(org_tsn = as.integer(tsn.i),
+#            final_tsn = as.integer(tsn.accepted),
+#            final_id = slice(., which(tsn == tsn.accepted))$taxonname)
+# }) %>% 
+#   bind_rows() %>% 
+#   #select(-tsn) %>% 
+#   spread(rankname, taxonname) %>% 
+#   clean_up()
+```
+
+re-write the code above
+```{r}
+hier.wide <- lapply(unique(bay.temp$tsn), function(tsn.i) {
+  if(ncol(usage(tsn.i)) == 0) return(data.frame(tsn = as.integer(tsn.i),
                                                 stringsAsFactors = FALSE))
   if(!ritis::usage(tsn.i)$taxonUsageRating %in% c("accepted", "valid")) {
     tsn.accepted <- ritis::accepted_names(as.integer(tsn.i))$acceptedTsn
   } else {
     tsn.accepted <- as.integer(tsn.i)
-  }
+  }  
   
+    
   full.df <- ritis::hierarchy_full(tsn.accepted) %>% 
     select(rankname, taxonname, tsn) %>% 
     slice(1:which(tsn == tsn.accepted)) %>% 
-    mutate(org_tsn = as.integer(tsn.i),
+    mutate(tsn = as.integer(tsn.i),
            final_tsn = as.integer(tsn.accepted),
            final_id = slice(., which(tsn == tsn.accepted))$taxonname)
+    
 }) %>% 
   bind_rows() %>% 
   #select(-tsn) %>% 
@@ -1061,16 +1087,10 @@ hier.wide <- lapply(unique(bay.temp$org_tsn), function(tsn.i) {
   clean_up()
 ```
 
-re-write the code above
-```{r}
-test.wide <- bay.temp %>%
-  mutate(use = usage(tsn))
-```
-
 
 
 ```{r}
-column.vec <- c("tsn","org_tsn", "final_tsn", "final_id",
+column.vec <- c("tsn", "final_tsn", "final_id",
                 "kingdom", "subkingdom", "infrakingdom", 
                 "superdivision", "division", "subdivision", "infradivision",
                 "superphylum", "phylum", "subphylum", "infraphylum", 
@@ -1111,7 +1131,7 @@ col.class.vec <- c("samplenumber" = "character",
                    "tsn" = "character",
                    "speccode" = "character")
 
-taxa.raw <- data.table::fread(file.path(project.dir, "data/phytoplankton/cedr_phyto_taxa.csv"),
+taxa.raw <- data.table::fread(file.path(project.dir, "data/CEDR/cedr_phyto_taxa.csv"),
                             data.table = FALSE,
                             colClasses = col.class.vec,
                             na.strings = "") %>% 
@@ -1169,7 +1189,7 @@ hier.wide <- data.table::fread(file.path(project.dir, "data/itis/itis_hierarchy.
   clean_up() %>%
   #added by Luke
   #should it be org_tsn_or final_tsn
-  mutate(tsn = org_tsn) %>%
+  #mutate(tsn = org_tsn) %>%
   
   #more of Zach's code
   mutate(tsn=as.character(tsn))
@@ -1177,7 +1197,7 @@ hier.wide <- data.table::fread(file.path(project.dir, "data/itis/itis_hierarchy.
 
 Z. The taxonomic counts are joined with the taxonomic hierarchy data by the final_tsn columns. A unique identifier (unique_id) is created for each sampling event by concatenating station, layer, samplenumber, and sampledate.
 ```{r}
-bays.df <- left_join(bay.df, hier.wide, by = "tsn") %>% 
+bay.df <- left_join(bay.df, hier.wide, by = "tsn") %>% 
   mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_"))
 ```
 
@@ -1233,7 +1253,7 @@ carbon.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_
 
 this fills in 100 tsn with current data (760 missing to 660)
 ```{r}
-bay_filled.df <- bay.df %>% 
+bay.df <- bay.df %>% 
   mutate(
     tsn = as.integer(tsn),
     tsn = case_when(
@@ -1392,16 +1412,59 @@ bay_partials_added.df <- left_join(bay.df, partial.match.df, by = c("latinname",
          size = if_else(!is.na(new_size), new_size, size))
 ```
 
+
+```{r}
+bay_partials_added_test.df <- bay_partials_added.df %>%
+  mutate(size = case_when(size == "not_applicable"~ as.character(NA), TRUE ~size))
+```
+
+
+
+
+L. Make a vector of unique latinanems where size is not na... became pointless...solved another way
+```{r}
+# bay_w_size.df <- bay_partials_added.df %>% 
+#   filter(!size == "not_applicable")
+# 
+# bay_w_o_size.df <- bay_partials_added.df %>% 
+#   filter(size == "not_applicable") %>%
+#   select(-size)
+# #names_w_sized.vec <- unique(bay_reduced.df$latinname) 
+# ```
+# 
+# ```{r}
+# bay_w_size_merge.df <- left_join(bay_w_size.df, carbon.df, by = c("latinname", "size"))
+# ```
+# 
+# ```{r}
+# bay_w_o_size_merge.df <- left_join(bay_w_o_size.df, carbon.df, by = c("latinname"))
+# ```
+# 
+# 
+# ```{r}
+# bw_missing_carbon.df <- bay_w_size_merge.df %>%
+#   filter(is.na(carbon) | carbon == 0)
+# 
+# bwo_missing_carbon.df <- bay_w_o_size_merge.df %>%
+#   filter(is.na(carbon) | carbon == 0)
+# ```
+# 
+# 
+# ```{r}
+# bay_test.df <- bay_merged.df <- left_join(bay_w_o_size_merge.df, bay_w_size_merge.df, by = c("latinname", "size")) 
+```
+
+
 Merge bay.df with carbon.df and calculate biomass. The phytoplankton counts are reported in picoliters. Biomass is converted to microliters.
 ```{r}
-bay_merged.df <- left_join(bay_partials_added.df, carbon.df, by = c("latinname", "size")) %>% 
+bay_merged.df <- left_join(bay_partials_added_test.df, carbon.df, by = c("latinname", "size")) %>% 
   mutate(micro_biomass = reportingvalue * carbon / 10 ^ 6)
 ```
 (end of Zach's code)
 
 
 test to see how many have missing info
-note: missing tsn is 756, missing carbon is 9832
+note: missing tsn is 465(down from 756), missing carbon is 226(down from 9832)
 note: there are 24 without carbon values in carbon.df
 ```{r}
 missing_tsn.df <- bay_merged.df %>%
