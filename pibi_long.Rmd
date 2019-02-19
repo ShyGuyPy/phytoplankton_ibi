@@ -1414,7 +1414,7 @@ bay_partials_added.df <- left_join(bay.df, partial.match.df, by = c("latinname",
 
 
 ```{r}
-bay_partials_added_test.df <- bay_partials_added.df %>%
+bay_partials_added.df <- bay_partials_added.df %>%
   mutate(size = case_when(size == "not_applicable"~ as.character(NA), TRUE ~size))
 ```
 
@@ -1457,14 +1457,14 @@ L. Make a vector of unique latinanems where size is not na... became pointless..
 
 Merge bay.df with carbon.df and calculate biomass. The phytoplankton counts are reported in picoliters. Biomass is converted to microliters.
 ```{r}
-bay_merged.df <- left_join(bay_partials_added_test.df, carbon.df, by = c("latinname", "size")) %>% 
+bay_merged_test.df <- left_join(bay_partials_added.df, carbon.df, by = c("latinname", "size")) %>% 
   mutate(micro_biomass = reportingvalue * carbon / 10 ^ 6)
 ```
 (end of Zach's code)
 
 
 test to see how many have missing info
-note: missing tsn is 465(down from 756), missing carbon is 226(down from 9832)
+note: missing tsn is 465(down from 756), missing carbon is 226(142 of those are green_cells)(down from 9832)
 note: there are 24 without carbon values in carbon.df
 ```{r}
 missing_tsn.df <- bay_merged.df %>%
@@ -1472,5 +1472,16 @@ missing_tsn.df <- bay_merged.df %>%
 
 missing_carbon.df <- bay_merged.df %>%
   filter(is.na(carbon) | carbon == 0)
+```
+
+exploring issue with green_cells
+```{r}
+green_cell.df <- missing_carbon.df %>%
+  filter(latinname=="green_cells") %>%
+  select(-size)
+
+green.df <- left_join(green_cell.df, carbon.df, by= c("latinname"))
+
+
 ```
 
