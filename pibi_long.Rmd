@@ -1457,8 +1457,12 @@ L. Make a vector of unique latinanems where size is not na... became pointless..
 
 Merge bay.df with carbon.df and calculate biomass. The phytoplankton counts are reported in picoliters. Biomass is converted to microliters.
 ```{r}
-bay_merged_test.df <- left_join(bay_partials_added.df, carbon.df, by = c("latinname", "size")) %>% 
+bay_merged.df <- left_join(bay_partials_added.df, carbon.df, by = c("latinname", "size")) %>% 
   mutate(micro_biomass = reportingvalue * carbon / 10 ^ 6)
+
+green_cells.df <- bay_merged.df %>%
+    filter(latinname=="green_cells")
+  
 ```
 (end of Zach's code)
 
@@ -1476,12 +1480,47 @@ missing_carbon.df <- bay_merged.df %>%
 
 exploring issue with green_cells
 ```{r}
-green_cell.df <- missing_carbon.df %>%
-  filter(latinname=="green_cells") %>%
-  select(-size)
+green_cell_carbon.df <- missing_carbon.df %>%
+  filter(latinname=="green_cells") #%>%
+  #select(-size)
+
+green_cell_tsn.df <- missing_tsn.df %>%
+  filter(latinname=="green_cells") #%>%
+  #select(-size)
+
+blue_green_carbon.df <- missing_carbon.df %>%
+  filter(latinname=="blue_green_sphere") #%>%
+  #select(-size)
+
+blue_green_tsn.df <- missing_tsn.df %>%
+  filter(latinname=="blue_green_sphere") #%>%
+
+
+
+blue_green_sphere.df <- bay_merged.df %>%
+  filter(latinname %in% c("blue_green_sphere","green_cells"))
+
+blue_green_sphere_carbon.df <- carbon.df %>%
+  filter(latinname %in% c("green_cells","blue_green_sphere"))
+
+blue_green_sphere_carbon.df <- left_join(blue_green_sphere.df, carbon.df, by= c("latinname","size"))
+
+# bay_w_size.df <- bay_partials_added.df %>%
+#   #filter(size != as.character(NA))
+#   filter(!size == "not_applicable")
+
 
 green.df <- left_join(green_cell.df, carbon.df, by= c("latinname"))
 
+chiro <- bay_merged.df %>% filter(latinname %in% c("chironomus_riparius"))
 
+```
+
+no tsn blue_green_sphere but there is tsn for Cyanobacteria.  can this be used instead?  Aslo, check for an alias for green_cells as well.
+```{r}
+green_tsn <- get_tsn("Cyanobacteria")
+
+test <- usage("956108")
+test <- common_names("956108")
 ```
 
