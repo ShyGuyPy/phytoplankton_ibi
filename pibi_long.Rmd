@@ -876,7 +876,7 @@ LV_diff_check_step_8.df <- anti_join(s8_compare.df, step_8.df, by = c("depth_int
 ```
 
 filter out dates outside Mar-May and Jul-Sept
-borrowed this chunck from Zach
+borrowed this chunk from Zach
 ```{r}
 wq_warm.df <- wq_all.df %>%
   mutate(month = month(sampledate),
@@ -1013,7 +1013,31 @@ C_diff_check_step_10.df <- anti_join(step_10.df,s10_compare.df, by = c("chla", "
 LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla", "s_chla", "pheo", "salinity", "doc"))
 ```
 
-ITIS
+itis
+```{r}
+carbon.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014.xlsx"),
+                         sheet = "OldBiomassEstimates") %>% clean_up()
+```
+
+find temporary tsn values
+```{r}
+bad_tsn.df <- carbon.df %>%
+  #filter(tsn == "bay0001")
+  filter(str_detect(tsn, "^bay"))
+
+```
+
+carbon data needs to be reformatted to work with bay data
+```{r}
+carbon_test.df <- carbon.df %>%
+  mutate(tsn =  gsub("(?<![0-9])0+", "", tsn, perl = TRUE)) %>%
+  rename(latinname = lbl) %>%
+  rename(carbon = `carbon_(picogram_c_per_cell)`) %>%
+  mutate(tsn = as.integer(tsn)) %>%
+  mutate(size = case_when(size == "not_applicable"~ as.character(NA), TRUE ~size))
+
+```
+
 ```{r}
 col.class.vec <- c("samplenumber" = "character",
                    "tsn" = "integer",
@@ -1028,499 +1052,17 @@ bay.temp <- data.table::fread(file.path(project.dir, "data/CEDR/cedr_phyto_taxa.
 #   mutate(tsn =)
 ```
 
-
-Simplest way to get Zach's code working was to add a org_tsn category that equals tsn(org_tsn is no longer a part of CEDR data output)
+test join
 ```{r}
-# bay.temp <- bay.temp %>%
-#   mutate(org_tsn = tsn)
-```
-
-Zach's original itis code
-```{r}
-# hier.wide <- lapply(unique(bay.temp$org_tsn), function(tsn.i) {
-#  #print(tsn.i)
-#   
-#   if(ncol(usage(tsn.i)) == 0) return(data.frame(org_tsn = as.integer(tsn.i),
-#                                                 stringsAsFactors = FALSE))
-#   if(!ritis::usage(tsn.i)$taxonUsageRating %in% c("accepted", "valid")) {
-#     tsn.accepted <- ritis::accepted_names(as.integer(tsn.i))$acceptedTsn
-#   } else {
-#     tsn.accepted <- as.integer(tsn.i)
-#   }
-#   
-#   full.df <- ritis::hierarchy_full(tsn.accepted) %>% 
-#     select(rankname, taxonname, tsn) %>% 
-#     slice(1:which(tsn == tsn.accepted)) %>% 
-#     mutate(org_tsn = as.integer(tsn.i),
-#            final_tsn = as.integer(tsn.accepted),
-#            final_id = slice(., which(tsn == tsn.accepted))$taxonname)
-# }) %>% 
-#   bind_rows() %>% 
-#   #select(-tsn) %>% 
-#   spread(rankname, taxonname) %>% 
-#   clean_up()
-```
-
-re-write the code above
-```{r}
-hier.wide <- lapply(unique(bay.temp$tsn), function(tsn.i) {
-  if(ncol(usage(tsn.i)) == 0) return(data.frame(tsn = as.integer(tsn.i),
-                                                stringsAsFactors = FALSE))
-  if(!ritis::usage(tsn.i)$taxonUsageRating %in% c("accepted", "valid")) {
-    tsn.accepted <- ritis::accepted_names(as.integer(tsn.i))$acceptedTsn
-  } else {
-    tsn.accepted <- as.integer(tsn.i)
-  }  
-  
-    
-  full.df <- ritis::hierarchy_full(tsn.accepted) %>% 
-    select(rankname, taxonname, tsn) %>% 
-    slice(1:which(tsn == tsn.accepted)) %>% 
-    mutate(tsn = as.integer(tsn.i),
-           final_tsn = as.integer(tsn.accepted),
-           final_id = slice(., which(tsn == tsn.accepted))$taxonname)
-    
-}) %>% 
-  bind_rows() %>% 
-  #select(-tsn) %>% 
-  spread(rankname, taxonname) %>% 
-  clean_up()
+test_join <- left_join(bay.temp, carbon_test.df, by = c("tsn","latinname","size"))
 ```
 
 
-
+working to resolve missing carbons, etc.
 ```{r}
-column.vec <- c("tsn", "final_tsn", "final_id",
-                "kingdom", "subkingdom", "infrakingdom", 
-                "superdivision", "division", "subdivision", "infradivision",
-                "superphylum", "phylum", "subphylum", "infraphylum", 
-                "superclass", "class", "subclass", "infraclass", 
-                "superorder", "order", "suborder", "infraorder", 
-                "superfamily", "family", "subfamily", 
-                "tribe", "subtribe", 
-                "genus", "subgenus", 
-                "species", "subspecies")
-
-column.vec <- column.vec[column.vec %in% names(hier.wide)]
+test <- carbon_test.df %>%
+  filter(tsn == 2294)
+  #filter(latinname == "melosira_nummuloides")
 ```
 
-```{r}
-hier.wide <- hier.wide[, column.vec]
-```
-
-```{r}
-dir.create(file.path(project.dir, "data/itis"),
-           recursive = TRUE, showWarnings = FALSE)
-
-data.table::fwrite(hier.wide, file.path(rprojroot::find_rstudio_root_file(), "data/itis", "itis_hierarchy.csv"))
-```
-
-test old itis data vs new
-```{r}
-# itis_old.df <- data.table::fread(file.path(project.dir, "data/itis/", "old_itis_hierarchy.csv")) %>% clean_up()
-# itis_new.df <- data.table::fread(file.path(project.dir, "data/itis/", "itis_hierarchy.csv")) %>% clean_up()
-# 
-# itis_compare.df <- anti_join(itis_old.df,itis_new.df, by = c("final_id", "final_tsn"))
-# itis_also_compare.df <- anti_join(itis_new.df,itis_old.df, by = c("final_id", "final_tsn"))
-```
-
-
-
-```{r}
-col.class.vec <- c("samplenumber" = "character",
-                   "tsn" = "character",
-                   "speccode" = "character")
-
-taxa.raw <- data.table::fread(file.path(project.dir, "data/CEDR/cedr_phyto_taxa.csv"),
-                            data.table = FALSE,
-                            colClasses = col.class.vec,
-                            na.strings = "") %>% 
-  mutate(sampledate = as.Date(sampledate))
-```
-
-
-
-
-```{r}
-bay.df <- taxa.raw %>% 
-  filter(layer %in% c("ap", "wc")) %>% 
-  distinct() %>% 
-  mutate(month = month(sampledate),
-         season = case_when(
-           month %in% c(3, 4, 5) ~ "spring",
-           month %in% c(7, 8, 9) ~ "summer",
-           TRUE ~ "remove"
-         )) %>% 
-  filter(season %in% c("spring", "summer")) %>%
-  #changing types to match as is done in Zach's code using col.class.vec
-  mutate(tsn=as.character(tsn)) %>%
-  mutate(speccode = as.character(speccode)) %>%
-  mutate(reportingvalue = as.integer(reportingvalue)) %>%
-  mutate(samplenumber = as.character(samplenumber))
-  
-```
-
-
-If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon. (currently removes a single value)
-```{r}
-bay.df <- bay.df %>% 
-  group_by_at(vars(-reportingvalue)) %>% 
-  summarize(reportingvalue = sum(reportingvalue)) %>% 
-  ungroup()
-```
-
-
-```{r}
-bay.df <- bay.df %>% 
-  filter(grepl("ph", method),
-         !latinname %in% c("micro-phytoflagellates",
-                           "microflagellates",
-                           #"green_cells",
-                           #"blue_green_sphere",
-                           "epiphytic_flagellates",
-                           "hydrodictyon_reticulatum"))
-```
-
-Taxaonmic Hierarchy
-```{r}
-hier.wide <- data.table::fread(file.path(project.dir, "data/itis/itis_hierarchy.csv"),
-                            data.table = FALSE,
-                            na.strings = "") %>% 
-  clean_up() %>%
-  #added by Luke
-  #should it be org_tsn_or final_tsn
-  #mutate(tsn = org_tsn) %>%
-  
-  #more of Zach's code
-  mutate(tsn=as.character(tsn))
-```
-
-Z. The taxonomic counts are joined with the taxonomic hierarchy data by the final_tsn columns. A unique identifier (unique_id) is created for each sampling event by concatenating station, layer, samplenumber, and sampledate.
-```{r}
-bay.df <- left_join(bay.df, hier.wide, by = "tsn") %>% 
-  mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_"))
-```
-
-Z. Some taxa require specific attention before they can be finalized.
-```{r}
-bay.df <- bay.df %>% 
-  mutate(
-    final_id = if_else(latinname == "trinacria_regina", "trinacria_regina",  final_id),
-    final_id = case_when(
-      latinname == "green_cells" ~ "green_cells",
-      latinname == "blue_green_spheres" ~ "blue_green_spheres",
-      TRUE ~ final_id
-    ),
-    kingdom = if_else(latinname == "trinacria_regina",
-                      "chromista", kingdom),
-    phylum = if_else(latinname == "trinacria_regina",
-                     "bacillariophyta", phylum),
-    subphylum = if_else(latinname == "trinacria_regina",
-                        "bacillariophytina", subphylum),
-    class = if_else(latinname == "trinacria_regina",
-                    "mediophyceae", class),
-    subclass = if_else(latinname == "trinacria_regina",
-                       "chaetocerotophycidae", subclass),
-    order = if_else(latinname == "trinacria_regina",
-                    "hemiaulales", order),
-    family = if_else(latinname == "trinacria_regina",
-                     "hemiaulaceae", family),
-    genus = case_when(latinname == "trinacria_regina" ~ "trinacria",
-                      latinname == "didymocystis" ~ "didymocystis",
-                      latinname == "Lauterborniella_elegantissima" ~ "lauterborniella",
-                      TRUE ~ genus),
-    species = case_when(latinname == "trinacria_regina" ~ "trinacria_regina",
-                        latinname == "lauterborniella_elegantissima" ~ "lauterborniella_elegantissima",
-                        TRUE ~ species)
-  )
-```
-
-Prepate Carbon Assignments
-grab old carbon
-```{r}
-carbon.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014.xlsx"),
-                                sheet = "carbon_list_2014") %>% 
-  clean_up() %>% 
-  
-  #deselcting several fields
-  dplyr::select(-dplyr::contains("new"),
-                -smyayda_carbon,
-                -difference,
-                -shape_change) %>% 
-  dplyr::rename(carbon = old_carbon)
-```
-
-
-this fills in 100 tsn with current data (760 missing to 660)
-```{r}
-bay.df <- bay.df %>% 
-  mutate(
-    tsn = as.integer(tsn),
-    tsn = case_when(
-      latinname == "navicula_notablis" ~ as.integer(4327),
-      latinname == "pleurosigma_macrum" ~ as.integer(4650),
-      latinname == "pleurosigma_obscurum" ~ as.integer(591383),
-      latinname == "polykrikos_hartmannii" ~ as.integer(331299),
-      latinname == "protoperidinium_aciculiderum" ~ as.integer(10329),
-      latinname == "protoperidinium_paulseni" ~ as.integer(3568),
-      latinname == "scrippsiella_favionese" ~ as.integer(10537),
-      latinname == "tetrastrum_caudatum" ~ as.integer(5691),
-      latinname == "didymocystis" ~ as.integer(5810),
-      latinname == "lauterborniella_elegantissima" ~ as.integer(6097),
-      latinname == "characium_sp." ~ as.integer(5756),
-      latinname == "cylindrospermopsis_sp." ~ as.integer(203689),
-      latinname == "chaetoceros_neogracilis" ~ as.integer(1004011),
-      latinname == "navicula_retusa_cancellata" ~ as.integer(1020372),
-      latinname == "karlodinium_micrum" ~ as.integer(180904),
-      latinname == "lagerheimia" ~ as.integer(6017),
-      latinname == "quadricoccus_euryhalinicus" ~ as.integer(957939),
-      latinname == "scrippsiella_precaria" ~ as.integer(10536),
-      latinname == "psuedosolenia_calcar-avis" ~ as.integer(970064),
-      latinname == "centronella" ~ as.integer(970064),
-      latinname == "amphidinium_tatrae" ~ as.integer(9997),
-      latinname == "navicula_lata" ~ as.integer(4450),
-      latinname == "nitzschia_vitrea_recta" ~ as.integer(5204),
-      latinname == "rhaphoneis_gemmifera" ~ as.integer(3145),
-      latinname == "delphineis_surirella" ~ as.integer(969978),
-      latinname == "navicula_annulata" ~ as.integer(3649),
-      latinname == "proboscia_alata_gracillima" ~ as.integer(610099),
-      latinname == "guinardia_striata" ~ as.integer(2921),
-      latinname == "guinardia_cylindrus" ~ as.integer(2921),
-      latinname == "aphanizomenon_issatschenkoi" ~ as.integer(1191),
-      latinname == "helicotheca_tamesis" ~ as.integer(590815),
-      latinname == "corethron_valdivae" ~ as.integer(2386),
-      latinname == "gonyaulax_conjuncta" ~ as.integer(10359),
-      latinname == "lioloma_delicatulum" ~ as.integer(573597),
-      latinname == "syracosphaera_histrica" ~ as.integer(2234),
-      latinname == "rhizosolenia_formosa" ~ as.integer(2879),
-      latinname == "proboscla_alata_curvirostris" ~ as.integer(610099),
-      latinname == "membraneis_challengeri" ~ as.integer(3648),
-      latinname == "chrysococcus_tesselatus" ~ as.integer(1751),
-      latinname == "rhoicosphenia_abbreviata" ~ as.integer(3633),
-      latinname == "protoperidinium_aciculiferum" ~ as.integer(10340),
-      latinname == "protoperidinium_fimbriatum" ~ as.integer(10340),
-      latinname == "licmophora_inflata" ~ as.integer(3155),
-      latinname == "biddulphia_reticulata" ~ as.integer(2678),
-      latinname == "caloneis_lepidula" ~ as.integer(4369),
-      latinname == "caloneis_trinodis" ~ as.integer(4369),
-      latinname == "amphiprora_cholnokyi" ~ as.integer(4674),
-      latinname == "navicula_interrupta" ~ as.integer(3649),
-      latinname == "cerataulus_radiatus" ~ as.integer(2709),
-      latinname == "gyrosigma_balticum_silimis" ~ as.integer(4623),
-      latinname == "dictyocha_siderea" ~ as.integer(1804),
-      latinname == "odontella_alternans" ~ as.integer(573604),
-      latinname == "nitzschia_vitrea_salinarum" ~ as.integer(5204),
-      latinname == "proboscla_alata_indica" ~ as.integer(610099),
-      latinname == "attheya_decora" ~ as.integer(2876),
-      latinname == "synedra_closterioides" ~ as.integer(970065),
-      latinname == "trinacria_regina" ~ as.integer(2747),
-      latinname == "chattonella" ~ as.integer(969917),
-      latinname == "chattonella_subsalsa" ~ as.integer(969917),
-      latinname == "heterosigma_akashiwo" ~ as.integer(969917),
-      latinname == "vibrio_fisheri" ~ as.integer(959178),
-      TRUE ~ as.integer(tsn)
-    )
-  )
-```
-
-```{r}
-carbon.df <- carbon.df %>% 
-  mutate(size = case_when(
-    size %in% "unidentified" ~ as.character(NA),
-    str_detect(size, "species|sp.") ~ str_replace_all(size, "sp.#|species_#|species_|species", "sp#"),
-    TRUE ~size
-  ),
-  latinname = if_else(latinname == "blue_green_trichome", "blue_green_sphere", latinname)) %>% 
-  mutate(picoplankton = if_else(
-    diameter <= 20 &
-      height <= 20 &
-      width <= 20 &
-      width <= 20 &
-      height_2 <= 20 &
-      width_2 <= 20,
-    TRUE,
-    FALSE
-  )) %>% 
-  select(latinname, size, carbon) %>%
-  distinct() %>% 
-  bind_rows(data.frame(latinname = "asterionellopsis_glacialis", 
-                       carbon = carbon.df[carbon.df$latinname == "asterionellopsis_kariana", "carbon"],
-                       stringsAsFactors = FALSE))
-```
-
-check for duplicate values
-```{r}
-carbon.dups <- carbon.df %>% 
-  group_by(latinname, size) %>% 
-  mutate(count = n()) %>% 
-  ungroup() %>% 
-  filter(count > 1)
-```
-
-excluding 3 types that have dups
-```{r}
-carbon.df <- carbon.df %>% 
-  filter(!(latinname == "chaetoceros_wighami" & is.na(carbon)),
-         !(latinname == "biddulphia" & carbon == 7899.50),
-         !(latinname == "gymnodinium" & carbon == 848))
-```
-
-(the following code is taken in full from Zach's code, decriptions included)
-
-Identify all taxa (latinname) in bay.df that do not have a size equivalent in carbon.df.
-
-```{r}
-no.match.df <- anti_join(bay.df, carbon.df, by = c("latinname", "size")) %>% 
-  select(latinname, size) %>% 
-  distinct()
-```
-
-Attempt to find partial matches for taxa in no.match.df. Each row in no.match.df represents a unique taxon and size combination. lapply loops through each row, extracts the unique size string, splits the string into smaller pieces, and attempts to find partial matches with associated size strings in carbon.df. The string in carbon.df with the most partial matches will be used to replace the size string in bay.df.
-
-```{r}
-partial.match.df <- lapply(1:nrow(no.match.df), function(row.i) {
-  sub.df <- no.match.df %>% 
-    slice(row.i)
-  
-  size.vec <- str_split(sub.df$size, "_") %>% unlist()
-  
-  getmode <- function(v) {
-    uniqv <- unique(v)
-    uniqv[which.max(tabulate(match(v, uniqv)))]
-  }
-  
-  
-  carbon.sub <- carbon.df %>% 
-    filter(latinname == sub.df$latinname) %>% 
-    mutate(row_max_matches = sapply(size.vec, function(size.i) grep(size.i, size)) %>% 
-             unlist() %>% 
-             getmode()) %>% 
-    slice(unique(row_max_matches)) %>% 
-    select(-row_max_matches, -carbon) %>% 
-    rename(new_size = size) %>% 
-    mutate(size = sub.df$size)
-  
-  return(carbon.sub)
-}) %>% 
-  bind_rows()
-```
-
-Merge bay.df with partial.match.df and if a new_size is present from partial.match.df, then replace the size string with the new_size string. By updating the size strings it is possible to obtain more matches when merging bay.df and  carbon.df.
-```{r}
-bay_partials_added.df <- left_join(bay.df, partial.match.df, by = c("latinname", "size")) %>% 
-  mutate(reported_size = size,
-         size = if_else(!is.na(new_size), new_size, size))
-```
-
-
-```{r}
-bay_partials_added.df <- bay_partials_added.df %>%
-  mutate(size = case_when(size == "not_applicable"~ as.character(NA), TRUE ~size))
-```
-
-
-
-
-L. Make a vector of unique latinanems where size is not na... became pointless...solved another way
-```{r}
-# bay_w_size.df <- bay_partials_added.df %>% 
-#   filter(!size == "not_applicable")
-# 
-# bay_w_o_size.df <- bay_partials_added.df %>% 
-#   filter(size == "not_applicable") %>%
-#   select(-size)
-# #names_w_sized.vec <- unique(bay_reduced.df$latinname) 
-# ```
-# 
-# ```{r}
-# bay_w_size_merge.df <- left_join(bay_w_size.df, carbon.df, by = c("latinname", "size"))
-# ```
-# 
-# ```{r}
-# bay_w_o_size_merge.df <- left_join(bay_w_o_size.df, carbon.df, by = c("latinname"))
-# ```
-# 
-# 
-# ```{r}
-# bw_missing_carbon.df <- bay_w_size_merge.df %>%
-#   filter(is.na(carbon) | carbon == 0)
-# 
-# bwo_missing_carbon.df <- bay_w_o_size_merge.df %>%
-#   filter(is.na(carbon) | carbon == 0)
-# ```
-# 
-# 
-# ```{r}
-# bay_test.df <- bay_merged.df <- left_join(bay_w_o_size_merge.df, bay_w_size_merge.df, by = c("latinname", "size")) 
-```
-
-
-Merge bay.df with carbon.df and calculate biomass. The phytoplankton counts are reported in picoliters. Biomass is converted to microliters.
-```{r}
-bay_merged.df <- left_join(bay_partials_added.df, carbon.df, by = c("latinname", "size")) %>% 
-  mutate(micro_biomass = reportingvalue * carbon / 10 ^ 6)
-
-green_cells.df <- bay_merged.df %>%
-    filter(latinname=="green_cells")
-  
-```
-(end of Zach's code)
-
-
-test to see how many have missing info
-note: missing tsn is 465(down from 756), missing carbon is 226(142 of those are green_cells)(down from 9832)
-note: there are 24 without carbon values in carbon.df
-```{r}
-missing_tsn.df <- bay_merged.df %>%
-  filter(is.na(tsn) | tsn == 0)
-
-missing_carbon.df <- bay_merged.df %>%
-  filter(is.na(carbon) | carbon == 0)
-```
-
-exploring issue with green_cells
-```{r}
-green_cell_carbon.df <- missing_carbon.df %>%
-  filter(latinname=="green_cells") #%>%
-  #select(-size)
-
-green_cell_tsn.df <- missing_tsn.df %>%
-  filter(latinname=="green_cells") #%>%
-  #select(-size)
-
-blue_green_carbon.df <- missing_carbon.df %>%
-  filter(latinname=="blue_green_sphere") #%>%
-  #select(-size)
-
-blue_green_tsn.df <- missing_tsn.df %>%
-  filter(latinname=="blue_green_sphere") #%>%
-
-
-
-blue_green_sphere.df <- bay_merged.df %>%
-  filter(latinname %in% c("blue_green_sphere","green_cells"))
-
-blue_green_sphere_carbon.df <- carbon.df %>%
-  filter(latinname %in% c("green_cells","blue_green_sphere"))
-
-blue_green_sphere_carbon.df <- left_join(blue_green_sphere.df, carbon.df, by= c("latinname","size"))
-
-# bay_w_size.df <- bay_partials_added.df %>%
-#   #filter(size != as.character(NA))
-#   filter(!size == "not_applicable")
-
-
-green.df <- left_join(green_cell.df, carbon.df, by= c("latinname"))
-
-chiro <- bay_merged.df %>% filter(latinname %in% c("chironomus_riparius"))
-
-```
-
-no tsn blue_green_sphere but there is tsn for Cyanobacteria.  can this be used instead?  Aslo, check for an alias for green_cells as well.
-```{r}
-green_tsn <- get_tsn("Cyanobacteria")
-
-test <- usage("956108")
-test <- common_names("956108")
-```
 
