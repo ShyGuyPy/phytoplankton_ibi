@@ -9,6 +9,13 @@ output:
     toc_depth: '6'
     toc_float: yes
 ---
+supress error warnings
+```{r setup, cache=FALSE}
+knitr::opts_chunk$set(error = TRUE)
+
+```
+
+
 
 ####Download Packages
 ```{r load_packages, message=FALSE}
@@ -231,7 +238,7 @@ wq.df <- file.path(url.root,
                    max_date,
                    # format(min(phyto.df$sampledate) - days(3), "%m-%d-%Y"),
                    # format(max(phyto.df$sampledate) + days(3), "%m-%d-%Y"),
-                   "6",  #programIds..."6"" or, "2,4,6""
+                   "6",  #programIds..."6"" or, "2,4,6",
                    "7,23",#"7,16,23,24",  #projectIds
                    "station",
                    paste(station.vec, collapse = ","),
@@ -714,10 +721,10 @@ di_s_chla.df <- full_join(di_s_chla.df, missing_s_chla.df, by = c("station", "sa
 I have eventid 39855 with s_chla in my wq data
 this is the check:
 ```{r}
-mystrey.df <- wq_above_pdepth.df %>%
+mystery.df <- wq_above_pdepth.df %>%
   filter(eventid == 394855)
 
-mysery2.df <- event.df %>%
+mystery2.df <- event.df %>%
   filter(station == "tf4.2" & sampledate =="2014-07-15")
   
 mystery3.df <- wq.df %>%
@@ -1282,11 +1289,43 @@ Z. Some taxa require specific attention before they can be finalized.
 ```
 
 fixes a spelling error in carbon_list (should fix in actual csv...)
+other fixes to carbon_list such as assigning tsn to latinnames with known tsns
 ```{r}
 carbon.df <- carbon.df %>%
-  mutate(size = ifelse(size =="microphytoflaggelates", "microphytoflagellates", size))
+  mutate(size = ifelse(size =="microphytoflaggelates", "microphytoflagellates", size)) %>%
+  mutate(size = ifelse(size =="unidentified", as.character(NA), size)) %>%
+  mutate(tsn = case_when(latinname == "aphanizomenon_issatschenkoi"~as.integer(1191), 
+                         latinname == "chaetoceros_neogracilis"~as.integer(1004011), 
+                         latinname =="guinardia_striata" ~ as.integer(2921), 
+                         latinname == "lagerheimia" ~ as.integer(6017), 
+                         latinname == "odontella_alternans"~ as.integer(573604),
+                         #latinname == "protoperidinium_orbiculare" ~ as.integer(), 
+                         latinname == "psuedosolenia_calcar-avis" ~ as.integer(970064),
+                         
+                         #over-writes tsn of 591037 for the itis tsn of 591383
+                         latinname == "pleurosigma_obscurum" ~ as.integer(591383),
+                         
+                         TRUE ~ as.integer(tsn))) 
 ```
 
+adds asterionellopsis_glacialis to the carbon.df with asterionellopsis_kariana carbon value
+```{r}
+carbon.df <- carbon.df %>%
+  bind_rows(data.frame(latinname = "asterionellopsis_glacialis",
+                       carbon = carbon.df[carbon.df$latinname == "asterionellopsis_kariana", "carbon"],
+                       tsn = 615890,
+                       group = "diatom",
+                       stringsAsFactors = FALSE))
+```
+
+```{r}
+# bay.df <- bay.df %>%
+#   mutate(tsn = ifelse(tsn == 0, as.character(NA), tsn)) 
+
+carbon.df <- carbon.df %>%
+  mutate(tsn = ifelse(is.na(tsn)==TRUE, 0, tsn))
+
+```
 
 finally, join bay and carbon
 ```{r}
@@ -1295,7 +1334,7 @@ bay_merged.df <- left_join(bay.df, carbon.df, by = c("latinname","size","tsn"))
 
 clean up bay_merged(make group and nodc_phyla from carbon_list primary variable and remove value brought in from bay.df)
 ```{r}
-bay_merged_test.df <- bay_merged.df %>%
+bay_merged.df <- bay_merged.df %>%
   rename(group = group.y) %>%
   rename(nodc_phyla = nodc_phyla.y) %>%
   select(-group.x, -nodc_phyla.x)
@@ -1315,23 +1354,57 @@ missing_carbon.df <- bay_merged.df %>%
 ```
 
 ```{r}
-missing <- unique(pull(missing_carbon.df, tsn))
+missing <- unique(pull(missing_carbon.df, latinname))
+#print(missing)
+
+missing_green_blue.df <- missing_carbon.df %>%
+  filter(latinname %in% c("green_cells", "blue_green_sphere"))
+
+missing_sans_green_blue.df <- missing_carbon.df %>%
+  filter(!latinname %in% c("green_cells", "blue_green_sphere"))
+
+missing_actual <- unique(pull(missing_sans_green_blue.df, latinname))
+sort(missing_actual)
+print(missing_actual)
+
+
 
 test <- carbon.df %>%
-  filter(tsn %in% missing)
+  filter(latinname %in% missing)
 
-missing2 <- unique(pull(test, tsn))
 
-test2 <- bay.df %>%
-  filter(tsn %in% missing2)
+# 
+# missing_actual <- unique(pull(test, tsn))
+# 
+# test2 <- bay.df %>%
+#   filter(tsn %in% missing2)
   
 ```
 
+26 missing carbon(minus green_cells and bluegreen_sphere)
+```{r}
+missing_but_in_carbon.df <- carbon.df %>%
+  filter(latinname %in% c("centritractis_belonophorus", "cerataulina", "characium", "coelosphaerium_dubium", "corethron_hystrix", "crucigenia_truncata", "cylindrospermopsis","euglenophycota", "limnothrix", "odontella",  "oocystis_pusilla", "oocystis_pyriformis", "protoperidinium_bipes" , "staurastrum_manfeldtii", "woronichinia_naegeliana"))
 
+```
+
+```{r}
+missing_b_i_c.vec <- unique(pull(missing_but_in_carbon.df, latinname))
+
+test <- bay_merged.df %>%
+  filter(latinname %in% missing_b_i_c.vec)
+```
+
+
+
+
+
+
+caught a spelling error in carbon_list:
 chlorophyceae microphytoflagellates
 chlorophyceae microphytoflaggelates
 
 
-
+asterionellopsis_glacialis
 
 
