@@ -1022,8 +1022,10 @@ LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla",
 
 itis
 ```{r}
-carbon.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014.xlsx"),
-                         sheet = "OldBiomassEstimates") %>% clean_up()
+# carbon.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014.xlsx"),
+#                          sheet = "OldBiomassEstimates") %>% clean_up()
+
+carbon.df <- data.table::fread(file.path(project.dir, "data/carbon/", "carbon_list_2014.csv")) %>% clean_up()
 ```
 
 
@@ -1327,6 +1329,20 @@ carbon.df <- carbon.df %>%
 
 ```
 
+changes to bay data to match changes to carbon list
+```{r}
+bay.df <- bay.df %>%
+  #mutate(group =ifelse(group =="chlorophycota", "chlorophyta", group )) %>%
+  mutate(latinname = ifelse(latinname=="protoperidinium_bipes", "minuscula_bipes", latinname)) %>%
+  mutate(latinname = ifelse(latinname=="woronichinia_naegeliana", "coelosphaerium_naegelianum", latinname)) %>%
+  mutate(latinname = ifelse(latinname=="centritractis_belonophorus", "centratractus_belonophorus", latinname)) %>%
+  mutate(tsn = ifelse(tsn==10210, 10209, tsn)) %>%
+  mutate(tsn = ifelse(latinname=="woronichinia_naegeliana", 0, tsn)) %>%
+  #modify centratractus_belonophorus tsn to match carbon_list
+  mutate(tsn = ifelse(tsn==2014, 2013, tsn))
+```
+
+
 finally, join bay and carbon
 ```{r}
 bay_merged.df <- left_join(bay.df, carbon.df, by = c("latinname","size","tsn")) 
@@ -1342,7 +1358,7 @@ bay_merged.df <- bay_merged.df %>%
 
 turn carbon NA's into zeroes and calcualte biomass
 ```{r}
-bay_merged_test.df <- bay_merged.df %>%
+bay_merged.df <- bay_merged.df %>%
   mutate(carbon = ifelse(is.na(carbon)==TRUE, 0, carbon)) %>%
   mutate(micro_biomass = reportingvalue * carbon / 10 ^ 6) 
 ```
@@ -1381,6 +1397,8 @@ test <- carbon.df %>%
   
 ```
 
+
+
 26 missing carbon(minus green_cells and bluegreen_sphere)
 ```{r}
 missing_but_in_carbon.df <- carbon.df %>%
@@ -1406,5 +1424,7 @@ chlorophyceae microphytoflaggelates
 
 
 asterionellopsis_glacialis
+
+
 
 

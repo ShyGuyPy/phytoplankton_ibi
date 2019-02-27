@@ -10,6 +10,47 @@ output:
     toc_float: yes
 ---
 
+code for modifying carbon list
+```{r}
+
+carbon_change.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014_old.xlsx"),
+                         sheet = "OldBiomassEstimates") %>% clean_up()
+
+carbon_change.df <- carbon_change.df %>%
+  mutate(group =ifelse(group =="chlorophycota", "chlorophyta", group )) %>%
+  mutate(lbl = ifelse(lbl=="protoperidinium_bipes", "minuscula_bipes", lbl)) %>%
+  mutate(lbl = ifelse(lbl=="woronichinia_naegeliana", "coelosphaerium_naegelianum", lbl)) %>%
+  mutate(lbl = ifelse(lbl=="centritractis_belonophorus", "centratractus_belonophorus", lbl)) %>%
+  mutate(tsn = ifelse(tsn==10210, 10209, tsn)) %>%
+  mutate(tsn = ifelse(lbl=="woronichinia_naegeliana", 0, tsn))
+
+data.table::fwrite(carbon_change.df, file.path(project.dir, "data/carbon", "carbon_list_2014.csv"))
+```
+
+```{r}
+test <- taxa.raw %>% 
+  filter(latinname == "centritractis_belonophorus" | latinname== "centratractus_belonophorus")
+```
+
+```{r}
+carbon_check.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014_old.xlsx"),
+                         sheet = "OldBiomassEstimates") %>% clean_up()
+
+carbon_ll <-  carbon_check.df %>%
+  filter(size == "microphytoflagellates")
+
+carbon_gg <-  carbon_check.df %>%
+  filter(size == "microphytoflaggelates")
+
+taxa_ll <- taxa.raw %>%
+  filter(size == "microphytoflagellates")
+
+taxa_gg <- taxa.raw %>%
+    filter(size == "microphytoflaggelates")
+```
+
+
+
 itis and carbon
 
 ITIS
