@@ -1360,8 +1360,61 @@ turn carbon NA's into zeroes and calcualte biomass
 ```{r}
 bay_merged.df <- bay_merged.df %>%
   mutate(carbon = ifelse(is.na(carbon)==TRUE, 0, carbon)) %>%
-  mutate(micro_biomass = reportingvalue * carbon / 10 ^ 6) 
+  mutate(nano_micro_biomass = reportingvalue * carbon / 10 ^ 6) 
 ```
+
+
+```{r}
+bay_merged.df <-  bay_merged.df %>%
+  mutate(concat = paste0(station, sampledate)) 
+
+wq_final.df <- wq_final.df %>%
+  mutate(concat = paste0(station, sampledate)) 
+
+bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate"))
+
+
+bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
+  
+  #group by event
+  group_by(concat) %>%
+  
+  
+  #number of members in group
+  # mutate(count = n()) %>%
+  #name of new biomass?
+  mutate(total_biomass = sum(carbon)) %>%
+  mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
+  #
+  
+  mutate(carbon_chlorophyll_ratio1 = nano_micro_biomass/chla) %>% #invert division to get reverse
+  mutate(carbon_chlorophyll_ratio2 = total_nano_micro_biomass/chla) %>%
+  
+  group_by(group) %>%
+  mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon), TRUE~0)) %>%
+  mutate(dinoflagellate_biomass = case_when(group == "dinoflagellate"~sum(carbon), TRUE~0)) %>%
+  mutate(cyanophyte_biomass = case_when(group == "cyanophyte"~sum(carbon), TRUE~0)) %>%
+  mutate(cryptophyte_biomass = case_when(group == "cryptophyte"~sum(carbon), TRUE~0)) %>%
+  
+  mutate(percent_cryptophyte_biomass1 = cryptophyte_biomass/total_biomass)%>%
+  
+  
+  
+  
+  # #how should this be calculated?
+  # mutate(new_metric = other_biomass*micro_biomass/count) %>%
+  ungroup()
+
+
+
+```
+
+
+
+```{r}
+
+```
+
 
 
 ```{r}

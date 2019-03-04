@@ -32,6 +32,7 @@ test <- taxa.raw %>%
   filter(latinname == "centritractis_belonophorus" | latinname== "centratractus_belonophorus")
 ```
 
+test spelling
 ```{r}
 carbon_check.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014_old.xlsx"),
                          sheet = "OldBiomassEstimates") %>% clean_up()
@@ -49,6 +50,13 @@ taxa_gg <- taxa.raw %>%
     filter(size == "microphytoflaggelates")
 ```
 
+worms
+```{r}
+library(worms)
+
+test_w <- wormsbynames("limnothrix")
+#"limnothrix"
+```
 
 
 itis and carbon
