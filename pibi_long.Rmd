@@ -1371,7 +1371,7 @@ bay_merged.df <-  bay_merged.df %>%
 wq_final.df <- wq_final.df %>%
   mutate(concat = paste0(station, sampledate)) 
 
-bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate"))
+bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate", "month", "season"))
 
 
 bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
@@ -1410,10 +1410,86 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
 ```
 
 
+prorocentrum_minimum_abundance comes from where? mmir taxa_abund on prorocentrum_minimum that comes from bay.taxa....
+```{r}
+metrics.long <- bay_wq_merged_calc.df %>% 
+  rename(surface_chla = s_chla) %>%
+  gather(metric, value, surface_chla:prorocentrum_minimum_abundance) 
+```
+
 
 ```{r}
-
+score_spring_f <- function(metrics.long) {
+  metric.vec <- c("total_phyto_biomass_chla_ratio",
+                  "surface_chla",
+                  "cyanophyte_biomass",
+                  "doc",
+                  "pheophytin",
+                  "total_phyto_biomass")
+  #----------------------------------------------------------------------------
+  metrics.sub <- metrics.long %>% 
+    filter(season == "spring", 
+           salzone == "f",
+           metric %in% metric.vec)
+  #----------------------------------------------------------------------------
+  if (any(!metric.vec %in% unique(metrics.sub$metric))) {
+    stop(paste("score_spring_f requires the following metric(s):",
+               paste(metric.vec[!metric.vec %in% unique(metrics.sub$metric)], collapse = ", ")))
+  }
+  #----------------------------------------------------------------------------
+  final.df <- metrics.sub %>% 
+    mutate(score = case_when(
+      # Jackie's code 39.28 and 41.72
+      # Lacouture (2006) 39.3 and 41.7
+      metric == "total_phyto_biomass_chla_ratio" & value < 39.28 ~ 1,
+      metric == "total_phyto_biomass_chla_ratio" & value >= 39.28 & value <= 41.72 ~ 3,
+      metric == "total_phyto_biomass_chla_ratio" & value > 41.72 ~ 5,
+      metric == "surface_chla" & (value < 3.42 | value > 14.45) ~ 1,
+      metric == "surface_chla" & ((value >= 3.42 & value <= 4.37) |(value >= 13.98 & value <= 14.45)) ~ 3,
+      metric == "surface_chla" & value > 4.37 & value < 13.98 ~ 5,
+      # Jackie's code 23.02
+      # Lacouture (2006) 23
+      metric == "cyanophyte_biomass" & value > 23.02 ~ 1,
+      metric == "cyanophyte_biomass" & value <= 23.02 ~ as.numeric(NA),
+      metric == "doc" & value > 2.40 ~ 1,
+      metric == "doc" & value >= 2.19 & value <= 2.40 ~ 3,
+      metric == "doc" & value < 2.19 ~ 5,
+      metric == "pheophytin" & value > 2.50 ~ 1,
+      metric == "pheophytin" & value >= 1.55 & value <= 2.50 ~ 3,
+      metric == "pheophytin" & value < 1.55 ~ 5,
+      # Jackie's code 172.99, 583.9, and 828.5
+      # Lacouture (2006) 173, 584, and 829
+      metric == "total_phyto_biomass"  & (value <= 172.99 | value > 828.5) ~ 1,
+      metric == "total_phyto_biomass"  & value >= 583.9 & value <= 828.5 ~ 3,
+      metric == "total_phyto_biomass"  & value > 172.99 & value < 583.9 ~ 5,
+      TRUE ~ as.numeric(NA)))
+  return(final.df)
+}
 ```
+
+```{r}
+score_test.df <- score_spring_f(bay_wq_merged_calc.df)
+```
+
+```{r}
+metric_test.vec <- c("total_phyto_biomass_chla_ratio",
+                "surface_chla",
+                "cyanophyte_biomass",
+                "doc",
+                "pheophytin",
+                "total_phyto_biomass")
+  #----------------------------------------------------------------------------
+metrics_test.sub <- bay_wq_merged_calc.df %>% 
+  filter(season == "spring", 
+         salzone == "f",
+         metric %in% metric_test.vec)
+```
+
+
+
+
+
+
 
 
 
