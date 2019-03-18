@@ -1399,6 +1399,9 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   mutate(percent_cryptophyte_biomass1 = cryptophyte_biomass/total_biomass)%>%
   
   
+  #
+  
+  
   
   
   # #how should this be calculated?
@@ -1493,6 +1496,22 @@ metrics_test.sub <- bay_wq_merged_calc.df %>%
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```{r}
 missing_carbon.df <- bay_merged.df %>%
   filter(is.na(carbon) | carbon == 0)
@@ -1555,5 +1574,9 @@ chlorophyceae microphytoflaggelates
 asterionellopsis_glacialis
 
 
+```{r}
+test <- bay.df %>%
+  filter(latinname =="microcystis_aeruginosa" | latinname=="prorocentrum_minimum") #%>%
+```
 
 
