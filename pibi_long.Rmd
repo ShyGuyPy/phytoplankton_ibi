@@ -1387,8 +1387,8 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
   #
   
-  mutate(carbon_chlorophyll_ratio1 = nano_micro_biomass/chla) %>% #invert division to get reverse
-  mutate(carbon_chlorophyll_ratio2 = total_nano_micro_biomass/chla) %>%
+  #mutate(carbon_chlorophyll_ratio_wrong = nano_micro_biomass/chla) %>% #invert division to get reverse
+  mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
   
   group_by(group) %>%
   mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon), TRUE~0)) %>%
@@ -1396,13 +1396,7 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   mutate(cyanophyte_biomass = case_when(group == "cyanophyte"~sum(carbon), TRUE~0)) %>%
   mutate(cryptophyte_biomass = case_when(group == "cryptophyte"~sum(carbon), TRUE~0)) %>%
   
-  mutate(percent_cryptophyte_biomass1 = cryptophyte_biomass/total_biomass)%>%
-  
-  
-  #
-  
-  
-  
+  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_biomass)%>%
   
   # #how should this be calculated?
   # mutate(new_metric = other_biomass*micro_biomass/count) %>%
@@ -1412,23 +1406,109 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
 
 ```
 
-
-prorocentrum_minimum_abundance comes from where? mmir taxa_abund on prorocentrum_minimum that comes from bay.taxa....
 ```{r}
-metrics.long <- bay_wq_merged_calc.df %>% 
-  rename(surface_chla = s_chla) %>%
-  gather(metric, value, surface_chla:prorocentrum_minimum_abundance) 
+bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
+  group_by(concat) %>%
+  mutate(procentrum_minimum_abundance = case_when(latinname == "prorocentrum_minimum"~ sum(as.double(reportingvalue)),
+                                                  TRUE~0)) %>%
+  mutate(microcystis_aeruginosa_abundance = case_when(latinname == "microcystis_aeruginosa"~ sum(as.double(reportingvalue)), TRUE~0)) %>%
+  ungroup()
 ```
+
+join the picoplankton data into the bay data
+```{r}
+
+picoplankton.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv")) %>% clean_up() %>%
+  rename(pico_reportingvalue = reportingvalue) %>%
+  select("station", "sampledate", "pico_reportingvalue") %>% 
+  mutate(sampledate=as.Date(sampledate)) %>%
+  mutate(concat = paste0(station, sampledate)) %>%
+  select(-"station",-"sampledate") %>%
+  # take the average of reportingvalue where a unique station date combo has more than one reporting value
+  group_by(concat) %>%
+  mutate(pico_reportingvalue = mean(pico_reportingvalue)) %>%
+  unique() %>%
+  ungroup()
+
+bay_full_calc.df <- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = c("concat"))
+
+
+
+```
+
+
+NEXT STEP:Scoring
+
+```{r}
+  metric.vec <- c("total_phyto_biomass_chla_ratio",
+                  "surface_chla",
+                  "chla",
+                  "doc",
+                  "pheophytin",
+                  "total_phyto_biomass", 
+                  "diatom_biomass",
+                  "dinoflagellate_biomass",
+                  "cyanophyte_biomass",
+                  "cryptophyte_biomass",
+                  "percent_cryptophyte_biomass",
+                  "procentrum_minimum_abundance", 
+                  "microcystis_aeruginosa_abundance",
+                  "pico_reportingvalue" 
+                  
+                  )
+```
+
+
+rename some metrics to fit Zach's code(that I have rewritten now)
+```{r}
+metrics_test.long <- bay_full_calc.df %>%
+  rename(pheophytin = pheo) %>% 
+  rename(total_phyto_biomass = total_nano_micro_biomass) %>%
+  rename(total_phyto_biomass_chla_ratio = carbon_chlorophyll_ratio) %>%
+  mutate(salzone = tolower(salzone))
+  
+```
+
+```{r}
+metrics.long <- metrics_test.long %>% 
+  rename(surface_chla = s_chla) %>%
+  gather(metric, value, metric.vec)#chla:pico_reportingvalue)
+```
+
+```{r}
+metrics <- unique(pull(metrics.long, metric))
+print(metrics)
+```
+
+Error in score_spring_f(metrics.long) : score_spring_f requires the following metric(s): total_phyto_biomass_chla_ratio, 
+surface_chla,
+cyanophyte_biomass, 
+doc, 
+pheophytin, 
+total_phyto_biomass
+
+note:add to warning?
+
 
 
 ```{r}
 score_spring_f <- function(metrics.long) {
   metric.vec <- c("total_phyto_biomass_chla_ratio",
                   "surface_chla",
-                  "cyanophyte_biomass",
+                  "chla",
                   "doc",
                   "pheophytin",
-                  "total_phyto_biomass")
+                  "total_phyto_biomass", 
+                  "diatom_biomass",
+                  "dinoflagellate_biomass",
+                  "cyanophyte_biomass",
+                  "cryptophyte_biomass",
+                  "percent_cryptophyte_biomass",
+                  "procentrum_minimum_abundance", 
+                  "microcystis_aeruginosa_abundance",
+                  "pico_reportingvalue" 
+                  
+                  )
   #----------------------------------------------------------------------------
   metrics.sub <- metrics.long %>% 
     filter(season == "spring", 
@@ -1465,28 +1545,29 @@ score_spring_f <- function(metrics.long) {
       metric == "total_phyto_biomass"  & (value <= 172.99 | value > 828.5) ~ 1,
       metric == "total_phyto_biomass"  & value >= 583.9 & value <= 828.5 ~ 3,
       metric == "total_phyto_biomass"  & value > 172.99 & value < 583.9 ~ 5,
+      
+      #added by Luke
+      metric == "percent_cryptophyte_biomass" & value > 7.1 ~ 1,
+      metric == "percent_cryptophyte_biomass" & value <= 7.1 & value >4.9 ~ 3,
+      metric == "percent_cryptophyte_biomass" & value <= 4.9 ~ 5,
+      
       TRUE ~ as.numeric(NA)))
   return(final.df)
 }
 ```
 
+
+call teh above function on our data
 ```{r}
-score_test.df <- score_spring_f(bay_wq_merged_calc.df)
+score_test.df <- score_spring_f(metrics.long)
 ```
 
 ```{r}
-metric_test.vec <- c("total_phyto_biomass_chla_ratio",
-                "surface_chla",
-                "cyanophyte_biomass",
-                "doc",
-                "pheophytin",
-                "total_phyto_biomass")
-  #----------------------------------------------------------------------------
-metrics_test.sub <- bay_wq_merged_calc.df %>% 
-  filter(season == "spring", 
-         salzone == "f",
-         metric %in% metric_test.vec)
+test <- metrics.long %>%
+  filter(metric == "total_phyto_biomass")
 ```
+
+
 
 
 

@@ -10,6 +10,93 @@ output:
     toc_float: yes
 ---
 
+ [1] "chla"                             "doc"                             
+ [3] "pheophytin"                       "surface_chla"                    
+ [5] "salinity"                         "total_biomass"                   
+ [7] "total_phyto_biomass"              "total_phyto_biomass_chla_ratio"  
+ [9] "diatom_biomass"                   "dinoflagellate_biomass"          
+[11] "cyanophyte_biomass"               "cryptophyte_biomass"             
+[13] "percent_cryptophyte_biomass"      "procentrum_minimum_abundance"    
+[15] "microcystis_aeruginosa_abundance" "pico_reportingvalue" 
+
+```{r}
+select out: salinity, total_biomass
+```
+
+```{r}
+score <- function(metrics.long, score_season, score_salzone) {
+  metric.subset <- metrics.long %>%
+    filter(season == score_season,
+           salzone == score_salzone,
+           metric %in%  metric.vec)
+}
+```
+
+
+```{r}
+score_spring_f <- function(metrics.long) {
+  metric.vec <- c("total_phyto_biomass_chla_ratio",
+                  "surface_chla",
+                  "chla",
+                  "doc",
+                  "pheophytin",
+                  "total_phyto_biomass", 
+                  "diatom_biomass",
+                  "dinoflagellate_biomass",
+                  "cyanophyte_biomass",
+                  "cryptophyte_biomass",
+                  "percent_cryptophyte_biomass",
+                  "procentrum_minimum_abundance", 
+                  "microcystis_aeruginosa_abundance",
+                  "pico_reportingvalue" 
+                  
+                  )
+  #----------------------------------------------------------------------------
+  metrics.sub <- metrics.long %>% 
+    filter(season == "spring", 
+           salzone == "f",
+           metric %in% metric.vec)
+  #----------------------------------------------------------------------------
+  # if (any(!metric.vec %in% unique(metrics.sub$metric))) {
+  #   stop(paste("score_spring_f requires the following metric(s):",
+  #              paste(metric.vec[!metric.vec %in% unique(metrics.sub$metric)], collapse = ", ")))
+  # }
+  #----------------------------------------------------------------------------
+  final.df <- metrics.sub %>% 
+    mutate(score = case_when(
+      # Jackie's code 39.28 and 41.72
+      # Lacouture (2006) 39.3 and 41.7
+      metric == "total_phyto_biomass_chla_ratio" & value < 39.28 ~ 1,
+      metric == "total_phyto_biomass_chla_ratio" & value >= 39.28 & value <= 41.72 ~ 3,
+      metric == "total_phyto_biomass_chla_ratio" & value > 41.72 ~ 5,
+      metric == "surface_chla" & (value < 3.42 | value > 14.45) ~ 1,
+      metric == "surface_chla" & ((value >= 3.42 & value <= 4.37) |(value >= 13.98 & value <= 14.45)) ~ 3,
+      metric == "surface_chla" & value > 4.37 & value < 13.98 ~ 5,
+      # Jackie's code 23.02
+      # Lacouture (2006) 23
+      metric == "cyanophyte_biomass" & value > 23.02 ~ 1,
+      metric == "cyanophyte_biomass" & value <= 23.02 ~ as.numeric(NA),
+      metric == "doc" & value > 2.40 ~ 1,
+      metric == "doc" & value >= 2.19 & value <= 2.40 ~ 3,
+      metric == "doc" & value < 2.19 ~ 5,
+      metric == "pheophytin" & value > 2.50 ~ 1,
+      metric == "pheophytin" & value >= 1.55 & value <= 2.50 ~ 3,
+      metric == "pheophytin" & value < 1.55 ~ 5,
+      # Jackie's code 172.99, 583.9, and 828.5
+      # Lacouture (2006) 173, 584, and 829
+      metric == "total_phyto_biomass"  & (value <= 172.99 | value > 828.5) ~ 1,
+      metric == "total_phyto_biomass"  & value >= 583.9 & value <= 828.5 ~ 3,
+      metric == "total_phyto_biomass"  & value > 172.99 & value < 583.9 ~ 5,
+      TRUE ~ as.numeric(NA)))
+  return(final.df)
+}
+```
+
+
+
+
+
+
 code for modifying carbon list
 ```{r}
 
