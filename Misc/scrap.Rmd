@@ -10,6 +10,96 @@ output:
     toc_float: yes
 ---
 
+
+
+
+Scoring Wrapper Function
+
+
+```{r}
+score_phyto <- function(metrics.long, pico.warning) {
+  #----------------------------------------------------------------------------
+  spring.f <- score_spring_f(metrics.long)
+  spring.o <- score_spring_o(metrics.long)
+  spring.m <- score_spring_m(metrics.long)
+  spring.p <- score_spring_p(metrics.long)
+  #----------------------------------------------------------------------------
+  summer.f <- score_summer_f(metrics.long)
+  summer.o <- score_summer_o(metrics.long)
+  summer.m <- score_summer_m(metrics.long, pico.warning)
+  summer.p <- score_summer_p(metrics.long, pico.warning)
+  #----------------------------------------------------------------------------
+  final.df <- bind_rows(spring.f, spring.o, spring.m, spring.p,
+                        summer.f, summer.o, summer.m, summer.p) %>% 
+    select(-layer)
+  #----------------------------------------------------------------------------
+  return(final.df)
+}
+```
+
+```{r}
+scores.df <- metrics.long %>% 
+  separate(unique_id, c("station", "layer", "samplenumber",
+                        "sampledate", "season", "salzone"), sep = "_",
+           remove = FALSE) %>% 
+  rename(date = sampledate) %>% 
+  score_phyto(pico.warning = FALSE) %>% 
+  select(-samplenumber)
+```
+
+
+
+
+```{r}
+score_test <- function(metrics.long) {
+  metric.vec <- c("total_phyto_biomass_chla_ratio",
+                  "surface_chla",
+                  "cyanophyte_biomass",
+                  "doc",
+                  "pheophytin",
+                  "total_phyto_biomass")
+  #----------------------------------------------------------------------------
+  metrics.sub <- metrics.long %>% 
+    filter(season == "spring", 
+           salzone == "f",
+           metric %in% metric.vec)
+  #----------------------------------------------------------------------------
+  if (any(!metric.vec %in% unique(metrics.sub$metric))) {
+    stop(paste("score_spring_f requires the following metric(s):",
+               paste(metric.vec[!metric.vec %in% unique(metrics.sub$metric)], collapse = ", ")))
+  }
+}
+```
+
+```{r}
+score_phyto <- function(metrics.long, pico.warning) {
+  #----------------------------------------------------------------------------
+  spring.f <- score_spring_f(metrics.long)
+  spring.o <- score_spring_o(metrics.long)
+  spring.m <- score_spring_m(metrics.long)
+  spring.p <- score_spring_p(metrics.long)
+  #----------------------------------------------------------------------------
+  summer.f <- score_summer_f(metrics.long)
+  summer.o <- score_summer_o(metrics.long)
+  summer.m <- score_summer_m(metrics.long, pico.warning)
+  summer.p <- score_summer_p(metrics.long, pico.warning)
+  #----------------------------------------------------------------------------
+  final.df <- bind_rows(spring.f, spring.o, spring.m, spring.p,
+                        summer.f, summer.o, summer.m, summer.p) %>% 
+    select(-layer)
+  #----------------------------------------------------------------------------
+  return(final.df)
+}
+```
+```
+
+```{r}
+score_test(metrics.long)
+```
+
+
+
+
 ```{r}
 missing_carbon.df <- bay_merged.df %>%
   filter(is.na(carbon) | carbon == 0)

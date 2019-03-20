@@ -1490,14 +1490,10 @@ metrics <- unique(pull(metrics.long, metric))
 print(metrics)
 ```
 
-Error in score_spring_f(metrics.long) : score_spring_f requires the following metric(s): total_phyto_biomass_chla_ratio, 
-surface_chla,
-cyanophyte_biomass, 
-doc, 
-pheophytin, 
-total_phyto_biomass
 
-note:add to warning?
+
+
+below are the scoring functions for each alzone and season:
 
 Spring Freshwater
 ```{r}
@@ -1926,49 +1922,13 @@ score_summer_p <- function(metrics.long, pico.warning) {
 }
 ```
 
-
-
 ```{r}
-spring.f <- score_spring_f(metrics.long)
-spring.o <- score_spring_o(metrics.long)
-spring.m <- score_spring_m(metrics.long)
-spring.p <- score_spring_p(metrics.long)
-
-summer.f <- score_summer_f(metrics.long)
-summer.o <- score_summer_o(metrics.long)
-summer.m <- score_summer_m(metrics.long, pico.warning=FALSE)
-summer.p <- score_summer_p(metrics.long, pico.warning=FALSE)
-
-test1 <- separate(spring.f, concat, c("station", "layer", "samplenumber",
-                        "sampledate", "season", "salzone"), sep = "_",
-           remove = FALSE) 
-
-test2 <- separate(metrics.long, concat, c("station", "layer", "samplenumber",
-                        "sampledate", "season", "salzone"), sep = "_",
-           remove = FALSE) 
-
-test3 <- separate(metrics.long, metric, c("station", "layer", "samplenumber",
-                        "sampledate", "season", "salzone"), sep = "_",
-           remove = FALSE) 
-
-test4 <- separate(metrics.long, metric, metric.vec, sep = "_",
-           remove = FALSE) 
-print(metric.vec)
-
-scores.df <- metrics.long %>% 
-  mutate(unique_id = "temp") %>%
-  separate(unique_id, c("station", "layer", "samplenumber",
-                        "sampledate", "season", "salzone"), sep = "_",
-           remove = FALSE)
+print(2928+16952+2020+13118+1120+11515+4055+25002)
 ```
 
 
-Scoring Wrapper Function
-
-
+generate scores
 ```{r}
-score_phyto <- function(metrics.long, pico.warning) {
-  #----------------------------------------------------------------------------
   spring.f <- score_spring_f(metrics.long)
   spring.o <- score_spring_o(metrics.long)
   spring.m <- score_spring_m(metrics.long)
@@ -1976,29 +1936,48 @@ score_phyto <- function(metrics.long, pico.warning) {
   #----------------------------------------------------------------------------
   summer.f <- score_summer_f(metrics.long)
   summer.o <- score_summer_o(metrics.long)
-  summer.m <- score_summer_m(metrics.long, pico.warning)
-  summer.p <- score_summer_p(metrics.long, pico.warning)
-  #----------------------------------------------------------------------------
-  final.df <- bind_rows(spring.f, spring.o, spring.m, spring.p,
-                        summer.f, summer.o, summer.m, summer.p) %>% 
-    select(-layer)
-  #----------------------------------------------------------------------------
+  summer.m <- score_summer_m(metrics.long, pico.warning = FALSE)
+  summer.p <- score_summer_p(metrics.long, pico.warning = FALSE)
+```
+
+```{r}
+all_seasons <- bind_rows(spring.f,spring.o,spring.m,spring.p,summer.f,summer.o,summer.m,summer.p)
+```
+
+apply and ibi score
+```{r}
+all_seasons <- all_seasons %>%
+  group_by(concat) %>% 
+  mutate(ibi_score = mean(score, na.rm = TRUE)) %>%
+  ungroup()  
+
+```
+
+
+```{r}
+rate_phyto <- function(scores.df) {
+  final.df <- scores.df %>% 
+    mutate(
+      ibi_score = round(ibi_score, 2),
+      rating = case_when(
+        ibi_score < 2 ~ "poor",
+        ibi_score >= 2 & ibi_score < 2.67 ~ "fair_poor",
+        ibi_score >= 2.67 & ibi_score < 3.33 ~ "fair",
+        ibi_score >= 3.33 & ibi_score < 4 ~ "fair_good",
+        ibi_score >= 4 ~ "good",
+        TRUE ~ "ERROR"
+      ))
   return(final.df)
 }
 ```
 
-```{r}
-scores.df <- metrics.long %>% 
-  separate(unique_id, c("station", "layer", "samplenumber",
-                        "sampledate", "season", "salzone"), sep = "_",
-           remove = FALSE) %>% 
-  rename(date = sampledate) %>% 
-  score_phyto(pico.warning = FALSE) %>% 
-  select(-samplenumber)
-```
 
 ```{r}
-
+all_seasons.rating <- rate_phyto(all_seasons)
 ```
+
+
+
+
 
 
