@@ -1976,6 +1976,10 @@ rate_phyto <- function(scores.df) {
 all_seasons.rating <- rate_phyto(all_seasons)
 ```
 
+```{r}
+all_seasons.rating %>% 
+data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings.csv"))
+```
 
 
 
