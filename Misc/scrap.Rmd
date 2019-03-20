@@ -10,6 +10,76 @@ output:
     toc_float: yes
 ---
 
+```{r}
+missing_carbon.df <- bay_merged.df %>%
+  filter(is.na(carbon) | carbon == 0)
+```
+
+```{r}
+missing <- unique(pull(missing_carbon.df, latinname))
+#print(missing)
+
+missing_green_blue.df <- missing_carbon.df %>%
+  filter(latinname %in% c("green_cells", "blue_green_sphere"))
+
+missing_sans_green_blue.df <- missing_carbon.df %>%
+  filter(!latinname %in% c("green_cells", "blue_green_sphere"))
+
+missing_actual <- unique(pull(missing_sans_green_blue.df, latinname))
+sort(missing_actual)
+print(missing_actual)
+
+
+
+test <- carbon.df %>%
+  filter(latinname %in% missing)
+
+
+# 
+# missing_actual <- unique(pull(test, tsn))
+# 
+# test2 <- bay.df %>%
+#   filter(tsn %in% missing2)
+  
+```
+
+
+
+26 missing carbon(minus green_cells and bluegreen_sphere)
+```{r}
+missing_but_in_carbon.df <- carbon.df %>%
+  filter(latinname %in% c("centritractis_belonophorus", "cerataulina", "characium", "coelosphaerium_dubium", "corethron_hystrix", "crucigenia_truncata", "cylindrospermopsis","euglenophycota", "limnothrix", "odontella",  "oocystis_pusilla", "oocystis_pyriformis", "protoperidinium_bipes" , "staurastrum_manfeldtii", "woronichinia_naegeliana"))
+
+```
+
+```{r}
+missing_b_i_c.vec <- unique(pull(missing_but_in_carbon.df, latinname))
+
+test <- bay_merged.df %>%
+  filter(latinname %in% missing_b_i_c.vec)
+```
+
+
+
+
+
+
+caught a spelling error in carbon_list:
+chlorophyceae microphytoflagellates
+chlorophyceae microphytoflaggelates
+
+
+asterionellopsis_glacialis
+
+
+```{r}
+test <- bay.df %>%
+  filter(latinname =="microcystis_aeruginosa" | latinname=="prorocentrum_minimum") #%>%
+```
+
+
+
+
  [1] "chla"                             "doc"                             
  [3] "pheophytin"                       "surface_chla"                    
  [5] "salinity"                         "total_biomass"                   
