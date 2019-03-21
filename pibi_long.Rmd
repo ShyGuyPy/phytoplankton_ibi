@@ -1438,6 +1438,7 @@ bay_full_calc.df <- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = c("
 ```
 
 
+
 NEXT STEP:Scoring
 
 ```{r}
@@ -1461,29 +1462,53 @@ NEXT STEP:Scoring
 ```
 
 add a unique_id to match Zach's scoring function later on
+replacing concat with it
 ```{r}
 bay_full_calc.df <- bay_full_calc.df %>%
-  mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_"))
+  mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_")) %>%
+  select(-concat)
 ```
 
 
 
 rename some metrics to fit Zach's code(that I have rewritten now)
 ```{r}
-metrics_test.long <- bay_full_calc.df %>%
+metrics_prep.df <- bay_full_calc.df %>%
   rename(pheophytin = pheo) %>% 
   rename(total_phyto_biomass = total_nano_micro_biomass) %>%
   rename(total_phyto_biomass_chla_ratio = carbon_chlorophyll_ratio) %>%
   rename(pct_cryptophyte = percent_cryptophyte_biomass) %>%
+  rename(surface_chla = s_chla) %>%
   mutate(salzone = tolower(salzone)) 
   
 ```
 
+try selecting only relevant fields
 ```{r}
-metrics.long <- metrics_test.long %>% 
-  rename(surface_chla = s_chla) %>%
+metrics_prep.df <- metrics_prep.df %>%
+  select(unique_id, station, sampledate, samplenumber, season, salzone, total_phyto_biomass_chla_ratio,
+                  surface_chla,
+                  chla,
+                  doc,
+                  pheophytin,
+                  total_phyto_biomass, 
+                  diatom_biomass,
+                  dinoflagellate_biomass,
+                  cyanophyte_biomass,
+                  cryptophyte_biomass,
+                  pct_cryptophyte,
+                  prorocentrum_minimum_abundance, 
+                  microcystis_aeruginosa_abundance,
+                  picoplankton_abundance)
+```
+
+gather into long format
+```{r}
+metrics.long <- metrics_prep.df %>% 
   gather(metric, value, metric.vec)#chla:pico_reportingvalue)
 ```
+
+
 
 ```{r}
 metrics <- unique(pull(metrics.long, metric))
@@ -1922,11 +1947,6 @@ score_summer_p <- function(metrics.long, pico.warning) {
 }
 ```
 
-```{r}
-print(2928+16952+2020+13118+1120+11515+4055+25002)
-```
-
-
 generate scores
 ```{r}
   spring.f <- score_spring_f(metrics.long)
@@ -1947,7 +1967,7 @@ all_seasons <- bind_rows(spring.f,spring.o,spring.m,spring.p,summer.f,summer.o,s
 apply and ibi score
 ```{r}
 all_seasons <- all_seasons %>%
-  group_by(concat) %>% 
+  group_by(unique_id) %>% 
   mutate(ibi_score = mean(score, na.rm = TRUE)) %>%
   ungroup()  
 
@@ -1976,6 +1996,24 @@ rate_phyto <- function(scores.df) {
 all_seasons.rating <- rate_phyto(all_seasons)
 ```
 
+```{r}
+test <-  all_seasons.rating %>%
+  filter(value == 0.000000e+00)
+```
+
+
+```{r}
+test_spread <- all_seasons.rating %>%
+
+  select(unique_id, salzone, metric,value) %>%
+  distinct() %>%
+  #select(concat, salzone, metric, value) %>%
+  #filter(value != 0.000000e+00) %>%
+  spread(metric, value) 
+```
+
+after  correct spread apply ratings
+  
 ```{r}
 all_seasons.rating %>% 
 data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings.csv"))
