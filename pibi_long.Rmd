@@ -1363,7 +1363,7 @@ bay_merged.df <- bay_merged.df %>%
   mutate(nano_micro_biomass = reportingvalue * carbon / 10 ^ 6) 
 ```
 
-calculate metrics
+merge wq and main data
 ```{r}
 bay_merged.df <-  bay_merged.df %>%
   mutate(concat = paste0(station, sampledate)) 
@@ -1372,8 +1372,11 @@ wq_final.df <- wq_final.df %>%
   mutate(concat = paste0(station, sampledate)) 
 
 bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate", "month", "season"))
+```
 
 
+calulate metrics
+```{r}
 bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   
   #group by event
@@ -1391,10 +1394,11 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
   
   group_by(group) %>%
-  mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon), TRUE~0)) %>%
-  mutate(dinoflagellate_biomass = case_when(group == "dinoflagellate"~sum(carbon), TRUE~0)) %>%
-  mutate(cyanophyte_biomass = case_when(group == "cyanophyte"~sum(carbon), TRUE~0)) %>%
-  mutate(cryptophyte_biomass = case_when(group == "cryptophyte"~sum(carbon), TRUE~0)) %>%
+
+  mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
+  mutate(dinoflagellate_biomass = case_when(group == "dinoflagellate"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
+  mutate(cyanophyte_biomass = case_when(group == "cyanophyte"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
+  mutate(cryptophyte_biomass = case_when(group == "cryptophyte"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
   
   mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_biomass)%>%
   
@@ -1403,15 +1407,15 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   ungroup()
 
 
-
+test <- bay_wq_merged_calc.df %>%
+  filter(dinoflagellate_biomass != 0)
 ```
 
 ```{r}
 bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
   group_by(concat) %>%
-  mutate(prorocentrum_minimum_abundance = case_when(latinname == "prorocentrum_minimum"~ sum(as.double(reportingvalue)),
-                                                  TRUE~0)) %>%
-  mutate(microcystis_aeruginosa_abundance = case_when(latinname == "microcystis_aeruginosa"~ sum(as.double(reportingvalue)), TRUE~0)) %>%
+  mutate(prorocentrum_minimum_abundance = case_when(latinname == "prorocentrum_minimum"~ sum(as.double(reportingvalue)), TRUE ~ as.numeric(NA))) %>%
+  mutate(microcystis_aeruginosa_abundance = case_when(latinname == "microcystis_aeruginosa"~ sum(as.double(reportingvalue)), TRUE ~ as.numeric(NA))) %>%
   ungroup()
 ```
 
@@ -1996,30 +2000,83 @@ rate_phyto <- function(scores.df) {
 all_seasons.rating <- rate_phyto(all_seasons)
 ```
 
+
+
+after  correct spread apply ratings
+  
 ```{r}
 test <-  all_seasons.rating %>%
-  filter(value == 0.000000e+00)
+  select(unique_id) %>%
+  distinct()
 ```
 
 
-```{r}
-test_spread <- all_seasons.rating %>%
 
-  select(unique_id, salzone, metric,value) %>%
+
+
+```{r}
+#disable scientific notation
+options(scipen=999)
+
+
+
+scores_ratings_final.long <- all_seasons.rating %>%
+
+  select(unique_id, salzone, station, sampledate, samplenumber, metric,value, score, ibi_score, rating) %>%
   distinct() %>%
+  #mutate(score = if_else(is.na(score),0, score)) %>%
+  group_by(metric) %>%
+  ungroup()
+  
+  
   #select(concat, salzone, metric, value) %>%
   #filter(value != 0.000000e+00) %>%
-  spread(metric, value) 
+  #spread(metric, value) 
+
+  #code for spreading without dups(thanks Rikke)
+  # data <- data %>%
+  #    group_by(grouping_variable) %>%
+  #    mutate(grouped_id = row_number())  %>%
+  #    spread( grouping_variable  , RESULT_VALUE) %>%
+  #    select(-grouped_id)
+```
+
+```{r}
+test2 <- scores_ratings_final.long %>%
+  #select(unique_id) %>%
+  distinct()
 ```
 
 after  correct spread apply ratings
   
 ```{r}
-all_seasons.rating %>% 
-data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings.csv"))
+scores_ratings_final.long %>% 
+data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings_long.csv"))
 ```
 
 
 
+```{r}
+all_seasons.rating.wide <- all_seasons.rating %>%
+  select(unique_id, station, sampledate, samplenumber, salzone, metric, value, score, ibi_score, rating) %>%
+  select(-ibi_score, -rating, -score) %>%
+  group_by(unique_id) %>%
+  mutate(grouped_id = row_number())  %>%
+
+  spread(metric  , value) %>%
+  select(-grouped_id) %>%
+
+
+  
+  distinct() %>%
+  #select(concat, salzone, metric, value) %>%
+  #filter(value != 0.000000e+00) %>%
+  ungroup()
+```
+
+```{r}
+all_seasons.rating.wide %>% 
+data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings_wide.csv"))
+```
 
 
