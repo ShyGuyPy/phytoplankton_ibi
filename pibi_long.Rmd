@@ -2090,9 +2090,8 @@ data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRa
 currently not spreading properly
 ```{r}
 scores_ratings_final.wide <- all_seasons.rating %>%
-  select(unique_id, station, sampledate, samplenumber, salzone, metric, value, score, ibi_score, rating) %>%
-  select(-ibi_score, -rating, -score) %>%
-  group_by(unique_id) %>%
+  select(unique_id, station, sampledate, samplenumber, salzone, metric, value, ibi_score, rating) %>%
+  #group_by(unique_id) %>%
   mutate(grouped_id = row_number())  %>%
 
   spread(metric  , value) %>%
@@ -2100,10 +2099,19 @@ scores_ratings_final.wide <- all_seasons.rating %>%
 
 
   
-  distinct() %>%
-  #select(concat, salzone, metric, value) %>%
-  #filter(value != 0.000000e+00) %>%
-  ungroup()
+  distinct() #%>%
+  #ungroup()
+```
+
+```{r}
+
+test <-  all_seasons.rating %>% 
+  select(-unique_id, -station, -sampledate, -samplenumber, -salzone, -ibi_score, -rating, -score, -season) %>%
+  mutate(grouped_id = row_number())  %>%
+
+  spread(metric  , value) %>%
+  select(-grouped_id) %>%
+  distinct()
 ```
 
 ```{r}
