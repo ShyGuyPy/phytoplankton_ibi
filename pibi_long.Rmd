@@ -1408,7 +1408,7 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
   mutate(dinoflagellate_biomass = case_when(group == "dinoflagellates"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
   mutate(cyanophyte_biomass = case_when(group == "cyanophyte"| group == "cyanobacteria"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
-  mutate(cryptophyte_biomass = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
+  mutate(cryptophyte_biomass = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta" | group == "cryptomonads"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
   
   mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_biomass)%>%
   
@@ -2087,9 +2087,9 @@ data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRa
 ```
 
 
-
+currently not spreading properly
 ```{r}
-all_seasons.rating.wide <- all_seasons.rating %>%
+scores_ratings_final.wide <- all_seasons.rating %>%
   select(unique_id, station, sampledate, samplenumber, salzone, metric, value, score, ibi_score, rating) %>%
   select(-ibi_score, -rating, -score) %>%
   group_by(unique_id) %>%
@@ -2107,7 +2107,7 @@ all_seasons.rating.wide <- all_seasons.rating %>%
 ```
 
 ```{r}
-all_seasons.rating.wide %>% 
+scores_ratings_final.wide %>% 
 data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings_wide.csv"))
 ```
 
