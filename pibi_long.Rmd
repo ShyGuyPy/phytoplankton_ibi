@@ -1384,7 +1384,6 @@ wq_final.df <- wq_final.df %>%
 bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate", "month", "season"))
 ```
 
-
 calulate metrics
 ```{r}
 bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
@@ -1405,12 +1404,12 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   
   group_by(group) %>%
 
-  mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
-  mutate(dinoflagellate_biomass = case_when(group == "dinoflagellates"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
-  mutate(cyanophyte_biomass = case_when(group == "cyanophyte"| group == "cyanobacteria"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
+  mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
+  mutate(dinoflagellate_biomass = case_when(group == "dinoflagellates"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
+  mutate(cyanophyte_biomass = case_when(group == "cyanophyte"| group == "cyanobacteria"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
   mutate(cryptophyte_biomass = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta" | group == "cryptomonads"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
   
-  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_biomass)%>%
+  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass)%>%
   
   # #how should this be calculated?
   # mutate(new_metric = other_biomass*micro_biomass/count) %>%
@@ -1426,7 +1425,6 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
 #   select(group) %>%
 #   distinct()
 ```
-
 
 ```{r}
 bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
@@ -1495,8 +1493,6 @@ bay_full_calc.df <- bay_full_calc.df %>%
   select(-concat)
 ```
 
-
-
 rename some metrics to fit Zach's code(that I have rewritten now)
 ```{r}
 metrics_prep.df <- bay_full_calc.df %>%
@@ -1509,6 +1505,17 @@ metrics_prep.df <- bay_full_calc.df %>%
   
 ```
 
+```{r}
+test <- metrics_prep.df %>%
+  select(salzone)
+```
+
+
+```{r}
+test <- metrics_prep.df %>%
+  filter( (season == "summer" & salzone == "F") | (season == "summer" & salzone == "f")) %>%
+  distinct()
+```
 try selecting only relevant fields
 ```{r}
 metrics_prep.df <- metrics_prep.df %>%
@@ -1528,13 +1535,22 @@ metrics_prep.df <- metrics_prep.df %>%
                   picoplankton_abundance)
 ```
 
+```{r}
+test <- metrics_prep.df %>%
+  filter( (season == "summer" & salzone == "F") | (season == "summer" & salzone == "f")) %>%
+  distinct()
+```
 gather into long format
 ```{r}
 metrics.long <- metrics_prep.df %>% 
   gather(metric, value, metric.vec)#chla:pico_reportingvalue)
 ```
 
-
+```{r}
+test <- metrics.long %>%
+  filter( (season == "summer" & salzone == "F") | (season == "summer" & salzone == "f")) %>%
+  distinct()
+```
 
 ```{r}
 metrics <- unique(pull(metrics.long, metric))
@@ -1986,8 +2002,40 @@ generate scores
   summer.p <- score_summer_p(metrics.long, pico.warning = FALSE)
 ```
 
+
+Test determines that this part of Zach's score_summer_f function is producing as set of data that is reduced to 27 when distinct is applied to it.
+```{r}
+
+  test_metric.vec <- c("surface_chla",
+                  "cyanophyte_biomass",
+                  "diatom_biomass",
+                  "doc", 
+                  "microcystis_aeruginosa_abundance",
+                  "pheophytin", 
+                  "total_phyto_biomass")
+  #----------------------------------------------------------------------------
+  test_metrics.sub <- metrics.long %>% 
+    filter(season == "summer", 
+           salzone == "f", 
+           metric %in% metric.vec) %>%
+  distinct()
+```
+
+
+```{r}
+test <- summer.f %>%
+  filter( (season == "summer" & salzone == "F") | (season == "summer" & salzone == "f")) %>%
+  distinct()
+```
+
 ```{r}
 all_seasons <- bind_rows(spring.f,spring.o,spring.m,spring.p,summer.f,summer.o,summer.m,summer.p)
+```
+
+```{r}
+test <- all_seasons %>%
+  filter( (season == "summer" & salzone == "F") | (season == "summer" & salzone == "f")) %>%
+  distinct()
 ```
 
 apply and ibi score
@@ -2043,9 +2091,7 @@ all_seasons.rating <- rate_phyto(all_seasons)
 #   distinct()
 ```
 
-
 after  correct spread apply ratings
-  
 ```{r}
 #disable scientific notation
 options(scipen=999)
@@ -2054,7 +2100,7 @@ options(scipen=999)
 
 scores_ratings_final.long <- all_seasons.rating %>%
 
-  select(unique_id, salzone, station, sampledate, samplenumber, metric,value, score, ibi_score, rating) %>%
+  select(unique_id, salzone, season, station, sampledate, samplenumber, metric,value, score, ibi_score, rating) %>%
   distinct() %>%
   #mutate(score = if_else(is.na(score),0, score)) %>%
   group_by(metric) %>%
@@ -2073,6 +2119,11 @@ scores_ratings_final.long <- all_seasons.rating %>%
   #    select(-grouped_id)
 ```
 
+
+
+
+
+
 ```{r}
 test2 <- scores_ratings_final.long %>%
   #select(unique_id) %>%
@@ -2090,7 +2141,7 @@ data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRa
 currently not spreading properly
 ```{r}
 scores_ratings_final.wide <- all_seasons.rating %>%
-  select(unique_id, station, sampledate, samplenumber, salzone, metric, value, ibi_score, rating) %>%
+  select(unique_id, station, season, sampledate, samplenumber, salzone, metric, value, ibi_score, rating) %>%
   #group_by(unique_id) %>%
   mutate(grouped_id = row_number())  %>%
 
@@ -2119,4 +2170,30 @@ scores_ratings_final.wide %>%
 data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings_wide.csv"))
 ```
 
+LATEST_TEST
+```{r}
+test_bay_test_SF <- bay_wq_merged.df %>%
+  filter( season == "summer" & salzone == "F") %>%
+  distinct()
 
+test_bay_test_SO <- bay_wq_merged.df %>%
+  filter( season == "summer" & salzone == "O") %>%
+  distinct()
+
+test_scores_SO <-  scores_ratings_final.long %>%
+    filter( season == "summer" & salzone == "o")
+
+test_scores_SF <- scores_ratings_final.long %>%
+  filter( season == "summer" & salzone == "f")
+
+test_scores_SO_w <-  scores_ratings_final.wide %>%
+    filter( season == "summer" & salzone == "o")
+
+test_scores_SF_w <- scores_ratings_final.wide %>%
+  filter( season == "summer" & salzone == "f")
+
+test_seasons <-  all_seasons %>%
+  filter( season == "summer" & salzone == "f") %>%
+  distinct()
+  
+```
