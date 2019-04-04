@@ -1384,6 +1384,15 @@ wq_final.df <- wq_final.df %>%
 bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate", "month", "season"))
 ```
 
+```{r}
+#tf3.3_ap_fs1_2016-03-17
+#2013-03-05
+
+test <-  bay_merged.df %>%
+  filter(station == "tf3.3" & sampledate == "2016-03-17")
+```
+
+
 calulate metrics
 ```{r}
 bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
@@ -1402,7 +1411,7 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   #mutate(carbon_chlorophyll_ratio_wrong = nano_micro_biomass/chla) %>% #invert division to get reverse
   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
   
-  group_by(group) %>%
+  group_by(group, add=TRUE) %>%
 
   mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
   mutate(dinoflagellate_biomass = case_when(group == "dinoflagellates"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
@@ -1419,6 +1428,18 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
 # test <- bay_wq_merged_calc.df %>%
 #   filter(group == "cyanoophytes")
 ```
+
+
+```{r}
+test <- bay_wq_merged_calc.df %>%
+  filter((group == "diatom" & concat == "tf5.52013-03-05") |  (group == "diatom" & concat =="sbe52013-03-13"))
+```
+
+```{r}
+test <- bay.df %>%
+  filter(latinname == "microcystis_aeruginosa")
+```
+
 
 ```{r}
 # groups <- bay_wq_merged_calc.df %>%
@@ -1460,8 +1481,6 @@ bay_full_calc.df <- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = c("
 
 
 ```
-
-
 
 NEXT STEP:Scoring
 
@@ -1516,6 +1535,7 @@ test <- metrics_prep.df %>%
   filter( (season == "summer" & salzone == "F") | (season == "summer" & salzone == "f")) %>%
   distinct()
 ```
+
 try selecting only relevant fields
 ```{r}
 metrics_prep.df <- metrics_prep.df %>%
@@ -1534,6 +1554,398 @@ metrics_prep.df <- metrics_prep.df %>%
                   microcystis_aeruginosa_abundance,
                   picoplankton_abundance)
 ```
+
+
+```{r}
+
+test_score_spring_f <- metrics_prep.df %>% 
+  filter(
+           season == "spring",
+           salzone == "f"#,
+
+           # is.na(total_phyto_biomass_chla_ratio) == FALSE #|
+           # is.na(surface_chla) == FALSE |
+           # is.na(cyanophyte_biomass) == FALSE |
+           # is.na(doc) == FALSE |
+           # is.na(pheophytin) == FALSE |
+           # is.na(total_phyto_biomass) == FALSE
+           ) %>%
+  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
+      total_phyto_biomass_chla_ratio < 39.28 ~1,
+      total_phyto_biomass_chla_ratio>= 39.28 & total_phyto_biomass_chla_ratio <= 41.72 ~ 3,
+      total_phyto_biomass_chla_ratio > 41.72 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(surface_chla_rating = case_when(
+      surface_chla < 3.42 & surface_chla > 14.45~1,
+      (surface_chla >= 3.42 & surface_chla <= 4.37) |(surface_chla >= 13.98 & surface_chla <= 14.45) ~ 3,
+      surface_chla > 4.37 & surface_chla < 13.98 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(surface_chla_rating = case_when(
+      surface_chla < 3.42 & surface_chla > 14.45~1,
+      (surface_chla >= 3.42 & surface_chla <= 4.37) |(surface_chla >= 13.98 & surface_chla <= 14.45) ~ 3,
+      surface_chla > 4.37 & surface_chla < 13.98 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(cyanophyte_biomass_rating = case_when(
+      cyanophyte_biomass > 23.02 ~ 1,
+      cyanophyte_biomass <= 23.02 ~ as.numeric(NA))) %>%
+  
+  mutate(doc_rating = case_when(
+      doc > 2.40 ~ 1,
+      doc >= 2.19 & doc <= 2.40 ~ 3,
+      doc  < 2.19 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_rating = case_when(
+      pheophytin > 2.50 ~ 1,
+      pheophytin >= 1.55 & pheophytin <= 2.50 ~ 3,
+      pheophytin < 1.55 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_phyto_biomass_rating = case_when(
+      total_phyto_biomass <= 172.99 | total_phyto_biomass > 828.5 ~ 1,
+      total_phyto_biomass >= 583.9 & total_phyto_biomass <= 828.5 ~ 3,
+      total_phyto_biomass > 172.99 & total_phyto_biomass < 583.9 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+  
+  
+
+```
+
+```{r}
+test_score_spring_o <- metrics_prep.df %>% 
+  filter(
+           season == "spring",
+           salzone == "o"#,
+
+           ) %>%
+  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
+      total_phyto_biomass_chla_ratio < 18.8 | total_phyto_biomass_chla_ratio > 48.6 ~ 1,
+      total_phyto_biomass_chla_ratio >= 18.8 & total_phyto_biomass_chla_ratio <= 21.2 ~ 3,
+      total_phyto_biomass_chla_ratio > 21.2 & total_phyto_biomass_chla_ratio < 48.6 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+
+  mutate(surface_chla_rating = case_when(
+      surface_chla < 6.77 | surface_chla > 33.64 ~ 1,
+      (surface_chla >= 20.93 & surface_chla <= 33.64) |(surface_chla >= 6.77 & surface_chla <= 8.82) ~ 3,
+      surface_chla > 8.82 & surface_chla < 20.93 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+
+  mutate(doc_rating = case_when(
+      doc > 3.27 ~ 1,
+      doc >= 2.69 & doc <= 3.27 ~ 3,
+      doc < 2.69 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+
+  mutate(pheophytin_rating = case_when(
+      pheophytin > 2.68 ~ 1,
+      pheophytin >= 2.23 & pheophytin <= 2.68 ~ 3,
+      pheophytin < 2.23 ~ 5,
+    TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_phyto_biomass_rating = case_when(
+      total_phyto_biomass > 133.67 & total_phyto_biomass < 426.31 ~ 5,
+      (total_phyto_biomass >= 131.37 & total_phyto_biomass <= 133.67) | (total_phyto_biomass >= 426.31 & total_phyto_biomass < 685.81) ~ 3,
+      total_phyto_biomass < 131.37 | total_phyto_biomass >= 685.81 ~ 1,
+      TRUE ~ as.numeric(NA))) 
+```
+  
+```{r}
+test_score_spring_m <- metrics_prep.df %>% 
+  filter(
+           season == "spring",
+           salzone == "m"#,
+
+           ) %>%
+  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
+       total_phyto_biomass_chla_ratio < 45.04 ~ 1,
+      total_phyto_biomass_chla_ratio >= 45.04 & total_phyto_biomass_chla_ratio <= 69.52 ~ 3,
+      total_phyto_biomass_chla_ratio > 69.52 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(surface_chla_rating = case_when(
+      surface_chla < 2.60 | surface_chla > 8.00 ~ 1,
+      (surface_chla >= 2.60 & surface_chla <= 2.90) |(surface_chla >= 6.17 & surface_chla <= 8.00) ~ 3,
+      surface_chla > 2.90 & surface_chla < 6.17 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  
+  mutate(diatom_biomass_rating = case_when(
+      diatom_biomass < 149 | diatom_biomass >= 2513 ~ 1,
+      diatom_biomass >= 149 & diatom_biomass <= 275.4 ~ 3,
+      diatom_biomass > 275.4 & diatom_biomass < 2513 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(dinoflagellate_biomass_rating = case_when(
+      dinoflagellate_biomass < 28.3 | dinoflagellate_biomass > 268.2 ~ 1,
+      dinoflagellate_biomass >= 156.9 & dinoflagellate_biomass <= 268.2 ~ 3,
+      dinoflagellate_biomass > 28.3 & dinoflagellate_biomass < 156.9 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_rating = case_when(
+      doc > 3.17 ~ 1,
+      doc >= 2.84 & doc <= 3.17 ~ 3,
+      doc < 2.84 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_rating = case_when(
+      pheophytin > 1.03 ~ 1,
+      pheophytin >= 1.00 & pheophytin <= 1.03 ~ 3,
+      pheophytin < 1.00 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(prorocentrum_minimum_abundance_rating = case_when(
+      prorocentrum_minimum_abundance > 1477600 ~ 1,
+      prorocentrum_minimum_abundance <= 1477600 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_phyto_biomass_rating = case_when(
+      total_phyto_biomass > 1150 ~ 1,
+      total_phyto_biomass <= 1150 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) #%>%
+```
+
+```{r}
+test_score_spring_p <- metrics_prep.df %>% 
+  filter(
+           season == "spring",
+           salzone == "p"#,
+
+           ) %>%
+  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
+      total_phyto_biomass_chla_ratio < 71.0 ~ 1,
+      total_phyto_biomass_chla_ratio >= 71.0 & total_phyto_biomass_chla_ratio <= 107.5 ~ 3,
+      total_phyto_biomass_chla_ratio > 107.5 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(surface_chla_rating = case_when(
+      surface_chla > 4.00 ~ 1,
+      surface_chla >= 2.80 & surface_chla <= 4.00 ~ 3,
+      surface_chla < 2.80 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pct_cryptophyte_rating = case_when(
+      pct_cryptophyte > 7.06 ~ 1,
+      pct_cryptophyte >= 4.93 & pct_cryptophyte <= 7.06 ~ 3,
+      pct_cryptophyte < 4.93 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_rating = case_when(
+      doc > 2.61 ~ 1,
+      doc >= 2.50 & doc <= 2.61 ~ 3,
+      doc < 2.50 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_rating = case_when(
+      pheophytin > 0.90 ~ 1,
+      pheophytin >= 0.55 & pheophytin <= 0.90 ~ 3,
+      pheophytin < 0.55 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(prorocentrum_minimum_abundance_rating = case_when(
+      prorocentrum_minimum_abundance > 7488 ~ 1,
+      prorocentrum_minimum_abundance >= 672 & prorocentrum_minimum_abundance <= 7488 ~ 3,
+      prorocentrum_minimum_abundance < 672 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_phyto_biomass_rating = case_when(
+      total_phyto_biomass > 1061.7 ~ 1,
+      total_phyto_biomass <= 1061.7 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) 
+  
+```
+
+```{r}
+test_score_summer_f <- metrics_prep.df %>% 
+  filter(
+           season == "summer",
+           salzone == "f"#,
+
+           ) %>%
+  
+  mutate(surface_chla_rating = case_when(
+      surface_chla > 12.30 ~ 1,
+      (surface_chla >= 12.00 & surface_chla <= 12.30) | surface_chla <= 5.4 ~ 3,
+      surface_chla > 5.40 & surface_chla < 12.00 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(cyanophyte_biomass_rating = case_when(
+      cyanophyte_biomass > 67.4 ~ 1,
+      cyanophyte_biomass >= 38.87 & cyanophyte_biomass <= 67.4 ~ 3,
+      cyanophyte_biomass < 38.87 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(diatom_biomass_rating = case_when(
+      diatom_biomass > 192.6 ~ 1,
+      diatom_biomass >= 122.1 & diatom_biomass <= 192.6 ~ 3,
+      diatom_biomass < 122.1 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_rating = case_when(
+      doc > 3.18 ~ 1,
+      doc >= 2.67 & doc <= 3.18 ~ 3,
+      doc < 2.67 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(microcystis_aeruginosa_abundance_rating = case_when(
+      microcystis_aeruginosa_abundance > 262507 ~ 1,
+      microcystis_aeruginosa_abundance <= 262507 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_rating = case_when(
+      pheophytin > 4.30 ~ 1,
+      pheophytin >= 2.40 & pheophytin <= 4.30 ~ 3,
+      pheophytin < 2.40 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_phyto_biomass_rating = case_when(
+      total_phyto_biomass > 555.7 ~ 1,
+      total_phyto_biomass < 231.3 ~ 3,
+      total_phyto_biomass >= 231.3 & total_phyto_biomass <= 555.7 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+```
+
+```{r}
+test_score_summer_o <- metrics_prep.df %>% 
+  filter(
+           season == "summer",
+           salzone == "o"#,
+
+           ) %>%
+  mutate(surface_chla_rating = case_when(
+      surface_chla >= 9.47 ~ 1,
+      surface_chla <= 4.20 ~ 3,
+      surface_chla > 4.20 & surface_chla < 9.47 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(cyanophyte_biomass_rating = case_when(
+      cyanophyte_biomass >= 26.55 ~ 1,
+      cyanophyte_biomass < 1.79 ~ 3,
+      cyanophyte_biomass >= 1.79 & cyanophyte_biomass < 26.55 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(diatom_biomass_rating = case_when(
+      diatom_biomass >= 126.59 ~ 1,
+      diatom_biomass <= 44.14 ~ 3,
+      diatom_biomass > 44.14 & diatom_biomass < 126.59 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_rating = case_when(
+      doc > 4.00 ~ 1,
+      doc >= 3.15 & doc <= 4.00 ~ 3,
+      doc < 3.15 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_rating = case_when(
+      pheophytin > 2.81 ~ 1,
+      pheophytin >= 1.58 & pheophytin <= 2.81 ~ 3,
+      pheophytin < 1.58 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+  
+```
+
+```{r}
+test_score_summer_m <- metrics_prep.df %>% 
+  filter(
+           season == "summer",
+           salzone == "m"#,
+
+           ) %>%
+  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
+      total_phyto_biomass_chla_ratio < 32.2 ~ 1,
+      total_phyto_biomass_chla_ratio >= 32.2 & total_phyto_biomass_chla_ratio <= 36.9 ~ 3,
+      total_phyto_biomass_chla_ratio > 36.9 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+
+  mutate(surface_chla_rating = case_when(
+      surface_chla >= 9.74 ~ 1,
+      (surface_chla >= 7.70 & surface_chla < 9.74) | surface_chla <= 4.00 ~ 3,
+      surface_chla > 4.00 & surface_chla < 7.70 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+  
+  mutate(dinoflagellate_biomass_rating = case_when(
+      dinoflagellate_biomass <= 31.22 | dinoflagellate_biomass > 200.92 ~ 1,
+      dinoflagellate_biomass > 31.22 & dinoflagellate_biomass<= 55.98 ~ 3, 
+      dinoflagellate_biomass > 55.98 & dinoflagellate_biomass < 200.92 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+  
+  mutate(doc_rating = case_when(
+      doc > 3.35 ~ 1,
+      doc >= 2.99 & doc <= 3.35 ~ 3,
+      doc < 2.99 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+  
+  mutate(pheophytin_rating = case_when(
+      pheophytin > 1.60 ~ 1,
+      pheophytin >= 1.23 & pheophytin <= 1.60 ~ 3,
+      pheophytin < 1.23 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+  
+  mutate(picoplankton_abundance_rating = case_when(
+      picoplankton_abundance < 352000000 ~ 1,
+      picoplankton_abundance >= 352000000 & picoplankton_abundance <= 598720000 ~ 3,
+      picoplankton_abundance > 598720000 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+  
+  mutate(total_phyto_biomass_rating = case_when(
+      total_phyto_biomass > 660 ~ 1,
+      total_phyto_biomass <= 660 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) 
+  
+
+```
+
+start here tomorrow(FRI)
+```{r}
+test_score_summer_p <- metrics_prep.df %>% 
+  filter(
+           season == "summer",
+           salzone == "p"#,
+
+           ) %>%
+```
+
+      metric == "total_phyto_biomass_chla_ratio" & value < 37.7 ~ 1,
+      metric == "total_phyto_biomass_chla_ratio" & value >= 37.7 & value <= 74.5 ~ 3,
+      metric == "total_phyto_biomass_chla_ratio" & value > 74.5 ~ 5,
+      metric == "surface_chla" & value > 5.33 ~ 1,
+      metric == "surface_chla" & value >= 4.52 & value <= 5.33 ~ 3,
+      metric == "surface_chla" & value < 4.52 ~ 5,
+      metric == "pct_cryptophyte" & value > 6.5 ~ 1,
+      metric == "pct_cryptophyte" & value >= 3.9 & value <= 6.5 ~ 3,
+      metric == "pct_cryptophyte" & value < 3.9 ~ 5,
+      metric == "diatom_biomass" & (value >= 799 | value < 137) ~ 1,
+      metric == "diatom_biomass" & value >= 137 & value <= 181 ~ 3,
+      metric == "diatom_biomass" & value > 181 & value < 799 ~ 5,
+      metric == "dinoflagellate_biomass" & (value < 23 | value >= 544) ~ 1,
+      metric == "dinoflagellate_biomass" & value >= 23 & value <= 37 ~ 3, 
+      metric == "dinoflagellate_biomass" & value > 37 & value < 554 ~ 5,
+      metric == "doc" & value > 2.80 ~ 1,
+      metric == "doc" & value >= 2.58 & value <= 2.80 ~ 3,
+      metric == "doc" & value < 2.58 ~ 5,
+      metric == "pheophytin" & value > 1.50 ~ 1,
+      metric == "pheophytin" & value >= 0.93 & value <= 1.50 ~ 3,
+      metric == "pheophytin" & value < 0.93 ~ 5,
+      metric == "picoplankton_abundance" & value < 208600000 ~ 1,
+      metric == "picoplankton_abundance" & value >= 208600000 & value <= 269500000 ~ 3,
+      metric == "picoplankton_abundance" & value > 269500000 ~ 5,
+      # In Jackie's code 718
+      # Lacouture (2006) 711
+      metric == "total_phyto_biomass"  & (value < 181 | value > 831) ~ 1,
+      metric == "total_phyto_biomass"  & ((value >= 181 & value <= 207) | (value >= 718 & value <= 831)) ~ 3,
+      metric == "total_phyto_biomass"  & value > 207 & value < 718 ~ 5,
+      TRUE ~ as.numeric(NA)))
+
+
+
+
+
+
+
+
+
 
 ```{r}
 test <- metrics_prep.df %>%
@@ -1556,6 +1968,10 @@ test <- metrics.long %>%
 metrics <- unique(pull(metrics.long, metric))
 print(metrics)
 ```
+
+
+
+
 
 
 
@@ -2003,7 +2419,7 @@ generate scores
 ```
 
 
-Test determines that this part of Zach's score_summer_f function is producing as set of data that is reduced to 27 when distinct is applied to it.
+Test determines that this part of Zach's score_summer_f function is producing as set of data that is reduced to 27(from 1006) when distinct is applied to it.
 ```{r}
 
   test_metric.vec <- c("surface_chla",
@@ -2030,6 +2446,14 @@ test <- summer.f %>%
 
 ```{r}
 all_seasons <- bind_rows(spring.f,spring.o,spring.m,spring.p,summer.f,summer.o,summer.m,summer.p)
+```
+
+```{r}
+#tf3.3_ap_fs1_2016-03-17
+#2013-03-05
+
+test <-  all_seasons%>%
+  filter(station == "tf3.3" & sampledate == "2016-03-17")
 ```
 
 ```{r}
