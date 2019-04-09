@@ -1019,15 +1019,16 @@ C_diff_check_step_10.df <- anti_join(step_10.df,s10_compare.df, by = c("chla", "
 LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla", "s_chla", "pheo", "salinity", "doc"))
 ```
 
-itis
+
+#### Prep Carbon Data
+
+read the carbon data into a dataframe
 ```{r}
 # carbon.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014.xlsx"),
 #                          sheet = "OldBiomassEstimates") %>% clean_up()
 
 carbon.df <- data.table::fread(file.path(project.dir, "data/carbon/", "carbon_list_2014.csv")) %>% clean_up()
 ```
-
-#### Prep Carbon Data
 
 carbon data needs to be reformatted to work with bay data
 ```{r}
@@ -1074,6 +1075,7 @@ bay.df <- taxa.raw %>%
 bay.df <- bay.df %>%
     mutate(size = case_when(size == "not_applicable"~ as.character(NA), TRUE ~size))
 ```
+
 
 If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon. (currently removes a single value)
 ```{r}
@@ -1384,28 +1386,45 @@ bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "stat
 ```
 
 ```{r}
-#tf3.3_ap_fs1_2016-03-17
-#2013-03-05
+# test <- bay_full_calc.df %>%
+#   select(-latinname)
+#   distinct()
+```
 
-test <-  bay_merged.df %>%
-  filter(station == "tf3.3" & sampledate == "2016-03-17")
+#### Calulate Metrics
+
+selecting out unneeded columns, filter out na salzone entries, and pare down to your unique_id's
+```{r}
+bay_wq_merged_calc.df  <-  bay_wq_merged.df %>%
+
+  
+  mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_")) %>%
+  select(-reported_size, -surveyid, -fieldactivityid, -source, -sampletype, -gmethod, -tsn, -size, -method, -parameter, -reportingunit, -nodccode, -serialnumber, -month, -new_size, -nodc_phyla, -speccode, -salinity) %>%
+  
+  group_by(unique_id) %>%
+  mutate(total_biomass = sum(carbon)) %>%
+  mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
+  ungroup() %>%
+  
+
+  filter(!is.na(salzone)) %>%
+  distinct() 
+
 ```
 
 
-#### Calulate Metrics
+
 ```{r}
-bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
+bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
   
   #group by event
-  group_by(concat) %>%
+  group_by(unique_id) %>%
   
   
-  #number of members in group
-  # mutate(count = n()) %>%
-  #name of new biomass?
   mutate(total_biomass = sum(carbon)) %>%
   mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
-  #
+  
+  select(-nano_micro_biomass) %>%
   
   #mutate(carbon_chlorophyll_ratio_wrong = nano_micro_biomass/chla) %>% #invert division to get reverse
   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
@@ -1421,24 +1440,44 @@ bay_wq_merged_calc.df <-  bay_wq_merged.df %>%
   
   # #how should this be calculated?
   # mutate(new_metric = other_biomass*micro_biomass/count) %>%
-  ungroup()
+  ungroup() %>%
+  select(-group, -carbon) %>%
+  distinct()
 
 
 # test <- bay_wq_merged_calc.df %>%
 #   filter(group == "cyanoophytes")
 ```
 
-
 ```{r}
-test <- bay_wq_merged_calc.df %>%
-  filter((group == "diatom" & concat == "tf5.52013-03-05") |  (group == "diatom" & concat =="sbe52013-03-13"))
-```
+bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
+  group_by(unique_id) %>%
+  
 
-```{r}
-test <- bay.df %>%
-  filter(latinname == "microcystis_aeruginosa")
-```
+  #mutate(test = n()
+  mutate(diatom_biomass = sum(diatom_biomass, na.rm=T)) %>%
+  mutate(cyanophyte_biomass = sum(cyanophyte_biomass, na.rm=T)) %>%
+  mutate(dinoflagellate_biomass = sum(dinoflagellate_biomass , na.rm=T)) %>%
+  #mutate(cyanophyte_biomass = sum(dinoflagellate_biomass, na.rm=T)) %>%
+  mutate(cryptophyte_biomass = sum(cryptophyte_biomass, na.rm=T)) %>%
+  
+  # mutate(prorocentrum_minimum_abundance = sum(prorocentrum_minimum_abundance, na.rm=T)) %>%
+  # mutate(microcystis_aeruginosa_abundance = sum(microcystis_aeruginosa_abundance, na.rm=T)) %>%
+  
+  
+  #mutate(total_phyto_biomass = sum(total_phyto_biomass, na.rm=T)) %>% 
+  #mutate(total_phyto_biomass_chla_ratio = sum(total_phyto_biomass_chla_ratio, na.rm=T)) %>%
+  
+  mutate(percent_cryptophyte_biomass = sum(percent_cryptophyte_biomass, na.rm=T)) %>%
+  #mutate(surface_chla = sum(surface_chla, na.rm=T)) %>%
+  #mutate(pheophytin = sum(pheophytin, na.rm=T)) %>%
+  distinct() %>%
+  ungroup()
 
+
+  
+  
+```
 
 ```{r}
 # groups <- bay_wq_merged_calc.df %>%
@@ -1448,10 +1487,16 @@ test <- bay.df %>%
 
 ```{r}
 bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
-  group_by(concat) %>%
+  group_by(unique_id) %>%
   mutate(prorocentrum_minimum_abundance = case_when(latinname == "prorocentrum_minimum"~ sum(as.double(reportingvalue)), TRUE ~ as.numeric(NA))) %>%
   mutate(microcystis_aeruginosa_abundance = case_when(latinname == "microcystis_aeruginosa"~ sum(as.double(reportingvalue)), TRUE ~ as.numeric(NA))) %>%
-  ungroup()
+
+  mutate(prorocentrum_minimum_abundance = sum(prorocentrum_minimum_abundance, na.rm=T)) %>%
+  mutate(microcystis_aeruginosa_abundance = sum(microcystis_aeruginosa_abundance, na.rm=T)) %>%
+  ungroup() %>%
+  select(-latinname, -reportingvalue) %>%
+  distinct()
+
 ```
 
 ```{r}
@@ -1503,12 +1548,17 @@ bay_full_calc.df <- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = c("
                   )
 ```
 
+
+TEST_STARTS_HERE
+
 add a unique_id to match Zach's scoring function later on
 replacing concat with it
 ```{r}
-bay_full_calc.df <- bay_full_calc.df %>%
-  mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_")) %>%
-  select(-concat)
+# bay_full_calc.df <- bay_full_calc.df %>%
+#   mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_")) %>%
+#   select(-concat) #%>%
+#   #select(-reported_size, -surveyid, -fieldactivityid, -source, -sampletype, -gmethod, -tsn, -latinname, -size, -method, -parameter, -reportingunit, -nodccode, -serialnumber, -month, -season, -reportingvalue, -new_size, -nodc_phyla, -group, -speccode, -carbon) %>%
+#   distinct()
 ```
 
 rename some metrics to fit Zach's code(that I have rewritten now)
@@ -1520,18 +1570,40 @@ metrics_prep.df <- bay_full_calc.df %>%
   rename(pct_cryptophyte = percent_cryptophyte_biomass) %>%
   rename(surface_chla = s_chla) %>%
   mutate(salzone = tolower(salzone)) 
+
+
   
 ```
 
 ```{r}
-test <- metrics_prep.df %>%
-  select(salzone)
+# test_flatten <- test %>%
+#   group_by(unique_id) %>%
+#   #mutate(test = n()
+#   mutate(diatom_biomass = sum(diatom_biomass, na.rm=T)) %>%
+#   mutate(cyanophyte_biomass = sum(cyanophyte_biomass, na.rm=T)) %>%
+#   mutate(dinoflagellate_biomass = sum(dinoflagellate_biomass / 2, na.rm=T)) %>%
+#   #mutate(cyanophyte_biomass = sum(dinoflagellate_biomass, na.rm=T)) %>%
+#   mutate(cryptophyte_biomass = sum(cryptophyte_biomass, na.rm=T)) %>%
+#   mutate(prorocentrum_minimum_abundance = sum(prorocentrum_minimum_abundance, na.rm=T)) %>%
+#   mutate(microcystis_aeruginosa_abundance = sum(microcystis_aeruginosa_abundance, na.rm=T)) %>%
+#   
+#   
+#   #mutate(total_phyto_biomass = sum(total_phyto_biomass, na.rm=T)) %>% 
+#   #mutate(total_phyto_biomass_chla_ratio = sum(total_phyto_biomass_chla_ratio, na.rm=T)) %>%
+#   
+#   mutate(pct_cryptophyte = sum(pct_cryptophyte, na.rm=T)) %>%
+#   #mutate(surface_chla = sum(surface_chla, na.rm=T)) %>%
+#   #mutate(pheophytin = sum(pheophytin, na.rm=T)) %>%
+#   distinct() %>%
+#   ungroup()
 ```
 
 
 ```{r}
 test <- metrics_prep.df %>%
-  filter( (season == "summer" & salzone == "F") | (season == "summer" & salzone == "f")) %>%
+  #filter( (season == "summer" & salzone == "F") | (season == "summer" & salzone == "f")) %>%
+  filter(unique_id == "cb6.1_ap_fs1_2016-04-27") %>%
+
   distinct()
 ```
 
@@ -1551,7 +1623,8 @@ metrics_prep.df <- metrics_prep.df %>%
                   pct_cryptophyte,
                   prorocentrum_minimum_abundance, 
                   microcystis_aeruginosa_abundance,
-                  picoplankton_abundance)
+                  picoplankton_abundance) #%>%
+  #distinct()
 ```
 
 
@@ -1957,8 +2030,9 @@ all_seasons <- bind_rows(score_spring_f, score_spring_o ,score_spring_m, score_s
 ```
 
 ```{r}
-test <-  bay_full_calc.df %>%
-  filter(is.na(season) | is.na(salzone))
+test <-  all_seasons %>%
+  filter(unique_id == "cb6.1_ap_fs1_2016-04-27") %>%
+  distinct()
 ```
 
 
@@ -2000,10 +2074,26 @@ surface_chla_rating + pct_cryptophyte_rating + diatom_biomass_rating + dinoflage
                                                 TRUE~ as.numeric(NA)))
 ```
 
+
+Save the final score to directory data/ScoresRatings
 ```{r}
 
 scores_ratings_final %>% 
 data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings.csv"))
 ```
+
+```{r}
+test_id <-  metrics_prep.df %>%
+  select(unique_id) %>%
+  distinct()
+
+test2 <- scores_ratings_final %>%
+  filter(unique_id == "cb6.1_ap_fs1_2016-04-27") %>%
+  distinct()
+
+
+
+```
+
 
 
