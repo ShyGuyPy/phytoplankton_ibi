@@ -1427,6 +1427,7 @@ bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
   
   
+  
   mutate(total_biomass = sum(carbon))  %>%
   
   
@@ -1536,8 +1537,8 @@ bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
   # mutate(microcystis_aeruginosa_abundance = sum(microcystis_aeruginosa_abundance, na.rm=T)) %>%
   
   
-  #mutate(total_nan_micro_biomass = sum(total_nan_micro_biomass, na.rm=T)) %>% 
-  #mutate(total_nan_micro_biomass_chla_ratio = sum(total_nan_micro_biomass_chla_ratio, na.rm=T)) %>%
+  #mutate(total_nano_micro_biomass = sum(total_nano_micro_biomass, na.rm=T)) %>% 
+  #mutate(total_nano_micro_biomass_chla_ratio = sum(total_nano_micro_biomass_chla_ratio, na.rm=T)) %>%
   
   mutate(percent_cryptophyte_biomass = sum(percent_cryptophyte_biomass, na.rm=T)) %>%
   #mutate(surface_chla = sum(surface_chla, na.rm=T)) %>%
@@ -1588,12 +1589,12 @@ bay_full_calc.df <- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = c("
 #### Scoring
 
 ```{r}
-  metric.vec <- c("total_nan_micro_biomass_chla_ratio",
+  metric.vec <- c("total_nano_micro_biomass_chla_ratio",
                   "surface_chla",
                   "chla",
                   "doc",
                   "pheophytin",
-                  "total_nan_micro_biomass", 
+                  "total_nano_micro_biomass", 
                   "diatom_biomass",
                   "dinoflagellate_biomass",
                   "cyanophyte_biomass",
@@ -1624,8 +1625,8 @@ rename some metrics to fit Zach's code(that I have rewritten now)
 ```{r}
 metrics_prep.df <- bay_full_calc.df %>%
   rename(pheophytin = pheo) %>% 
-  #rename(total_nan_micro_biomass = total_nano_micro_biomass) %>%
-  rename(total_nan_micro_biomass_chla_ratio = carbon_chlorophyll_ratio) %>%
+  #rename(total_nano_micro_biomass = total_nano_micro_biomass) %>%
+  rename(total_nano_micro_biomass_chla_ratio = carbon_chlorophyll_ratio) %>%
   rename(pct_cryptophyte = percent_cryptophyte_biomass) %>%
   rename(surface_chla = s_chla) %>%
   mutate(salzone = tolower(salzone)) 
@@ -1647,8 +1648,8 @@ metrics_prep.df <- bay_full_calc.df %>%
 #   mutate(microcystis_aeruginosa_abundance = sum(microcystis_aeruginosa_abundance, na.rm=T)) %>%
 #   
 #   
-#   #mutate(total_nan_micro_biomass = sum(total_nan_micro_biomass, na.rm=T)) %>% 
-#   #mutate(total_nan_micro_biomass_chla_ratio = sum(total_nan_micro_biomass_chla_ratio, na.rm=T)) %>%
+#   #mutate(total_nano_micro_biomass = sum(total_nano_micro_biomass, na.rm=T)) %>% 
+#   #mutate(total_nano_micro_biomass_chla_ratio = sum(total_nano_micro_biomass_chla_ratio, na.rm=T)) %>%
 #   
 #   mutate(pct_cryptophyte = sum(pct_cryptophyte, na.rm=T)) %>%
 #   #mutate(surface_chla = sum(surface_chla, na.rm=T)) %>%
@@ -1669,12 +1670,12 @@ test <- metrics_prep.df %>%
 try selecting only relevant fields
 ```{r}
 metrics_prep.df <- metrics_prep.df %>%
-  select(unique_id, station, sampledate, samplenumber, season, salzone, total_nan_micro_biomass_chla_ratio,
+  select(unique_id, station, sampledate, samplenumber, season, salzone, total_nano_micro_biomass_chla_ratio,
                   surface_chla,
                   chla,
                   doc,
                   pheophytin,
-                  total_nan_micro_biomass, 
+                  total_nano_micro_biomass, 
          
          total_biomass,
          
@@ -1697,17 +1698,17 @@ score_spring_f <- metrics_prep.df %>%
            season == "spring",
            salzone == "f"#,
 
-           # is.na(total_nan_micro_biomass_chla_ratio) == FALSE #|
+           # is.na(total_nano_micro_biomass_chla_ratio) == FALSE #|
            # is.na(surface_chla) == FALSE |
            # is.na(cyanophyte_biomass) == FALSE |
            # is.na(doc) == FALSE |
            # is.na(pheophytin) == FALSE |
-           # is.na(total_nan_micro_biomass) == FALSE
+           # is.na(total_nano_micro_biomass) == FALSE
            ) %>%
-  mutate(total_nan_micro_biomass_chla_ratio_score = case_when(
-      total_nan_micro_biomass_chla_ratio < 39.28 ~1,
-      total_nan_micro_biomass_chla_ratio>= 39.28 & total_nan_micro_biomass_chla_ratio <= 41.72 ~ 3,
-      total_nan_micro_biomass_chla_ratio > 41.72 ~ 5,
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 39.28 ~1,
+      total_nano_micro_biomass_chla_ratio>= 39.28 & total_nano_micro_biomass_chla_ratio <= 41.72 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 41.72 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
   
   mutate(surface_chla_score = case_when(
@@ -1732,10 +1733,10 @@ score_spring_f <- metrics_prep.df %>%
       pheophytin < 1.55 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
   
-  mutate(total_nan_micro_biomass_score = case_when(
-      total_nan_micro_biomass <= 172.99 | total_nan_micro_biomass > 828.5 ~ 1,
-      total_nan_micro_biomass >= 583.9 & total_nan_micro_biomass <= 828.5 ~ 3,
-      total_nan_micro_biomass > 172.99 & total_nan_micro_biomass < 583.9 ~ 5,
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass <= 172.99 | total_nano_micro_biomass > 828.5 ~ 1,
+      total_nano_micro_biomass >= 583.9 & total_nano_micro_biomass <= 828.5 ~ 3,
+      total_nano_micro_biomass > 172.99 & total_nano_micro_biomass < 583.9 ~ 5,
       TRUE ~ as.numeric(NA))) 
   
   
@@ -1749,10 +1750,10 @@ score_spring_o <- metrics_prep.df %>%
            salzone == "o"#,
 
            ) %>%
-  mutate(total_nan_micro_biomass_chla_ratio_score = case_when(
-      total_nan_micro_biomass_chla_ratio < 18.8 | total_nan_micro_biomass_chla_ratio > 48.6 ~ 1,
-      total_nan_micro_biomass_chla_ratio >= 18.8 & total_nan_micro_biomass_chla_ratio <= 21.2 ~ 3,
-      total_nan_micro_biomass_chla_ratio > 21.2 & total_nan_micro_biomass_chla_ratio < 48.6 ~ 5,
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 18.8 | total_nano_micro_biomass_chla_ratio > 48.6 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 18.8 & total_nano_micro_biomass_chla_ratio <= 21.2 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 21.2 & total_nano_micro_biomass_chla_ratio < 48.6 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
 
   mutate(surface_chla_score = case_when(
@@ -1773,10 +1774,10 @@ score_spring_o <- metrics_prep.df %>%
       pheophytin < 2.23 ~ 5,
     TRUE ~ as.numeric(NA))) %>%
   
-  mutate(total_nan_micro_biomass_score = case_when(
-      total_nan_micro_biomass > 133.67 & total_nan_micro_biomass < 426.31 ~ 5,
-      (total_nan_micro_biomass >= 131.37 & total_nan_micro_biomass <= 133.67) | (total_nan_micro_biomass >= 426.31 & total_nan_micro_biomass < 685.81) ~ 3,
-      total_nan_micro_biomass < 131.37 | total_nan_micro_biomass >= 685.81 ~ 1,
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 133.67 & total_nano_micro_biomass < 426.31 ~ 5,
+      (total_nano_micro_biomass >= 131.37 & total_nano_micro_biomass <= 133.67) | (total_nano_micro_biomass >= 426.31 & total_nano_micro_biomass < 685.81) ~ 3,
+      total_nano_micro_biomass < 131.37 | total_nano_micro_biomass >= 685.81 ~ 1,
       TRUE ~ as.numeric(NA))) 
 ```
   
@@ -1787,10 +1788,10 @@ score_spring_m <- metrics_prep.df %>%
            salzone == "m"#,
 
            ) %>%
-  mutate(total_nan_micro_biomass_chla_ratio_score = case_when(
-       total_nan_micro_biomass_chla_ratio < 45.04 ~ 1,
-      total_nan_micro_biomass_chla_ratio >= 45.04 & total_nan_micro_biomass_chla_ratio <= 69.52 ~ 3,
-      total_nan_micro_biomass_chla_ratio > 69.52 ~ 5,
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+       total_nano_micro_biomass_chla_ratio < 45.04 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 45.04 & total_nano_micro_biomass_chla_ratio <= 69.52 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 69.52 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
   
   mutate(surface_chla_score = case_when(
@@ -1829,9 +1830,9 @@ score_spring_m <- metrics_prep.df %>%
       prorocentrum_minimum_abundance <= 1477600 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) %>%
   
-  mutate(total_nan_micro_biomass_score = case_when(
-      total_nan_micro_biomass > 1150 ~ 1,
-      total_nan_micro_biomass <= 1150 ~ as.numeric(NA),
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 1150 ~ 1,
+      total_nano_micro_biomass <= 1150 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) #%>%
 ```
 
@@ -1842,10 +1843,10 @@ score_spring_p <- metrics_prep.df %>%
            salzone == "p"#,
 
            ) %>%
-  mutate(total_nan_micro_biomass_chla_ratio_score = case_when(
-      total_nan_micro_biomass_chla_ratio < 71.0 ~ 1,
-      total_nan_micro_biomass_chla_ratio >= 71.0 & total_nan_micro_biomass_chla_ratio <= 107.5 ~ 3,
-      total_nan_micro_biomass_chla_ratio > 107.5 ~ 5,
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 71.0 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 71.0 & total_nano_micro_biomass_chla_ratio <= 107.5 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 107.5 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
   
   mutate(surface_chla_score = case_when(
@@ -1878,9 +1879,9 @@ score_spring_p <- metrics_prep.df %>%
       prorocentrum_minimum_abundance < 672 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
   
-  mutate(total_nan_micro_biomass_score = case_when(
-      total_nan_micro_biomass > 1061.7 ~ 1,
-      total_nan_micro_biomass <= 1061.7 ~ as.numeric(NA),
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 1061.7 ~ 1,
+      total_nano_micro_biomass <= 1061.7 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) 
   
 ```
@@ -1928,10 +1929,10 @@ score_summer_f <- metrics_prep.df %>%
       pheophytin < 2.40 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
   
-  mutate(total_nan_micro_biomass_score = case_when(
-      total_nan_micro_biomass > 555.7 ~ 1,
-      total_nan_micro_biomass < 231.3 ~ 3,
-      total_nan_micro_biomass >= 231.3 & total_nan_micro_biomass <= 555.7 ~ 5,
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 555.7 ~ 1,
+      total_nano_micro_biomass < 231.3 ~ 3,
+      total_nano_micro_biomass >= 231.3 & total_nano_micro_biomass <= 555.7 ~ 5,
       TRUE ~ as.numeric(NA))) 
 ```
 
@@ -1981,10 +1982,10 @@ score_summer_m <- metrics_prep.df %>%
            salzone == "m"#,
 
            ) %>%
-  mutate(total_nan_micro_biomass_chla_ratio_score = case_when(
-      total_nan_micro_biomass_chla_ratio < 32.2 ~ 1,
-      total_nan_micro_biomass_chla_ratio >= 32.2 & total_nan_micro_biomass_chla_ratio <= 36.9 ~ 3,
-      total_nan_micro_biomass_chla_ratio > 36.9 ~ 5,
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 32.2 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 32.2 & total_nano_micro_biomass_chla_ratio <= 36.9 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 36.9 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
 
   mutate(surface_chla_score = case_when(
@@ -2017,9 +2018,9 @@ score_summer_m <- metrics_prep.df %>%
       picoplankton_abundance > 598720000 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
   
-  mutate(total_nan_micro_biomass_score = case_when(
-      total_nan_micro_biomass > 660 ~ 1,
-      total_nan_micro_biomass <= 660 ~ as.numeric(NA),
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 660 ~ 1,
+      total_nano_micro_biomass <= 660 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) 
   
 
@@ -2032,10 +2033,10 @@ score_summer_p <- metrics_prep.df %>%
            salzone == "p"#,
 
            ) %>%
-  mutate(total_nan_micro_biomass_chla_ratio_score = case_when(
-      total_nan_micro_biomass_chla_ratio < 37.7 ~ 1,
-      total_nan_micro_biomass_chla_ratio >= 37.7 & total_nan_micro_biomass_chla_ratio <= 74.5 ~ 3,
-      total_nan_micro_biomass_chla_ratio > 74.5 ~ 5,
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 37.7 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 37.7 & total_nano_micro_biomass_chla_ratio <= 74.5 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 74.5 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
 
   mutate(surface_chla_score = case_when(
@@ -2080,10 +2081,10 @@ score_summer_p <- metrics_prep.df %>%
       picoplankton_abundance > 269500000 ~ 5,
       TRUE ~ as.numeric(NA))) %>%
   
-    mutate(total_nan_micro_biomass_score = case_when(
-      total_nan_micro_biomass < 181 | total_nan_micro_biomass > 831 ~ 1,
-      (total_nan_micro_biomass >= 181 & total_nan_micro_biomass <= 207) | (total_nan_micro_biomass >= 718 & total_nan_micro_biomass <= 831) ~ 3,
-      total_nan_micro_biomass < 718 ~ 5,
+    mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass < 181 | total_nano_micro_biomass > 831 ~ 1,
+      (total_nano_micro_biomass >= 181 & total_nano_micro_biomass <= 207) | (total_nano_micro_biomass >= 718 & total_nano_micro_biomass <= 831) ~ 3,
+      total_nano_micro_biomass < 718 ~ 5,
       TRUE ~ as.numeric(NA))) 
 ```
 
@@ -2111,25 +2112,25 @@ test_all_seasons <- all_seasons
 test_all_seasons[is.na(test_all_seasons)] <- 0 
 
 scores_ratings_final <- test_all_seasons%>%
-    # mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ mean(total_nan_micro_biomass_chla_ratio_score, surface_chla_score, cyanophyte_biomass_score, doc_score, pheophytin_score, total_nan_micro_biomass_score, na.rm = T), TRUE~ as.numeric(NA)))
+    # mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ mean(total_nano_micro_biomass_chla_ratio_score, surface_chla_score, cyanophyte_biomass_score, doc_score, pheophytin_score, total_nano_micro_biomass_score, na.rm = T), TRUE~ as.numeric(NA)))
   
-  mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ (total_nan_micro_biomass_chla_ratio_score + surface_chla_score + cyanophyte_biomass_score + doc_score + pheophytin_score + total_nan_micro_biomass_score) / 6,
+  mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + cyanophyte_biomass_score + doc_score + pheophytin_score + total_nano_micro_biomass_score) / 6,
                                 
-                                  season == "spring" & salzone == "o" ~ (total_nan_micro_biomass_chla_ratio_score + surface_chla_score + doc_score + pheophytin_score +  total_nan_micro_biomass_score) / 5,
+                                  season == "spring" & salzone == "o" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + doc_score + pheophytin_score +  total_nano_micro_biomass_score) / 5,
                                 
-                                  season == "spring" & salzone == "m" ~ (total_nan_micro_biomass_chla_ratio_score + surface_chla_score + diatom_biomass_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + prorocentrum_minimum_abundance_score + total_nan_micro_biomass_score) / 8,
+                                  season == "spring" & salzone == "m" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + diatom_biomass_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + prorocentrum_minimum_abundance_score + total_nano_micro_biomass_score) / 8,
                                 
-                                  season == "spring" & salzone == "p" ~ (total_nan_micro_biomass_chla_ratio_score + surface_chla_score + pct_cryptophyte_score + doc_score + pheophytin_score + prorocentrum_minimum_abundance_score + total_nan_micro_biomass_score) / 7,
+                                  season == "spring" & salzone == "p" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + pct_cryptophyte_score + doc_score + pheophytin_score + prorocentrum_minimum_abundance_score + total_nano_micro_biomass_score) / 7,
                                 
                                 
-                                  season == "summer" & salzone == "f" ~ ( surface_chla_score + cyanophyte_biomass_score + diatom_biomass_score + doc_score + microcystis_aeruginosa_abundance_score + pheophytin_score + total_nan_micro_biomass_score) / 7,
+                                  season == "summer" & salzone == "f" ~ ( surface_chla_score + cyanophyte_biomass_score + diatom_biomass_score + doc_score + microcystis_aeruginosa_abundance_score + pheophytin_score + total_nano_micro_biomass_score) / 7,
                                 
                                   season == "summer" & salzone == "o" ~ (surface_chla_score + cyanophyte_biomass_score + diatom_biomass_score + doc_score + pheophytin_score) / 5,
                                 
-                                  season == "summer" & salzone == "m" ~ (total_nan_micro_biomass_chla_ratio_score + surface_chla_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + picoplankton_abundance_score + total_nan_micro_biomass_score) / 7,
+                                  season == "summer" & salzone == "m" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + picoplankton_abundance_score + total_nano_micro_biomass_score) / 7,
                                 
-                                  season == "summer" & salzone == "p" ~ (total_nan_micro_biomass_chla_ratio_score +
-surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + picoplankton_abundance_score + total_nan_micro_biomass_score) / 9,
+                                  season == "summer" & salzone == "p" ~ (total_nano_micro_biomass_chla_ratio_score +
+surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + picoplankton_abundance_score + total_nano_micro_biomass_score) / 9,
                                 
                                 
                                 
@@ -2175,6 +2176,9 @@ test_id <-  metrics_prep.df %>%
 test2 <- scores_ratings_final %>%
   filter(unique_id == "cb6.1_ap_fs1_2016-04-27") %>%
   distinct()
+
+
+  
 
 
 
