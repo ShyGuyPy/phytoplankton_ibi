@@ -1393,6 +1393,8 @@ bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "stat
 
 #### Calulate Metrics
 
+
+
 selecting out unneeded columns, filter out na salzone entries, and pare down to your unique_id's
 ```{r}
 bay_wq_merged_calc.df  <-  bay_wq_merged.df %>%
@@ -1413,6 +1415,9 @@ bay_wq_merged_calc.df  <-  bay_wq_merged.df %>%
 ```
 
 
+
+
+
 TEST
 ```{r}
 bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
@@ -1422,48 +1427,50 @@ bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
   group_by(unique_id) %>%
   
   mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
-  select(-nano_micro_biomass) %>%
+  #select(-nano_micro_biomass) %>%
   
   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
   
   
   
-  mutate(total_biomass = sum(carbon))  %>%
+  #mutate(total_biomass = sum(carbon))  %>%
   
   
-  mutate(diatom_carbon = case_when(group == "diatom"~ carbon#/1000000
+  mutate(diatom_carbon = case_when(group == "diatom"~ nano_micro_biomass#/1000000
                                     , TRUE ~ as.numeric(NA))) %>%
   mutate(diatom_biomass = case_when(!is.na(diatom_carbon)~ sum(diatom_carbon, na.rm = T)#/1000000
                                     , TRUE ~ as.numeric(NA))) %>%
   
   
-  mutate(dinoflagellate_carbon = case_when(group == "dinoflagellates"~ carbon#/1000000
+  mutate(dinoflagellate_carbon = case_when(group == "dinoflagellates"~ nano_micro_biomass#/1000000
                                     , TRUE ~ as.numeric(NA))) %>%
   mutate(dinoflagellate_biomass = case_when(!is.na(dinoflagellate_carbon)~ sum(dinoflagellate_carbon, na.rm = T)#/1000000
                                     , TRUE ~ as.numeric(NA))) %>%
   
   
-  mutate(cyanophyte_carbon = case_when(group == "cyanophyte"| group == "cyanobacteria"~ carbon#/1000000
+  mutate(cyanophyte_carbon = case_when(group == "cyanophyte"| group == "cyanobacteria"~ nano_micro_biomass#/1000000
                                     , TRUE ~ as.numeric(NA))) %>%
   mutate(cyanophyte_biomass = case_when(!is.na(cyanophyte_carbon)~ sum(cyanophyte_carbon, na.rm = T)#/1000000
                                     , TRUE ~ as.numeric(NA))) %>%
   
   
-  mutate(cryptophyte_carbon = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta" | group == "cryptomonads"~ carbon#/1000000
+  mutate(cryptophyte_carbon = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta" | group == "cryptomonads"~ nano_micro_biomass#/1000000
                                     , TRUE ~ as.numeric(NA))) %>%
   mutate(cryptophyte_biomass = case_when(!is.na(cryptophyte_carbon)~ sum(cryptophyte_carbon, na.rm = T)#/1000000
                                     , TRUE ~ as.numeric(NA))) %>%
   
   select(-diatom_carbon, -dinoflagellate_carbon, -cyanophyte_carbon, -cryptophyte_carbon) %>%
   
-  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_biomass) %>% #total_nano_micro_biomass)#%>%
+  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass) %>% #total_nano_micro_biomass)#%>%
   
-  select(-group, -carbon) %>%
+  select(-group, -carbon, -nano_micro_biomass) %>%
   distinct()
 
 
 
 ```
+
+
 
 
 
@@ -1520,18 +1527,33 @@ bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
 
 
 
-apply metrics to all rows applicable(CODE IS BRITTLE AND NEEDS A FIX)
+
+
+apply metrics to all rows applicable
 ```{r}
+bay_wq_merged_calc.df[is.na(bay_wq_merged_calc.df)] <- 0
+
 bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
+  
+  #filter(unique_id %in% c("sbe5_ap_fs1_2013-03-13", "we4.2_ap_fs1_2013-03-20", "ret5.2_ap_fs1_2013-03-20")) %>%
+  
   group_by(unique_id) %>%
   
 
   #mutate(test = n()
-  mutate(diatom_biomass = sum(diatom_biomass, na.rm=T)) %>%
-  mutate(cyanophyte_biomass = sum(cyanophyte_biomass, na.rm=T)) %>%
-  mutate(dinoflagellate_biomass = sum(dinoflagellate_biomass , na.rm=T)) %>%
+
+  mutate(diatom_biomass = max(diatom_biomass, na.rm=T)) %>%
+  #mutate(diatom_biomass =( case_when(diatom_biomass == "-inf"~as.numeric(NA), TRUE~diatom_biomass))) %>%
+
+  mutate(cyanophyte_biomass = max(cyanophyte_biomass, na.rm=T)) %>%
+  #mutate(cyanophyte_biomass =( case_when(cyanophyte_biomass == -inf~as.numeric(NA), TRUE~cyanophyte_biomass))) %>%
+  
+  mutate(dinoflagellate_biomass = max(dinoflagellate_biomass , na.rm=T)) %>%
+  #mutate(dinoflagellate_biomass =( case_when(dinoflagellate_biomass == "-inf"~as.numeric(NA), TRUE~dinoflagellate_biomass))) %>%
+  
   #mutate(cyanophyte_biomass = sum(dinoflagellate_biomass, na.rm=T)) %>%
-  mutate(cryptophyte_biomass = sum(cryptophyte_biomass, na.rm=T)) %>%
+  mutate(cryptophyte_biomass = max(cryptophyte_biomass, na.rm=T)) %>%
+  #mutate(cryptophyte_biomass =( case_when(cryptophyte_biomass == "-inf"~as.numeric(NA), TRUE~cryptophyte_biomass))) %>%
   
   # mutate(prorocentrum_minimum_abundance = sum(prorocentrum_minimum_abundance, na.rm=T)) %>%
   # mutate(microcystis_aeruginosa_abundance = sum(microcystis_aeruginosa_abundance, na.rm=T)) %>%
@@ -1540,9 +1562,11 @@ bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
   #mutate(total_nano_micro_biomass = sum(total_nano_micro_biomass, na.rm=T)) %>% 
   #mutate(total_nano_micro_biomass_chla_ratio = sum(total_nano_micro_biomass_chla_ratio, na.rm=T)) %>%
   
-  mutate(percent_cryptophyte_biomass = sum(percent_cryptophyte_biomass, na.rm=T)) %>%
+  mutate(percent_cryptophyte_biomass = max(percent_cryptophyte_biomass, na.rm=T)) %>%
+  mutate(percent_cryptophyte_biomass =( case_when(percent_cryptophyte_biomass == "-inf"~as.numeric(NA), TRUE~percent_cryptophyte_biomass))) %>%
   #mutate(surface_chla = sum(surface_chla, na.rm=T)) %>%
   #mutate(pheophytin = sum(pheophytin, na.rm=T)) %>%
+  
   distinct() %>%
   ungroup()
 
@@ -1550,6 +1574,11 @@ bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
   
   
 ```
+
+```{r}
+#test_bay_wq_merged_calc.df[is.na(test_all_seasons)] <-
+```
+
 
 ```{r}
 # groups <- bay_wq_merged_calc.df %>%
@@ -1677,7 +1706,7 @@ metrics_prep.df <- metrics_prep.df %>%
                   pheophytin,
                   total_nano_micro_biomass, 
          
-         total_biomass,
+         #total_biomass,
          
                   diatom_biomass,
                   dinoflagellate_biomass,
@@ -2108,13 +2137,17 @@ options(scipen=999)
 
 test_all_seasons <- all_seasons 
 
+
 #this is not what we want to do
 test_all_seasons[is.na(test_all_seasons)] <- 0 
+ 
 
-scores_ratings_final <- test_all_seasons%>%
+scores_ratings_final <- test_all_seasons%>%#test_all_seasons%>%
     # mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ mean(total_nano_micro_biomass_chla_ratio_score, surface_chla_score, cyanophyte_biomass_score, doc_score, pheophytin_score, total_nano_micro_biomass_score, na.rm = T), TRUE~ as.numeric(NA)))
   
-  mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + cyanophyte_biomass_score + doc_score + pheophytin_score + total_nano_micro_biomass_score) / 6,
+  filter(unique_id == "ret5.2_ap_fs1_2013-03-20") %>%
+  
+  mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + cyanophyte_biomass_score + doc_score + pheophytin_score + total_nano_micro_biomass_score)/ 6,
                                 
                                   season == "spring" & salzone == "o" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + doc_score + pheophytin_score +  total_nano_micro_biomass_score) / 5,
                                 
@@ -2134,8 +2167,59 @@ surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagella
                                 
                                 
                                 
-                                                TRUE~ as.numeric(NA)))
+                                                TRUE~ 0#as.numeric(NA)
+  )) 
+
 ```
+
+```{r}
+test_scores_ratings_final <-  scores_ratings_final %>%
+mutate
+
+
+
+#test_scores_ratings_final[is.na(test_scores_ratings_final[total_nano_micro_biomass_chla_ratio_score:ibi_score]) ] <- " "
+```
+
+```{r}
+zero <- function(x) {
+  x = case_when(is.na(x)==T~0, TRUE~x)
+}
+```
+
+
+
+```{r}
+
+test2_scores_ratings_final <- scores_ratings_final %>%
+  filter(unique_id == "ret5.2_ap_fs1_2013-03-20") %>%
+  mutate_at(.vars=vars(ends_with("_score"), list( 
+ 
+ case_when(.==0 ~ "test", TRUE~.))
+  #~case_when( #| is.na(.) == TRUE | . == NA 
+            #.==0 ~ "test")
+))#)
+# 
+# ratings.df2 <- ratings.df2 %>%
+#   mutate_at(vars(starts_with("chessie_")), list( 
+#   ~case_when(
+#     ratings.df2$icprb_bioregion_id == "napu" & . < 17.9 ~ "very_poor",
+#     ratings.df2$icprb_bioregion_id == "napu" & (. >= 17.9 & .< 35.9) ~ "poor",
+#     ratings.df2$icprb_bioregion_id == "napu" & (. >= 35.9 & .< 47.4) ~ "fair",
+#     ratings.df2$icprb_bioregion_id == "napu" & (. >= 47.4 & .< 61.9) ~ "good",
+#     ratings.df2$icprb_bioregion_id == "napu" & . >= 61.9 ~ "excellent",
+
+# mtcars %>%
+#   mutate_at(.vars = vars(vs, am),
+#         .funs = funs(. = case_when(
+#           . %in% c(1, 0, 9) ~ TRUE,
+#           . %in% c(2, 20, 200) ~ FALSE,
+#           TRUE ~ TRUE
+#         )))
+```
+
+
+
 
 ratings
 ```{r}
@@ -2164,6 +2248,14 @@ data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRa
 
 
 
+
+
+
+```{r}
+test <- scores_ratings_final %>%
+  mutate(test = (diatom_biomass + dinoflagellate_biomass + cryptophyte_biomass + cyanophyte_biomass)) %>%
+  select(total_biomass, total_nano_micro_biomass, test)
+```
 
 
 
