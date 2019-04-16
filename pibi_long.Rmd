@@ -1,6 +1,6 @@
 ---
 title: "pibi_long"
-author: "Luke Vawter"
+author: "Luke Vawter & Zachary Smith"
 date: "December 21, 2018"
 output: 
   html_document:
@@ -36,28 +36,25 @@ library(ritis)
 library(parallel)
 ```
 
-mmir is Zach Smith's custom package
-```{r}
-#library(mmir)
-```
 
+this is an example of `code`
 
 #### Funcs and Variables
-these varaible should be changed by the user as needed
+these varaible should be changed by the user as needed.
 ```{r}
 #this is the minimum date to be included
 min_date = "1-1-2013"
-#this is the minimum date to be included sdd the variable todays.date intot his variable if you want the most recent data
+#this is the minimum date to be included, add the variable todays.date intot his variable if you want the most recent data
 max_date = "12-31-2016"
 ```
 
-these variables references values found in the API guide at http://datahub.chesapeakebay.net (or int eh case of parameters, fonud from trial and error)
+these variables references values found in the API guide at http://datahub.chesapeakebay.net 
 ```{r}
 #number for picoplankton in CEDR api
 pico_num = "18"
 
 #number for phytoplankton in CEDR api
-phyto_num <- "17"
+phyto_num = "17"
 
 #these are the parameter codes for the CEDR api
 chla=21
@@ -69,8 +66,14 @@ salinity=83
 ```
 
 variables and functions that will likely not be changed
+
+The clean_string() function modifies character objects by removing leading/trailing white space, converting all characters to lower case, and replacing all spaces (" “) with an underscore (”_“). These specifications eliminate common typos and standardize character objects.
+
+The clean_up() function is a wrapper for clean_string(). This function applies clean_string() to the column headers and character columns of data frames. Again, this process standardizes character values and makes it easier work with the data.
+
 ```{r}
 project.dir <- rprojroot::find_rstudio_root_file()
+
 
 clean_string <- function(x) {
   x %>% 
@@ -88,10 +91,12 @@ clean_up <- function(x) {
     distinct()
 }
 
+#thisvariable holds the url for the CEDR api
 url.root <- "http://datahub.chesapeakebay.net/api.JSON"
 todays.date <- format(Sys.Date(), "%m-%d-%Y")
 
 
+# the following code generates directories that will be used throughout
 dir.create(file.path(project.dir, "data/VA_ODU/"),
            recursive = TRUE, showWarnings = FALSE)
 
@@ -113,9 +118,7 @@ station.vec <- file.path(url.root,
                        "TidalPlankton",
                        "Reported",
                        min_date,
-                       # "1-1-2013",
                        max_date, 
-                       # "12-31-2016",
                        phyto_num,
                        "Station") %>% 
   fromJSON() %>% 
@@ -127,7 +130,7 @@ station.vec <- file.path(url.root,
 
 
 
-this uploads the sample and event data from cedr to a dataframe(phyto.df)
+upload the sample and event data from cedr to a dataframe(phyto.df) using the CEDR(chesapeakebay.net) api
 ```{r}
 
 phyto.df <- file.path(url.root,
@@ -175,19 +178,6 @@ event.df <- file.path(url.root,
 
 data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_event.csv"))
 ```
-
-
-COMPARE STEP 1
-note: both have 824 elements
-```{r}
-step_1.df <- event.df
-
-data.table::fwrite(step_1.df, file.path(project.dir, "data/test", "step_1.csv"))
-
-s1_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step1.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
-```
-
-
 
 pico data(note that the number above "station" is now 18 rather than 17.  The project id for picoplankton is 18, and 17 for phytoplankton)
 ```{r}
@@ -283,37 +273,9 @@ narrow_date_range.df <-  wq.df %>%
 
 ```
 
-
-```{r}
-# step_3.df <- wq_w_pdepth.df
-# 
-# data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
-
-s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
-
-```
-
-
-step 3 anti
-```{r}
-s3_compare_modified.df <- s3_compare.df %>%
-  rename(eventid = wq_eventid)
-
-
-compare_wq_raw.df <- anti_join(wq.df, s3_compare_modified.df, by = c("eventid"))
-```
-
-
-```{r}
-station_check <- s3_compare_modified.df %>%
-  filter(station %in% c("sbe5"))
-```
-
-
 ```{r}
 data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
-
 
 ```{r}
 wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
@@ -342,35 +304,12 @@ wq.df <-wq.df %>%
   filter(concat %in% concat_vector) 
 ```
 
-this snippet of Zach's code removes any row flagged in the problem column(anything other than na)
-28 items are removed from the list
-do we want this?
-```{r}
-# wq.df <- wq.df %>%
-#   filter(is.na(problem)
-        #) 
-
-
-         #,
-         #parameter %in% c("chla", "doc", "pheo", "salinity") ...removed because these are the only 4 parameters included so
-         #the code doesn't actually do anything
-         
-#)
-```
-
 selects columns from wq (eventid recently added)
 ```{r}
 wq.df <- wq.df %>%
   select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %>% #eventid,
   mutate(sampledate=as.Date(sampledate))
 ```
-
-```{r}
-# step_3_test.df <- wq.df
-# 
-# data.table::fwrite(step_3_test.df, file.path(project.dir, "data/test", "step_3_test.csv"))
-```
-
 
 #### Prep Event
 
@@ -406,17 +345,6 @@ pdepth.df <- event.df %>%
   dplyr::distinct()
 ```
 
-COMPARE STEP 2
-both 533
-```{r}
-step_2.df <- pdepth.df
-
-data.table::fwrite(step_2.df, file.path(project.dir, "data/test", "step_2.csv"))
-
-s2_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step2.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
-```
-
-
 applies pdepth to water quality dataframe
 ```{r}
 wq_w_pdepth.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
@@ -434,88 +362,10 @@ wq_w_pdepth.df <- wq_w_pdepth.df %>%
 ```
 
 ```{r}
-# test <- wq_w_pdepth.df %>%
-#   filter(above_pdepth == "No, but RET")
-```
-
-
-COMPARE STEP 3
-note: 7358 to 7358 in Claire's excel
-```{r}
-step_3.df <- wq_w_pdepth.df
-
-data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
-
-s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
-
-```
-
-test script for step 3
-```{r}
-# step_3_test.df <- step_3.df %>%
-#   group_by(eventid) %>% #, sampledate) %>%
-#   mutate(total_in_group = n()) %>%
-#   summarise() %>%
-#   ungroup()
-#   
-# s3_compare.df <- s3_compare.df %>%
-#   mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
-# 
-# s3_compare_test.df <- s3_compare.df %>%
-#   group_by(wq_eventid) %>%
-#   mutate(total_in_group = n()) %>%
-#   summarise() %>%
-#   ungroup()
-# 
-# id_vector <- pull(s3_compare_test.df, wq_eventid)
-# 
-# step_3_by_id <-wq.df %>%
-#   filter(eventid %in% id_vector)
-# 
-# step_3_to_exclude <- wq.df %>%
-#   filter(!eventid %in% id_vector)
-# 
-# s3_wq_dates.df <- data.table::fread(file.path(project.dir, "data/test/", "wq_dates.csv")) %>% clean_up() %>%
-#   mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
-#   # group_by(sampledate) %>%
-#   # mutate(total_in_group = n()) %>%
-#   # summarise() %>%
-#   # ungroup()
-# 
-# test_7358 <- step_3.df %>%
-#   #filter(is.na(problem))
-#   filter(layer %in% c("s","a","p","m")) %>%
-# 
-# test_missing <-  
-
-  
-```
-
-filters out dpeths below pdepth
-making an exception for any data missing pdepth of station tf4.2
-by joining data that meet that criteria back in
-```{r}
-# missing_pdepth.df <- wq_w_pdepth.df %>%
-#   filter( (is.na(pdepth)& station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")) 
-# )
-# 
-# missing_other_pd.df <- left_join(missing_other.df, pdepth.df, by = c("station", "sampledate")) %>%
-#   filter(totaldepth <= 5 & station %in% c("ret3.1","ret4.3") & pdepth <=1 ) 
-
-```
-
-```{r}
 wq_above_pdepth.df <- wq_w_pdepth.df%>%
   filter(depth <= pdepth)
 
-
-#wq_above_pdepth.df <- full_join(wq_above_pdepth.df, missing_pdepth.df)
-
-#& (!station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1") & layer != "ap"))
-
-
 ```
-
 
 check for missing(station and date combos that are present in event.df but not represtented in wq_above_pdepth.df) 
 ```{r}
@@ -569,111 +419,15 @@ name_missing <- function(data_backbone, source_data, modified_data, step_vector)
 
 wq_above_pdepth.df <- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, step_4.vec)
 
-# #finds instances of station/sampledate combo that are missing from wq
-# missing.df <- anti_join(event.df,wq_above_pdepth.df, by = c("station", "sampledate"))
-# 
-# #standardize date format and add a unique identifier to missing 
-# missing.df <- missing.df %>%
-#   mutate( sampledate =  as.Date(sampledate)) %>%
-#   mutate(concat = paste0(station, sampledate))
-# 
-# #standardize date format and add a unique identifier to wq
-# wq_w_pdepth.df <- wq_w_pdepth.df %>%
-#   mutate( sampledate =  as.Date(sampledate)) %>%
-#   mutate(concat = paste0(station, sampledate))
-# 
-# #create a vector to store concatinated ids from the missing combos
-# concat_vector2.vec <- pull(missing.df, concat)
-# 
-# #uses the combos in missing.df to retrieve the event data for the missing values
-# missing_full.df <-wq_w_pdepth.df %>%
-#   filter(concat %in% concat_vector2.vec) 
-# 
-# #adds a concat id to wq_above_pdepth
-# wq_above_pdepth.df <- wq_above_pdepth.df %>%
-#   mutate( sampledate =  as.Date(sampledate)) %>%
-#   mutate(concat = paste0(station, sampledate))
-# 
-# #joins the missing values back into most recent wq df
-# wq_above_pdepth.df <- full_join(wq_above_pdepth.df, missing_full.df, by = c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid"))
 ```
 
 
-COMPARE STEP 4
-note: 3483 to 3483 in Claire's excel
-```{r}
-step_4.df <- wq_above_pdepth.df
-
-data.table::fwrite(step_4.df, file.path(project.dir, "data/test", "step_4.csv"))
-
-s4_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step4.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
-```
-
-code to compare dataframes for testing step 4:
-```{r}
-step_4_modified.df <- step_4.df %>%
-  mutate(sampledate = as.Date(sampledate)) %>%
-  #select(-sampledate, above_pdepth) %>%
-  mutate(author = "Luke")
-
-# s4_compare.df <- s4_compare.df %>%
-#   mutate(sampledate = as.Date(sampledate))
-
-s4_compare_modified.df <- s4_compare.df %>%
-  rename(above_pdepth = `above_p_depth?`) %>%
-  rename(eventid = wq_eventid) %>%
-  rename(pdepth = p_depth) %>%
-  select(station, sampledate, layer, depth, parameter, measurevalue, eventid, pdepth, above_pdepth) %>%
-  #select(-sampledate, -above_pdepth) %>%
-  mutate(author = "Claire")
-
-
-```
-
-
-the objects in diff_check_step_4.df were the 4 entries that exist in Claire's data but not in mine. Exceptions written for such cases, except one which does not exist in my data:
-```{r}
-
-#diff_check.df <- left_join(step_4_modified.df, s4_compare_modified.df)
-
-
-LV_diff_check_step_4.df <- anti_join(step_4_modified.df, s4_compare_modified.df, by = c("station", "depth", "parameter", "measurevalue", "eventid", "pdepth")) #"layer",
-
-C_diff_check_step_4.df <- anti_join(s4_compare_modified.df, step_4_modified.df,  by = c("station", "depth", "parameter", "measurevalue", "eventid", "pdepth")) #"layer",
-
-# author_check.df <- diff_check.df %>%
-#   filter(author == "Claire")
-```
-
-
-Step 5:
-
-this code isolates exceptions that need to be added back in after the following chunk of code
-```{r}
-# 
-# step5_exceptions <- wq_above_pdepth.df %>%
-#   filter(above_pdepth == "No, but RET")
-#   filter(!layer %in% c("s","f","m","p", "ap"))
-
-```
-
-
-generates new dataframe with new parameter s_chla (531 items, should be 533)
+generate a new dataframe with new parameter s_chla (531 items, should be 533)
 ```{r}
 s_chla.df <- wq_above_pdepth.df %>%
   filter(layer == "s", 
          parameter == "chla") %>% 
   unite(parameter, c("layer", "parameter"), remove = FALSE) #%>%
-  # filter(depth <= pdepth) #%>%
-  #filter(parameter=="s_chla")
-  #filter(eventid==425680 | eventid==394855)
-```
-
-```{r}
-# s_chla.df <- s_chla.df %>%
-#   group_by(station, sampledate) %>%
-#   mutate(avg_di_s_chla = mean(measurevalue, na.rm = TRUE)) %>%
-#   ungroup()
 ```
 
 Average replicates from s_chla ...measure value average
@@ -711,83 +465,7 @@ missing_full.df <-wq_above_pdepth.df %>%
 #join missing values into di_s_chla.df with blank values
 di_s_chla.df <- full_join(di_s_chla.df, missing_s_chla.df, by = c("station", "sampledate", "eventid", "parameter", "concat"))
 
-# test.df <- di_s_chla_test.df %>%
-#   filter(is.na(measurevalue_averaged))
-  
 ```
-
-
-I have eventid 39855 with s_chla in my wq data
-this is the check:
-```{r}
-mystery.df <- wq_above_pdepth.df %>%
-  filter(eventid == 394855)
-
-mystery2.df <- event.df %>%
-  filter(station == "tf4.2" & sampledate =="2014-07-15")
-  
-mystery3.df <- wq.df %>%
-  filter(eventid == 394855)
-
-mystery4.df <- di_s_chla.df %>%
-  filter(eventid == 394855)
-```
-
-
-
-
-STEP 5 COMPARE
-my 533 to Claire's 531(was 533?)
-```{r}
-step_5.df <- di_s_chla.df
-
-data.table::fwrite(step_5.df, file.path(project.dir, "data/test", "step_5.csv"))
-
-s5_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step5.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
-```
-
-```{r}
-step_5_modified.df <- step_5.df %>%
-  mutate(sampledate = as.Date(sampledate)) %>%
-  #select(-sampledate, above_pdepth) %>%
-  mutate(author = "Luke") %>%
-  clean_up() %>%
-  mutate(measurevalue_averaged = as.numeric(measurevalue_averaged))
-
-# s5_compare.df <- s5_compare.df %>%
-#   mutate(sampledate = as.Date(sampledate))
-
-s5_compare_modified.df <- s5_compare.df %>%
-  rename(eventid = wq_eventid) %>%
-  rename(measurevalue_averaged = average_of_measurevalue) %>%
-  #rename(pdepth = p_depth) %>%
-  #select(station, sampledate, layer, depth, parameter, measurevalue, eventid, pdepth, above_pdepth) %>%
-  #select(-sampledate, -above_pdepth) %>%
-  mutate(author = "Claire") %>%
-  clean_up() %>%
-  mutate(measurevalue_averaged = as.numeric(measurevalue_averaged))
-
-
-C_diff_check_step_5.df <- anti_join(s5_compare_modified.df, step_5_modified.df, by = c("station",  "parameter", "measurevalue_averaged", "eventid", "layer"))
-
-C_diff_check_step_5.df <- C_diff_check_step_5.df%>%
-  mutate(measure_type = typeof(measurevalue_averaged)) %>%
-  filter(eventid==425680 | eventid==394855)
-
-LV_diff_check_step_5.df <- anti_join(step_5_modified.df, s5_compare_modified.df, by = c("station", "measurevalue_averaged", "parameter", "eventid","layer")) 
-
-LV_diff_check_step_5.df <- LV_diff_check_step_5.df%>%
-  mutate(measure_type = typeof(measurevalue_averaged))
-```
-
-
-```{r}
-# wq_rep_check.df <- wq_above_pdepth.df %>%
-#   select(station, sampledate, depth, parameter) %>%
-#   distinct()
-```
-
-
 
 Averge replicates for the rest of the data ...measure value average 
 ```{r}
@@ -799,52 +477,12 @@ wq_above_pdepth.df <- wq_above_pdepth.df %>%
   ungroup()
 ```
 
-COMPARE STEP 6 
-my 3366 to Claire's is 3357(was 3366)
-```{r}
-step_6.df <- wq_above_pdepth.df
-
-data.table::fwrite(step_6.df, file.path(project.dir, "data/test", "step_6.csv"))
-
-s6_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step6.csv")) %>% clean_up()
-
-C_diff_check_step_6.df <- anti_join(step_6.df,s6_compare.df, by = c(
-  #"station", "depth","parameter", 
-  "measurevalue_averaged"
-  )) 
-
-LV_diff_check_step_6.df <- anti_join(s6_compare.df, step_6.df, by = c(
-  #"station", "depth", "parameter", 
-  "measurevalue_averaged")) 
-
-
-```
-
-
 ```{r}
 wq_above_pdepth.df <- wq_above_pdepth.df %>%
   group_by(station, sampledate, parameter) %>%
   mutate(depth_integrated_value = mean(measurevalue_averaged)) %>%
   distinct(station, sampledate, depth_integrated_value) %>%
   ungroup()
-```
-
-COMPARE STEP 7 
-mine is 2028 to Claire's 2026(was 2028)
-```{r}
-step_7.df <- wq_above_pdepth.df
-
-data.table::fwrite(step_7.df, file.path(project.dir, "data/test", "step_7.csv"))
-
-s7_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step7.csv")) %>% clean_up() %>% 
-  rename(depth_integrated_value =`depth-integrated_value`)
-
-
-C_diff_check_step_7.df <- anti_join(step_7.df,s7_compare.df, by = c(#"station", "parameter", 
-  "depth_integrated_value")) 
-
-LV_diff_check_step_7.df <- anti_join(s7_compare.df, step_7.df, by = c(#"station", "parameter", 
-  "depth_integrated_value")) 
 ```
 
 join surface chloraphyl into water quality data
@@ -857,32 +495,9 @@ di_s_chla.df <- di_s_chla.df %>%
 
 wq_all.df <- full_join(wq_above_pdepth.df, di_s_chla.df, by = c("station", "sampledate", "parameter", "depth_integrated_value"))
 
-# wq_all.df <- wq_all.df %>%
-#   filter(parameter != "s_chla")
-  
-```
-
-
-COMPARE STEP 8
-my 2561 to Claire's 2555(was 2558)
-```{r}
-print(2028 + 533)
-
-
-step_8.df <- wq_all.df
-
-data.table::fwrite(step_8.df, file.path(project.dir, "data/test", "step_8.csv"))
-
-s8_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step8.csv")) %>% clean_up() %>% 
-  rename(depth_integrated_value =`depth-integrated_value`)
-
-C_diff_check_step_8.df <- anti_join(step_8.df,s8_compare.df, by = c("depth_integrated_value")) 
-
-LV_diff_check_step_8.df <- anti_join(s8_compare.df, step_8.df, by = c("depth_integrated_value")) 
 ```
 
 filter out dates outside Mar-May and Jul-Sept
-borrowed this chunk from Zach
 ```{r}
 wq_warm.df <- wq_all.df %>%
   mutate(month = month(sampledate),
@@ -891,12 +506,9 @@ wq_warm.df <- wq_all.df %>%
            month %in% c(7, 8, 9) ~ "summer",
            TRUE ~ "remove"
           )) 
-  #%>% 
-  # filter(season %in% c("spring", "summer"))
 ```
 
-
-assign salzones...work in progress
+assign salzones
 ```{r}
 wq_sal.df <- wq_warm.df %>%
   filter(parameter == "salinity")
@@ -918,17 +530,10 @@ wq_warm.df <- wq_warm.df %>%
 
 wq_warm_sal.df <- left_join(wq_warm.df, wq_sal_id.df, by = c("concat"))#, "salzone"))
 
-
-
 ```
-
-
-
 
 Find events without salinity and assign salinity when possible...Assign F salzone to some station/season instances based on known salinity profiles
 ```{r}
-# salinities are less than 0.5 ppt, or "F" more than 90% of the time: CB1.1, ET5.1, TF1.5, TF2.3, TF4.2, TF5.5 in Spring;								
-# CB1.1, TF2.3, TF4.2, TF5.5 in Summer. We can assume their Salzone is F and replace 61 of the 78 blanks.								
 wq_no_sal.df <- anti_join(wq_warm_sal.df, wq_sal_id.df, by = c("concat"))
 
 wq_sal_fill.df <-  wq_no_sal.df %>%
@@ -940,6 +545,7 @@ wq_sal_fill.df <-  wq_no_sal.df %>%
 wq_sal_filled.df <- wq_sal_fill.df %>%
   filter(salzone == "F")
 
+# test for number of na salzone values remaining
 test_na.df <- wq_sal_fill.df %>%
   filter(is.na(salzone))
 ```
@@ -951,8 +557,6 @@ wq_warm_sal_added.df <- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c("conca
 # test to determine if we are retaining the right values
 test.df <- anti_join(wq_warm.df, wq_warm_sal_added.df,  by = c("concat", "station","sampledate", "season", "parameter", "month", "depth_integrated_value"))
 ```
-
-
 
 bring in Jackies data to compare salzones against
 import jackie's salzones if data falls within the applicable date range and is missing salzone data
@@ -978,25 +582,10 @@ if (nrow(wq_need_sal.df) > 1) {
              
 ```
 
-
 ```{r}
 wq_warm.wide <- wq_warm_sal_added.df %>%
   select(-layer, -depth,-eventid,-concat) %>%
   spread(parameter, depth_integrated_value)
-```
-
-
-COMPARE STEP 9
-```{r}
-step_9.df <- wq_warm.wide
-
-data.table::fwrite(step_9.df, file.path(project.dir, "data/test", "step_9.csv"))
-
-s9_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step9.csv")) %>% clean_up() 
-
-C_diff_check_step_9.df <- anti_join(step_9.df,s9_compare.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
-
-LV_diff_check_step_9.df <- anti_join(s9_compare.df, step_9.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
 ```
 
 remove winter and fall
@@ -1005,28 +594,11 @@ wq_final.df <- wq_warm.wide %>%
 
  filter(season %in% c("spring", "summer"))
 ```
-COMPARE STEP 10
-
-```{r}
-step_10.df <- wq_final.df
-
-data.table::fwrite(step_10.df, file.path(project.dir, "data/test", "step_10.csv"))
-
-s10_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step10.csv")) %>% clean_up() 
-
-C_diff_check_step_10.df <- anti_join(step_10.df,s10_compare.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
-
-LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla", "s_chla", "pheo", "salinity", "doc"))
-```
-
 
 #### Prep Carbon Data
 
 read the carbon data into a dataframe
 ```{r}
-# carbon.df <- readxl::read_excel(file.path(project.dir, "data/carbon/carbon_list_2014.xlsx"),
-#                          sheet = "OldBiomassEstimates") %>% clean_up()
-
 carbon.df <- data.table::fread(file.path(project.dir, "data/carbon/", "carbon_list_2014.csv")) %>% clean_up()
 ```
 
@@ -1041,7 +613,7 @@ carbon.df <- carbon.df %>%
 
 ```
 
-bring in phyto taxa data
+bring in phyto taxanomic data that was downloaded from CEDR (originally into phyto.df)
 ```{r}
 col.class.vec <- c("samplenumber" = "character",
                    "tsn" = "character",
@@ -1097,6 +669,8 @@ bay.df <- bay.df %>%
                            "hydrodictyon_reticulatum"))
 ```
 
+
+assigns tsn values to taxa that are not expected to be in the ITIS database
 ```{r}
 bay.df <- bay.df %>% 
   mutate(
@@ -1253,42 +827,6 @@ partial.match.df <- lapply(1:nrow(no.match.df), function(row.i) {
 bay.df <- left_join(bay.df, partial.match.df, by = c("latinname", "size","tsn")) %>% 
   mutate(reported_size = size,
          size = if_else(!is.na(new_size), new_size, size))
-```
-
-
-note:not sure what,if anything, to do with this one:
-Z. Some taxa require specific attention before they can be finalized.
-```{r}
-# bay.df <- bay.df %>%
-#   mutate(
-#     final_id = if_else(latinname == "trinacria_regina", "trinacria_regina",  final_id),
-#     final_id = case_when(
-#       latinname == "green_cells" ~ "green_cells",
-#       latinname == "blue_green_spheres" ~ "blue_green_spheres",
-#       TRUE ~ final_id
-#     ),
-#     kingdom = if_else(latinname == "trinacria_regina",
-#                       "chromista", kingdom),
-#     phylum = if_else(latinname == "trinacria_regina",
-#                      "bacillariophyta", phylum),
-#     subphylum = if_else(latinname == "trinacria_regina",
-#                         "bacillariophytina", subphylum),
-#     class = if_else(latinname == "trinacria_regina",
-#                     "mediophyceae", class),
-#     subclass = if_else(latinname == "trinacria_regina",
-#                        "chaetocerotophycidae", subclass),
-#     order = if_else(latinname == "trinacria_regina",
-#                     "hemiaulales", order),
-#     family = if_else(latinname == "trinacria_regina",
-#                      "hemiaulaceae", family),
-#     genus = case_when(latinname == "trinacria_regina" ~ "trinacria",
-#                       latinname == "didymocystis" ~ "didymocystis",
-#                       latinname == "Lauterborniella_elegantissima" ~ "lauterborniella",
-#                       TRUE ~ genus),
-#     species = case_when(latinname == "trinacria_regina" ~ "trinacria_regina",
-#                         latinname == "lauterborniella_elegantissima" ~ "lauterborniella_elegantissima",
-#                         TRUE ~ species)
-#   )
 ```
 
 fixes a spelling error in carbon_list (should fix in actual csv...)

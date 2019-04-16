@@ -9,6 +9,362 @@ output:
     toc_depth: '6'
     toc_float: yes
 ---
+
+TEST STEPS
+
+[on line 181, after pulling in event and sample data]
+COMPARE STEP 1
+```{r}
+step_1.df <- event.df
+
+data.table::fwrite(step_1.df, file.path(project.dir, "data/test", "step_1.csv"))
+
+s1_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step1.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+```
+
+[on line 375, after 'pdepth.df <- event.df']
+COMPARE STEP 2
+```{r}
+step_2.df <- pdepth.df
+
+data.table::fwrite(step_2.df, file.path(project.dir, "data/test", "step_2.csv"))
+
+s2_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step2.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+```
+
+
+[on line 391, above 'wq_above_pdepth.df <- wq_w_pdepth.df%>%
+  filter(depth <= pdepth)']
+COMPARE STEP 3
+note: 7358 to 7358 in Claire's excel
+```{r}
+step_3.df <- wq_w_pdepth.df
+
+data.table::fwrite(step_3.df, file.path(project.dir, "data/test", "step_3.csv"))
+
+s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+
+```
+
+[on line 286]
+```{r}
+s3_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step3.csv")) %>% clean_up() #%>% 
+
+```
+step 3 anti
+```{r}
+s3_compare_modified.df <- s3_compare.df %>%
+  rename(eventid = wq_eventid)
+
+
+compare_wq_raw.df <- anti_join(wq.df, s3_compare_modified.df, by = c("eventid"))
+```
+
+```{r}
+station_check <- s3_compare_modified.df %>%
+  filter(station %in% c("sbe5"))
+```
+
+
+[line 450, above 'wq_above_pdepth.df <- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, step_4.vec)' ]
+COMPARE STEP 4
+note: 3483 to 3483 in Claire's excel
+```{r}
+step_4.df <- wq_above_pdepth.df
+
+data.table::fwrite(step_4.df, file.path(project.dir, "data/test", "step_4.csv"))
+
+s4_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step4.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+```
+
+code to compare dataframes for testing step 4:
+```{r}
+step_4_modified.df <- step_4.df %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  #select(-sampledate, above_pdepth) %>%
+  mutate(author = "Luke")
+
+# s4_compare.df <- s4_compare.df %>%
+#   mutate(sampledate = as.Date(sampledate))
+
+s4_compare_modified.df <- s4_compare.df %>%
+  rename(above_pdepth = `above_p_depth?`) %>%
+  rename(eventid = wq_eventid) %>%
+  rename(pdepth = p_depth) %>%
+  select(station, sampledate, layer, depth, parameter, measurevalue, eventid, pdepth, above_pdepth) %>%
+  #select(-sampledate, -above_pdepth) %>%
+  mutate(author = "Claire")
+
+
+```
+
+the objects in diff_check_step_4.df were the 4 entries that exist in Claire's data but not in mine. Exceptions written for such cases, except one which does not exist in my data:
+```{r}
+
+#diff_check.df <- left_join(step_4_modified.df, s4_compare_modified.df)
+
+
+LV_diff_check_step_4.df <- anti_join(step_4_modified.df, s4_compare_modified.df, by = c("station", "depth", "parameter", "measurevalue", "eventid", "pdepth")) #"layer",
+
+C_diff_check_step_4.df <- anti_join(s4_compare_modified.df, step_4_modified.df,  by = c("station", "depth", "parameter", "measurevalue", "eventid", "pdepth")) #"layer",
+
+# author_check.df <- diff_check.df %>%
+#   filter(author == "Claire")
+```
+
+[line 472, above 'wq_above_pdepth.df <- wq_above_pdepth.df %>%
+  group_by(station, sampledate, depth, parameter) %>%']
+STEP 5 COMPARE
+my 533 to Claire's 531(was 533?)
+```{r}
+step_5.df <- di_s_chla.df
+
+data.table::fwrite(step_5.df, file.path(project.dir, "data/test", "step_5.csv"))
+
+s5_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step5.csv")) %>% clean_up() #%>% mutate(sampledate=as.Date(sampledate))
+```
+
+```{r}
+step_5_modified.df <- step_5.df %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  #select(-sampledate, above_pdepth) %>%
+  mutate(author = "Luke") %>%
+  clean_up() %>%
+  mutate(measurevalue_averaged = as.numeric(measurevalue_averaged))
+
+# s5_compare.df <- s5_compare.df %>%
+#   mutate(sampledate = as.Date(sampledate))
+
+s5_compare_modified.df <- s5_compare.df %>%
+  rename(eventid = wq_eventid) %>%
+  rename(measurevalue_averaged = average_of_measurevalue) %>%
+  #rename(pdepth = p_depth) %>%
+  #select(station, sampledate, layer, depth, parameter, measurevalue, eventid, pdepth, above_pdepth) %>%
+  #select(-sampledate, -above_pdepth) %>%
+  mutate(author = "Claire") %>%
+  clean_up() %>%
+  mutate(measurevalue_averaged = as.numeric(measurevalue_averaged))
+
+
+C_diff_check_step_5.df <- anti_join(s5_compare_modified.df, step_5_modified.df, by = c("station",  "parameter", "measurevalue_averaged", "eventid", "layer"))
+
+C_diff_check_step_5.df <- C_diff_check_step_5.df%>%
+  mutate(measure_type = typeof(measurevalue_averaged)) %>%
+  filter(eventid==425680 | eventid==394855)
+
+LV_diff_check_step_5.df <- anti_join(step_5_modified.df, s5_compare_modified.df, by = c("station", "measurevalue_averaged", "parameter", "eventid","layer")) 
+
+LV_diff_check_step_5.df <- LV_diff_check_step_5.df%>%
+  mutate(measure_type = typeof(measurevalue_averaged))
+```
+
+
+[on line 490, below 'wq_above_pdepth.df <- wq_above_pdepth.df %>%
+  group_by(station, sampledate, depth, parameter) %>%']
+COMPARE STEP 6 
+my 3366 to Claire's is 3357(was 3366)
+```{r}
+step_6.df <- wq_above_pdepth.df
+
+data.table::fwrite(step_6.df, file.path(project.dir, "data/test", "step_6.csv"))
+
+s6_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step6.csv")) %>% clean_up()
+
+C_diff_check_step_6.df <- anti_join(step_6.df,s6_compare.df, by = c(
+  #"station", "depth","parameter", 
+  "measurevalue_averaged"
+  )) 
+
+LV_diff_check_step_6.df <- anti_join(s6_compare.df, step_6.df, by = c(
+  #"station", "depth", "parameter", 
+  "measurevalue_averaged")) 
+
+
+```
+
+
+COMPARE STEP 7 
+mine is 2028 to Claire's 2026(was 2028)
+```{r}
+step_7.df <- wq_above_pdepth.df
+
+data.table::fwrite(step_7.df, file.path(project.dir, "data/test", "step_7.csv"))
+
+s7_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step7.csv")) %>% clean_up() %>% 
+  rename(depth_integrated_value =`depth-integrated_value`)
+
+
+C_diff_check_step_7.df <- anti_join(step_7.df,s7_compare.df, by = c(#"station", "parameter", 
+  "depth_integrated_value")) 
+
+LV_diff_check_step_7.df <- anti_join(s7_compare.df, step_7.df, by = c(#"station", "parameter", 
+  "depth_integrated_value")) 
+```
+
+
+[on line 502, above 'wq_warm.df <- wq_all.df %>%']
+COMPARE STEP 8
+my 2561 to Claire's 2555(was 2558)
+```{r}
+print(2028 + 533)
+
+
+step_8.df <- wq_all.df
+
+data.table::fwrite(step_8.df, file.path(project.dir, "data/test", "step_8.csv"))
+
+s8_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step8.csv")) %>% clean_up() %>% 
+  rename(depth_integrated_value =`depth-integrated_value`)
+
+C_diff_check_step_8.df <- anti_join(step_8.df,s8_compare.df, by = c("depth_integrated_value")) 
+
+LV_diff_check_step_8.df <- anti_join(s8_compare.df, step_8.df, by = c("depth_integrated_value")) 
+```
+
+
+[on line 590, above 'wq_final.df <- wq_warm.wide %>%']
+COMPARE STEP 9
+```{r}
+step_9.df <- wq_warm.wide
+
+data.table::fwrite(step_9.df, file.path(project.dir, "data/test", "step_9.csv"))
+
+s9_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step9.csv")) %>% clean_up() 
+
+C_diff_check_step_9.df <- anti_join(step_9.df,s9_compare.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
+
+LV_diff_check_step_9.df <- anti_join(s9_compare.df, step_9.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
+```
+
+
+[on line 598, below 'wq_final.df <- wq_warm.wide %>%']
+COMPARE STEP 10
+```{r}
+step_10.df <- wq_final.df
+
+data.table::fwrite(step_10.df, file.path(project.dir, "data/test", "step_10.csv"))
+
+s10_compare.df <- data.table::fread(file.path(project.dir, "data/test/", "C_step10.csv")) %>% clean_up() 
+
+C_diff_check_step_10.df <- anti_join(step_10.df,s10_compare.df, by = c("chla", "s_chla", "pheo", "salinity", "doc")) 
+
+LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla", "s_chla", "pheo", "salinity", "doc"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+I have eventid 39855 with s_chla in my wq data
+this is the check:
+```{r}
+mystery.df <- wq_above_pdepth.df %>%
+  filter(eventid == 394855)
+
+mystery2.df <- event.df %>%
+  filter(station == "tf4.2" & sampledate =="2014-07-15")
+  
+mystery3.df <- wq.df %>%
+  filter(eventid == 394855)
+
+mystery4.df <- di_s_chla.df %>%
+  filter(eventid == 394855)
+```
+
+```{r}
+# #finds instances of station/sampledate combo that are missing from wq
+# missing.df <- anti_join(event.df,wq_above_pdepth.df, by = c("station", "sampledate"))
+# 
+# #standardize date format and add a unique identifier to missing 
+# missing.df <- missing.df %>%
+#   mutate( sampledate =  as.Date(sampledate)) %>%
+#   mutate(concat = paste0(station, sampledate))
+# 
+# #standardize date format and add a unique identifier to wq
+# wq_w_pdepth.df <- wq_w_pdepth.df %>%
+#   mutate( sampledate =  as.Date(sampledate)) %>%
+#   mutate(concat = paste0(station, sampledate))
+# 
+# #create a vector to store concatinated ids from the missing combos
+# concat_vector2.vec <- pull(missing.df, concat)
+# 
+# #uses the combos in missing.df to retrieve the event data for the missing values
+# missing_full.df <-wq_w_pdepth.df %>%
+#   filter(concat %in% concat_vector2.vec) 
+# 
+# #adds a concat id to wq_above_pdepth
+# wq_above_pdepth.df <- wq_above_pdepth.df %>%
+#   mutate( sampledate =  as.Date(sampledate)) %>%
+#   mutate(concat = paste0(station, sampledate))
+# 
+# #joins the missing values back into most recent wq df
+# wq_above_pdepth.df <- full_join(wq_above_pdepth.df, missing_full.df, by = c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid"))
+```
+
+test script for step 3
+```{r}
+# step_3_test.df <- step_3.df %>%
+#   group_by(eventid) %>% #, sampledate) %>%
+#   mutate(total_in_group = n()) %>%
+#   summarise() %>%
+#   ungroup()
+#   
+# s3_compare.df <- s3_compare.df %>%
+#   mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
+# 
+# s3_compare_test.df <- s3_compare.df %>%
+#   group_by(wq_eventid) %>%
+#   mutate(total_in_group = n()) %>%
+#   summarise() %>%
+#   ungroup()
+# 
+# id_vector <- pull(s3_compare_test.df, wq_eventid)
+# 
+# step_3_by_id <-wq.df %>%
+#   filter(eventid %in% id_vector)
+# 
+# step_3_to_exclude <- wq.df %>%
+#   filter(!eventid %in% id_vector)
+# 
+# s3_wq_dates.df <- data.table::fread(file.path(project.dir, "data/test/", "wq_dates.csv")) %>% clean_up() %>%
+#   mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
+#   # group_by(sampledate) %>%
+#   # mutate(total_in_group = n()) %>%
+#   # summarise() %>%
+#   # ungroup()
+# 
+# test_7358 <- step_3.df %>%
+#   #filter(is.na(problem))
+#   filter(layer %in% c("s","a","p","m")) %>%
+# 
+# test_missing <-  
+
+  
+```
+
+filters out dpeths below pdepth
+making an exception for any data missing pdepth of station tf4.2
+by joining data that meet that criteria back in
+```{r}
+# missing_pdepth.df <- wq_w_pdepth.df %>%
+#   filter( (is.na(pdepth)& station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")) 
+# )
+# 
+# missing_other_pd.df <- left_join(missing_other.df, pdepth.df, by = c("station", "sampledate")) %>%
+#   filter(totaldepth <= 5 & station %in% c("ret3.1","ret4.3") & pdepth <=1 ) 
+
+```
+
 ```{r}
 base <- scores_ratings_final %>%
   select(-total_nano_micro_biomass_chla_ratio_score,	-surface_chla_score,	-cyanophyte_biomass_score,	-doc_score,	-pheophytin_score,	-total_nano_micro_biomass_score,	-diatom_biomass_score,	-dinoflagellate_biomass_score,	-prorocentrum_minimum_abundance_score,	-pct_cryptophyte_score,	-microcystis_aeruginosa_abundance_score,	-picoplankton_abundance_score,	-ibi_score
