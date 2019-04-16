@@ -1461,7 +1461,7 @@ bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
   
   select(-diatom_carbon, -dinoflagellate_carbon, -cyanophyte_carbon, -cryptophyte_carbon) %>%
   
-  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass) %>% #total_nano_micro_biomass)#%>%
+  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass * 100) %>% #total_nano_micro_biomass)#%>%
   
   select(-group, -carbon, -nano_micro_biomass) %>%
   distinct()
@@ -2145,7 +2145,7 @@ test_all_seasons[is.na(test_all_seasons)] <- 0
 scores_ratings_final <- test_all_seasons%>%#test_all_seasons%>%
     # mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ mean(total_nano_micro_biomass_chla_ratio_score, surface_chla_score, cyanophyte_biomass_score, doc_score, pheophytin_score, total_nano_micro_biomass_score, na.rm = T), TRUE~ as.numeric(NA)))
   
-  filter(unique_id == "ret5.2_ap_fs1_2013-03-20") %>%
+  #filter(unique_id == "ret5.2_ap_fs1_2013-03-20") %>%
   
   mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + cyanophyte_biomass_score + doc_score + pheophytin_score + total_nano_micro_biomass_score)/ 6,
                                 
@@ -2172,54 +2172,14 @@ surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagella
 
 ```
 
+replace 0 values in scores with blanks for clarity
 ```{r}
-test_scores_ratings_final <-  scores_ratings_final %>%
-mutate
+scores_ratings_final <- scores_ratings_final %>%
+  mutate_at(vars(ends_with("_score")), list( 
+  ~case_when(.== 0 ~ " ", TRUE~ as.character(.))))
 
 
-
-#test_scores_ratings_final[is.na(test_scores_ratings_final[total_nano_micro_biomass_chla_ratio_score:ibi_score]) ] <- " "
 ```
-
-```{r}
-zero <- function(x) {
-  x = case_when(is.na(x)==T~0, TRUE~x)
-}
-```
-
-
-
-```{r}
-
-test2_scores_ratings_final <- scores_ratings_final %>%
-  filter(unique_id == "ret5.2_ap_fs1_2013-03-20") %>%
-  mutate_at(.vars=vars(ends_with("_score"), list( 
- 
- case_when(.==0 ~ "test", TRUE~.))
-  #~case_when( #| is.na(.) == TRUE | . == NA 
-            #.==0 ~ "test")
-))#)
-# 
-# ratings.df2 <- ratings.df2 %>%
-#   mutate_at(vars(starts_with("chessie_")), list( 
-#   ~case_when(
-#     ratings.df2$icprb_bioregion_id == "napu" & . < 17.9 ~ "very_poor",
-#     ratings.df2$icprb_bioregion_id == "napu" & (. >= 17.9 & .< 35.9) ~ "poor",
-#     ratings.df2$icprb_bioregion_id == "napu" & (. >= 35.9 & .< 47.4) ~ "fair",
-#     ratings.df2$icprb_bioregion_id == "napu" & (. >= 47.4 & .< 61.9) ~ "good",
-#     ratings.df2$icprb_bioregion_id == "napu" & . >= 61.9 ~ "excellent",
-
-# mtcars %>%
-#   mutate_at(.vars = vars(vs, am),
-#         .funs = funs(. = case_when(
-#           . %in% c(1, 0, 9) ~ TRUE,
-#           . %in% c(2, 20, 200) ~ FALSE,
-#           TRUE ~ TRUE
-#         )))
-```
-
-
-
 
 ratings
 ```{r}
@@ -2238,6 +2198,14 @@ scores_ratings_final <- scores_ratings_final %>%
         TRUE ~ "ERROR"))
 ```
 
+clean-up
+```{r}
+scores_ratings_final <- scores_ratings_final %>%
+  select(-chla) %>%
+  select(-rating ,rating)
+
+
+```
 
 Save the final score to directory data/ScoresRatings
 ```{r}
@@ -2251,23 +2219,24 @@ data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRa
 
 
 
+
 ```{r}
-test <- scores_ratings_final %>%
-  mutate(test = (diatom_biomass + dinoflagellate_biomass + cryptophyte_biomass + cyanophyte_biomass)) %>%
-  select(total_biomass, total_nano_micro_biomass, test)
+# test <- scores_ratings_final %>%
+#   mutate(test = (diatom_biomass + dinoflagellate_biomass + cryptophyte_biomass + cyanophyte_biomass)) %>%
+#   select(total_biomass, total_nano_micro_biomass, test)
 ```
 
 
 
 
 ```{r}
-test_id <-  metrics_prep.df %>%
-  select(unique_id) %>%
-  distinct()
-
-test2 <- scores_ratings_final %>%
-  filter(unique_id == "cb6.1_ap_fs1_2016-04-27") %>%
-  distinct()
+# test_id <-  metrics_prep.df %>%
+#   select(unique_id) %>%
+#   distinct()
+# 
+# test2 <- scores_ratings_final %>%
+#   filter(unique_id == "cb6.1_ap_fs1_2016-04-27") %>%
+#   distinct()
 
 
   
@@ -2276,5 +2245,19 @@ test2 <- scores_ratings_final %>%
 
 ```
 
+```{r}
+# 
+# test <- scores_ratings_final %>%
+#   filter(unique_id == "cb6.1_ap_fs1_2016-04-27")
+# 
+# test1 <- test %>%
+#   mutate_at(vars(ends_with("_score")), list( 
+#   ~case_when(.== "0" ~ " ", TRUE~ .)))
+# 
+# test2 <- test %>%
+#   mutate_at(vars(ends_with("_score")), list( 
+#   ~case_when(.== 0 ~ " ", TRUE~ as.character(.))))
+
+```
 
 

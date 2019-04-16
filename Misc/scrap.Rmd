@@ -9,6 +9,20 @@ output:
     toc_depth: '6'
     toc_float: yes
 ---
+```{r}
+base <- scores_ratings_final %>%
+  select(-total_nano_micro_biomass_chla_ratio_score,	-surface_chla_score,	-cyanophyte_biomass_score,	-doc_score,	-pheophytin_score,	-total_nano_micro_biomass_score,	-diatom_biomass_score,	-dinoflagellate_biomass_score,	-prorocentrum_minimum_abundance_score,	-pct_cryptophyte_score,	-microcystis_aeruginosa_abundance_score,	-picoplankton_abundance_score,	-ibi_score
+)
+
+scores <- scores_ratings_final %>%
+    select(unique_id,total_nano_micro_biomass_chla_ratio_score,	surface_chla_score,	cyanophyte_biomass_score,	doc_score,	pheophytin_score,	total_nano_micro_biomass_score,	diatom_biomass_score,	dinoflagellate_biomass_score,	prorocentrum_minimum_abundance_score,	pct_cryptophyte_score,	microcystis_aeruginosa_abundance_score,	picoplankton_abundance_score,	ibi_score
+)
+
+
+scores[scores == 0] <- " "
+
+scores_ratings_final <- full_join(base, scores, by = c("unique_id"))
+```
 
 
 
