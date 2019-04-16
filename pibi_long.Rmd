@@ -829,11 +829,11 @@ bay.df <- left_join(bay.df, partial.match.df, by = c("latinname", "size","tsn"))
          size = if_else(!is.na(new_size), new_size, size))
 ```
 
-fixes a spelling error in carbon_list (should fix in actual csv...)
-other fixes to carbon_list such as assigning tsn to latinnames with known tsns
+
+fixes to carbon_list such as assigning tsn to latinnames with known tsns
 ```{r}
-carbon.df <- carbon.df %>%
-  mutate(size = ifelse(size =="microphytoflaggelates", "microphytoflagellates", size)) %>%
+test_carbon.df <- carbon.df %>%
+  #mutate(size = ifelse(size =="microphytoflaggelates", "microphytoflagellates", size)) %>%
   mutate(size = ifelse(size =="unidentified", as.character(NA), size)) %>%
   mutate(tsn = case_when(latinname == "aphanizomenon_issatschenkoi"~as.integer(1191), 
                          latinname == "chaetoceros_neogracilis"~as.integer(1004011), 
@@ -859,10 +859,8 @@ carbon.df <- carbon.df %>%
                        stringsAsFactors = FALSE))
 ```
 
+assigns tsns of NA to zero
 ```{r}
-# bay.df <- bay.df %>%
-#   mutate(tsn = ifelse(tsn == 0, as.character(NA), tsn)) 
-
 carbon.df <- carbon.df %>%
   mutate(tsn = ifelse(is.na(tsn)==TRUE, 0, tsn))
 
@@ -882,20 +880,12 @@ bay.df <- bay.df %>%
 ```
 
 
-finally, join bay and carbon
+finally, join bay.df and carbon.df
 ```{r}
 bay_merged.df <- left_join(bay.df, carbon.df, by = c("latinname","size","tsn")) %>%
   #remove dupliactes
   distinct()
 ```
-
-we are generating duplicates on the above merge
-```{r}
-# bay_ex.df <- bay_merged.df %>%
-#   distinct()
-  #anti_join(bay.df, bay_merged.df,    by = c("station", "sampledate"))
-```
-
 
 clean up bay_merged(make group and nodc_phyla from carbon_list primary variable and remove value brought in from bay.df)
 ```{r}
@@ -905,7 +895,14 @@ bay_merged.df <- bay_merged.df %>%
   select(-group.x, -nodc_phyla.x)
 ```
 
-turn carbon NA's into zeroes and calcualte biomass
+```{r}
+bay_merged_test.df <- left_join(bay.df, carbon.df, by = c("latinname","size","tsn", "group", "nodc_phyla")) %>%
+  #remove dupliactes
+  distinct()
+```
+
+
+turn carbon NA's into zeroes and calcualte nano_micro_biomass
 ```{r}
 bay_merged.df <- bay_merged.df %>%
   mutate(carbon = ifelse(is.na(carbon)==TRUE, 0, carbon)) %>%
@@ -923,15 +920,7 @@ wq_final.df <- wq_final.df %>%
 bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate", "month", "season"))
 ```
 
-```{r}
-# test <- bay_full_calc.df %>%
-#   select(-latinname)
-#   distinct()
-```
-
 #### Calulate Metrics
-
-
 
 selecting out unneeded columns, filter out na salzone entries, and pare down to your unique_id's
 ```{r}
@@ -941,108 +930,53 @@ bay_wq_merged_calc.df  <-  bay_wq_merged.df %>%
   mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_")) %>%
   select(-reported_size, -surveyid, -fieldactivityid, -source, -sampletype, -gmethod, -tsn, -size, -method, -parameter, -reportingunit, -nodccode, -serialnumber, -month, -new_size, -nodc_phyla, -speccode, -salinity) %>%
   
-  # group_by(unique_id) %>%
-  # mutate(total_biomass = sum(carbon)) %>%
-  # mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
-  # ungroup() %>%
-  
-
   filter(!is.na(salzone)) %>%
   distinct() 
 
 ```
 
-
-
-
-
-TEST
+calculate metrics
 ```{r}
 bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
-  #filter(unique_id == "we4.2_ap_fs1_2014-08-06") %>%  
-  #filter(unique_id == "ret5.2_ap_fs1_2013-07-15") %>%
+
   distinct() %>%
   group_by(unique_id) %>%
   
   mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
-  #select(-nano_micro_biomass) %>%
   
   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
+
   
-  
-  
-  #mutate(total_biomass = sum(carbon))  %>%
-  
-  
-  mutate(diatom_carbon = case_when(group == "diatom"~ nano_micro_biomass#/1000000
+  mutate(diatom_carbon = case_when(group == "diatom"~ nano_micro_biomass
                                     , TRUE ~ as.numeric(NA))) %>%
-  mutate(diatom_biomass = case_when(!is.na(diatom_carbon)~ sum(diatom_carbon, na.rm = T)#/1000000
+  mutate(diatom_biomass = case_when(!is.na(diatom_carbon)~ sum(diatom_carbon, na.rm = T)
                                     , TRUE ~ as.numeric(NA))) %>%
   
   
-  mutate(dinoflagellate_carbon = case_when(group == "dinoflagellates"~ nano_micro_biomass#/1000000
+  mutate(dinoflagellate_carbon = case_when(group == "dinoflagellates"~ nano_micro_biomass
                                     , TRUE ~ as.numeric(NA))) %>%
-  mutate(dinoflagellate_biomass = case_when(!is.na(dinoflagellate_carbon)~ sum(dinoflagellate_carbon, na.rm = T)#/1000000
-                                    , TRUE ~ as.numeric(NA))) %>%
-  
-  
-  mutate(cyanophyte_carbon = case_when(group == "cyanophyte"| group == "cyanobacteria"~ nano_micro_biomass#/1000000
-                                    , TRUE ~ as.numeric(NA))) %>%
-  mutate(cyanophyte_biomass = case_when(!is.na(cyanophyte_carbon)~ sum(cyanophyte_carbon, na.rm = T)#/1000000
+  mutate(dinoflagellate_biomass = case_when(!is.na(dinoflagellate_carbon)~ sum(dinoflagellate_carbon, na.rm = T)
                                     , TRUE ~ as.numeric(NA))) %>%
   
   
-  mutate(cryptophyte_carbon = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta" | group == "cryptomonads"~ nano_micro_biomass#/1000000
+  mutate(cyanophyte_carbon = case_when(group == "cyanophyte"| group == "cyanobacteria"~ nano_micro_biomass
                                     , TRUE ~ as.numeric(NA))) %>%
-  mutate(cryptophyte_biomass = case_when(!is.na(cryptophyte_carbon)~ sum(cryptophyte_carbon, na.rm = T)#/1000000
+  mutate(cyanophyte_biomass = case_when(!is.na(cyanophyte_carbon)~ sum(cyanophyte_carbon, na.rm = T)
+                                    , TRUE ~ as.numeric(NA))) %>%
+  
+  
+  mutate(cryptophyte_carbon = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta" | group == "cryptomonads"~ nano_micro_biomass
+                                    , TRUE ~ as.numeric(NA))) %>%
+  mutate(cryptophyte_biomass = case_when(!is.na(cryptophyte_carbon)~ sum(cryptophyte_carbon, na.rm = T)
                                     , TRUE ~ as.numeric(NA))) %>%
   
   select(-diatom_carbon, -dinoflagellate_carbon, -cyanophyte_carbon, -cryptophyte_carbon) %>%
   
-  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass * 100) %>% #total_nano_micro_biomass)#%>%
+  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass * 100) %>% 
   
   select(-group, -carbon, -nano_micro_biomass) %>%
   distinct()
 
-
-
-```
-
-
-
-
-
-
-```{r}
-# bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
-#   
-# 
-#   group_by(unique_id) %>%
-#   
-#   
-#   mutate(total_biomass = sum(carbon)) %>%
-#   mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
-#   
-#   select(-nano_micro_biomass) %>%
-#   
-# 
-#   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
-#   
-#   group_by(group, add=TRUE) %>%
-# 
-#   mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
-#   mutate(dinoflagellate_biomass = case_when(group == "dinoflagellates"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
-#   mutate(cyanophyte_biomass = case_when(group == "cyanophyte"| group == "cyanobacteria"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
-#   mutate(cryptophyte_biomass = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta" | group == "cryptomonads"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
-#   
-#   mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass)%>%
-#   
-#   
-# 
-#   ungroup() %>%
-#   select(-group, -carbon) %>%
-#   distinct()
-# 
 
 
 ```
@@ -1060,12 +994,6 @@ bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
   distinct()
 
 ```
-
-
-
-
-
-
 
 apply metrics to all rows applicable
 ```{r}
@@ -1111,24 +1039,6 @@ bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
 
   
   
-```
-
-```{r}
-#test_bay_wq_merged_calc.df[is.na(test_all_seasons)] <-
-```
-
-
-```{r}
-# groups <- bay_wq_merged_calc.df %>%
-#   select(group) %>%
-#   distinct()
-```
-
-
-
-```{r}
-# bay_test <- bay_wq_merged_calc.df %>%
-#   filter(latinname == "microcystis_aeruginosa" | latinname == "prorocentrum_minimum")  
 ```
 
 join the picoplankton data into the bay data and average duplicates and generate picoplankton_abundance

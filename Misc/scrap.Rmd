@@ -265,6 +265,46 @@ LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla",
 
 
 
+
+
+
+
+
+
+```{r}
+# bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
+#   
+# 
+#   group_by(unique_id) %>%
+#   
+#   
+#   mutate(total_biomass = sum(carbon)) %>%
+#   mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
+#   
+#   select(-nano_micro_biomass) %>%
+#   
+# 
+#   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
+#   
+#   group_by(group, add=TRUE) %>%
+# 
+#   mutate(diatom_biomass = case_when(group == "diatom"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
+#   mutate(dinoflagellate_biomass = case_when(group == "dinoflagellates"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
+#   mutate(cyanophyte_biomass = case_when(group == "cyanophyte"| group == "cyanobacteria"~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %>%
+#   mutate(cryptophyte_biomass = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta" | group == "cryptomonads"~sum(carbon), TRUE ~ as.numeric(NA))) %>%
+#   
+#   mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass)%>%
+#   
+#   
+# 
+#   ungroup() %>%
+#   select(-group, -carbon) %>%
+#   distinct()
+# 
+
+
+```
+
 I have eventid 39855 with s_chla in my wq data
 this is the check:
 ```{r}
