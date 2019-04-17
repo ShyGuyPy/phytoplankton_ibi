@@ -271,6 +271,88 @@ LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla",
 
 
 
+
+
+
+
+
+
+```{r}
+# test <- scores_ratings_final %>%
+#   mutate(test = (diatom_biomass + dinoflagellate_biomass + cryptophyte_biomass + cyanophyte_biomass)) %>%
+#   select(total_biomass, total_nano_micro_biomass, test)
+```
+
+
+
+
+```{r}
+# test_id <-  metrics_prep.df %>%
+#   select(unique_id) %>%
+#   distinct()
+# 
+# test2 <- scores_ratings_final %>%
+#   filter(unique_id == "cb6.1_ap_fs1_2016-04-27") %>%
+#   distinct()
+
+
+  
+
+
+
+```
+
+```{r}
+# 
+# test <- scores_ratings_final %>%
+#   filter(unique_id == "cb6.1_ap_fs1_2016-04-27")
+# 
+# test1 <- test %>%
+#   mutate_at(vars(ends_with("_score")), list( 
+#   ~case_when(.== "0" ~ " ", TRUE~ .)))
+# 
+# test2 <- test %>%
+#   mutate_at(vars(ends_with("_score")), list( 
+#   ~case_when(.== 0 ~ " ", TRUE~ as.character(.))))
+
+```
+
+```{r}
+# test_flatten <- test %>%
+#   group_by(unique_id) %>%
+#   #mutate(test = n()
+#   mutate(diatom_biomass = sum(diatom_biomass, na.rm=T)) %>%
+#   mutate(cyanophyte_biomass = sum(cyanophyte_biomass, na.rm=T)) %>%
+#   mutate(dinoflagellate_biomass = sum(dinoflagellate_biomass / 2, na.rm=T)) %>%
+#   #mutate(cyanophyte_biomass = sum(dinoflagellate_biomass, na.rm=T)) %>%
+#   mutate(cryptophyte_biomass = sum(cryptophyte_biomass, na.rm=T)) %>%
+#   mutate(prorocentrum_minimum_abundance = sum(prorocentrum_minimum_abundance, na.rm=T)) %>%
+#   mutate(microcystis_aeruginosa_abundance = sum(microcystis_aeruginosa_abundance, na.rm=T)) %>%
+#   
+#   
+#   #mutate(total_nano_micro_biomass = sum(total_nano_micro_biomass, na.rm=T)) %>% 
+#   #mutate(total_nano_micro_biomass_chla_ratio = sum(total_nano_micro_biomass_chla_ratio, na.rm=T)) %>%
+#   
+#   mutate(pct_cryptophyte = sum(pct_cryptophyte, na.rm=T)) %>%
+#   #mutate(surface_chla = sum(surface_chla, na.rm=T)) %>%
+#   #mutate(pheophytin = sum(pheophytin, na.rm=T)) %>%
+#   distinct() %>%
+#   ungroup()
+```
+
+
+TEST_STARTS_HERE
+
+add a unique_id to match Zach's scoring function later on
+replacing concat with it
+```{r}
+# bay_full_calc.df <- bay_full_calc.df %>%
+#   mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_")) %>%
+#   select(-concat) #%>%
+#   #select(-reported_size, -surveyid, -fieldactivityid, -source, -sampletype, -gmethod, -tsn, -latinname, -size, -method, -parameter, -reportingunit, -nodccode, -serialnumber, -month, -season, -reportingvalue, -new_size, -nodc_phyla, -group, -speccode, -carbon) %>%
+#   distinct()
+```
+
 ```{r}
 # bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
 #   

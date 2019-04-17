@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Luke Vawter" />
+<meta name="author" content="Luke Vawter &amp; Zachary Smith" />
 
 <meta name="date" content="2018-12-21" />
 
@@ -223,7 +223,7 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">pibi_long</h1>
-<h4 class="author"><em>Luke Vawter</em></h4>
+<h4 class="author"><em>Luke Vawter &amp; Zachary Smith</em></h4>
 <h4 class="date"><em>December 21, 2018</em></h4>
 
 </div>
@@ -252,22 +252,21 @@ library(rprojroot)
 library(ritis)</code></pre>
 <pre><code>## Warning: package 'ritis' was built under R version 3.5.2</code></pre>
 <pre class="r"><code>library(parallel)</code></pre>
-<p>mmir is Zach Smith’s custom package</p>
-<pre class="r"><code>#library(mmir)</code></pre>
+<p>this is an example of <code>code</code></p>
 </div>
 <div id="funcs-and-variables" class="section level4">
 <h4>Funcs and Variables</h4>
-<p>these varaible should be changed by the user as needed</p>
+<p>these varaible should be changed by the user as needed.</p>
 <pre class="r"><code>#this is the minimum date to be included
 min_date = &quot;1-1-2013&quot;
-#this is the minimum date to be included sdd the variable todays.date intot his variable if you want the most recent data
+#this is the minimum date to be included, add the variable todays.date intot his variable if you want the most recent data
 max_date = &quot;12-31-2016&quot;</code></pre>
-<p>these variables references values found in the API guide at <a href="http://datahub.chesapeakebay.net" class="uri">http://datahub.chesapeakebay.net</a> (or int eh case of parameters, fonud from trial and error)</p>
+<p>these variables references values found in the API guide at <a href="http://datahub.chesapeakebay.net" class="uri">http://datahub.chesapeakebay.net</a></p>
 <pre class="r"><code>#number for picoplankton in CEDR api
 pico_num = &quot;18&quot;
 
 #number for phytoplankton in CEDR api
-phyto_num &lt;- &quot;17&quot;
+phyto_num = &quot;17&quot;
 
 #these are the parameter codes for the CEDR api
 chla=21
@@ -277,7 +276,10 @@ salinity=83
 
 #data_source = &quot;&quot;</code></pre>
 <p>variables and functions that will likely not be changed</p>
+<p>The clean_string() function modifies character objects by removing leading/trailing white space, converting all characters to lower case, and replacing all spaces (&quot; “) with an underscore (”_“). These specifications eliminate common typos and standardize character objects.</p>
+<p>The clean_up() function is a wrapper for clean_string(). This function applies clean_string() to the column headers and character columns of data frames. Again, this process standardizes character values and makes it easier work with the data.</p>
 <pre class="r"><code>project.dir &lt;- rprojroot::find_rstudio_root_file()
+
 
 clean_string &lt;- function(x) {
   x %&gt;% 
@@ -295,10 +297,12 @@ clean_up &lt;- function(x) {
     distinct()
 }
 
+#thisvariable holds the url for the CEDR api
 url.root &lt;- &quot;http://datahub.chesapeakebay.net/api.JSON&quot;
 todays.date &lt;- format(Sys.Date(), &quot;%m-%d-%Y&quot;)
 
 
+# the following code generates directories that will be used throughout
 dir.create(file.path(project.dir, &quot;data/VA_ODU/&quot;),
            recursive = TRUE, showWarnings = FALSE)
 
@@ -320,9 +324,7 @@ station.vec &lt;- file.path(url.root,
                        &quot;TidalPlankton&quot;,
                        &quot;Reported&quot;,
                        min_date,
-                       # &quot;1-1-2013&quot;,
                        max_date, 
-                       # &quot;12-31-2016&quot;,
                        phyto_num,
                        &quot;Station&quot;) %&gt;% 
   fromJSON() %&gt;% 
@@ -330,7 +332,7 @@ station.vec &lt;- file.path(url.root,
 </div>
 <div id="cedr-data" class="section level4">
 <h4>CEDR data</h4>
-<p>this uploads the sample and event data from cedr to a dataframe(phyto.df)</p>
+<p>upload the sample and event data from cedr to a dataframe(phyto.df) using the CEDR(chesapeakebay.net) api</p>
 <pre class="r"><code>phyto.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
                       &quot;TidalPlankton&quot;,
@@ -380,12 +382,6 @@ event.df &lt;- file.path(url.root,
 
 
 data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), &quot;data/CEDR&quot;, &quot;cedr_phyto_event.csv&quot;))</code></pre>
-<p>COMPARE STEP 1 note: both have 824 elements</p>
-<pre class="r"><code>step_1.df &lt;- event.df
-
-data.table::fwrite(step_1.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_1.csv&quot;))
-
-s1_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step1.csv&quot;)) %&gt;% clean_up() #%&gt;% mutate(sampledate=as.Date(sampledate))</code></pre>
 <p>pico data(note that the number above “station” is now 18 rather than 17. The project id for picoplankton is 18, and 17 for phytoplankton)</p>
 <pre class="r"><code>pico.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
@@ -452,19 +448,6 @@ pico.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &
 <pre class="r"><code>narrow_date_range.df &lt;-  wq.df %&gt;%
   mutate(sampledate = as.Date(sampledate)) %&gt;%
   filter( sampledate &lt; as.Date(&quot;2013-1-1'&quot;) |  sampledate &gt; as.Date(&quot;2016-12-31&quot;))</code></pre>
-<pre class="r"><code># step_3.df &lt;- wq_w_pdepth.df
-# 
-# data.table::fwrite(step_3.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_3.csv&quot;))
-
-s3_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step3.csv&quot;)) %&gt;% clean_up() #%&gt;% mutate(sampledate=as.Date(sampledate))</code></pre>
-<p>step 3 anti</p>
-<pre class="r"><code>s3_compare_modified.df &lt;- s3_compare.df %&gt;%
-  rename(eventid = wq_eventid)
-
-
-compare_wq_raw.df &lt;- anti_join(wq.df, s3_compare_modified.df, by = c(&quot;eventid&quot;))</code></pre>
-<pre class="r"><code>station_check &lt;- s3_compare_modified.df %&gt;%
-  filter(station %in% c(&quot;sbe5&quot;))</code></pre>
 <pre class="r"><code>data.table::fwrite(wq.df, file.path(project.dir, &quot;data/water_quality&quot;, &quot;cedr_wq.csv&quot;))</code></pre>
 <pre class="r"><code>wq.df &lt;- data.table::fread(file.path(project.dir, &quot;data/water_quality/cedr_wq.csv&quot;),
                             data.table = FALSE,
@@ -486,23 +469,10 @@ concat_vector &lt;- pull(phyto.df, concat)
 #include only the data in water quality data that has a matching concat id with phyto events
 wq.df &lt;-wq.df %&gt;%
   filter(concat %in% concat_vector) </code></pre>
-<p>this snippet of Zach’s code removes any row flagged in the problem column(anything other than na) 28 items are removed from the list do we want this?</p>
-<pre class="r"><code># wq.df &lt;- wq.df %&gt;%
-#   filter(is.na(problem)
-        #) 
-
-         #,
-         #parameter %in% c(&quot;chla&quot;, &quot;doc&quot;, &quot;pheo&quot;, &quot;salinity&quot;) ...removed because these are the only 4 parameters included so
-         #the code doesn't actually do anything
-         
-#)</code></pre>
 <p>selects columns from wq (eventid recently added)</p>
 <pre class="r"><code>wq.df &lt;- wq.df %&gt;%
   select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %&gt;% #eventid,
   mutate(sampledate=as.Date(sampledate))</code></pre>
-<pre class="r"><code># step_3_test.df &lt;- wq.df
-# 
-# data.table::fwrite(step_3_test.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_3_test.csv&quot;))</code></pre>
 </div>
 <div id="prep-event" class="section level4">
 <h4>Prep Event</h4>
@@ -525,12 +495,6 @@ wq.df &lt;-wq.df %&gt;%
   mutate(sampledate = as.Date(sampledate)) %&gt;%
   select(station, sampledate, pdepth) %&gt;%
   dplyr::distinct()</code></pre>
-<p>COMPARE STEP 2 both 533</p>
-<pre class="r"><code>step_2.df &lt;- pdepth.df
-
-data.table::fwrite(step_2.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_2.csv&quot;))
-
-s2_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step2.csv&quot;)) %&gt;% clean_up() #%&gt;% mutate(sampledate=as.Date(sampledate))</code></pre>
 <p>applies pdepth to water quality dataframe</p>
 <pre class="r"><code>wq_w_pdepth.df &lt;- left_join(wq.df, pdepth.df, by = c(&quot;station&quot;, &quot;sampledate&quot;))</code></pre>
 <p>determine if depth is above pdepth with exception for RET stations</p>
@@ -540,64 +504,8 @@ s2_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&qu
                                   depth &gt; pdepth~&quot;No&quot;
 
                                   ))</code></pre>
-<pre class="r"><code># test &lt;- wq_w_pdepth.df %&gt;%
-#   filter(above_pdepth == &quot;No, but RET&quot;)</code></pre>
-<p>COMPARE STEP 3 note: 7358 to 7358 in Claire’s excel</p>
-<pre class="r"><code>step_3.df &lt;- wq_w_pdepth.df
-
-data.table::fwrite(step_3.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_3.csv&quot;))
-
-s3_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step3.csv&quot;)) %&gt;% clean_up() #%&gt;% mutate(sampledate=as.Date(sampledate))</code></pre>
-<p>test script for step 3</p>
-<pre class="r"><code># step_3_test.df &lt;- step_3.df %&gt;%
-#   group_by(eventid) %&gt;% #, sampledate) %&gt;%
-#   mutate(total_in_group = n()) %&gt;%
-#   summarise() %&gt;%
-#   ungroup()
-#   
-# s3_compare.df &lt;- s3_compare.df %&gt;%
-#   mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
-# 
-# s3_compare_test.df &lt;- s3_compare.df %&gt;%
-#   group_by(wq_eventid) %&gt;%
-#   mutate(total_in_group = n()) %&gt;%
-#   summarise() %&gt;%
-#   ungroup()
-# 
-# id_vector &lt;- pull(s3_compare_test.df, wq_eventid)
-# 
-# step_3_by_id &lt;-wq.df %&gt;%
-#   filter(eventid %in% id_vector)
-# 
-# step_3_to_exclude &lt;- wq.df %&gt;%
-#   filter(!eventid %in% id_vector)
-# 
-# s3_wq_dates.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;wq_dates.csv&quot;)) %&gt;% clean_up() %&gt;%
-#   mutate( sampledate =  as.Date(sampledate, format = '%m/%d/%Y'))
-#   # group_by(sampledate) %&gt;%
-#   # mutate(total_in_group = n()) %&gt;%
-#   # summarise() %&gt;%
-#   # ungroup()
-# 
-# test_7358 &lt;- step_3.df %&gt;%
-#   #filter(is.na(problem))
-#   filter(layer %in% c(&quot;s&quot;,&quot;a&quot;,&quot;p&quot;,&quot;m&quot;)) %&gt;%
-# 
-# test_missing &lt;-  </code></pre>
-<p>filters out dpeths below pdepth making an exception for any data missing pdepth of station tf4.2 by joining data that meet that criteria back in</p>
-<pre class="r"><code># missing_pdepth.df &lt;- wq_w_pdepth.df %&gt;%
-#   filter( (is.na(pdepth)&amp; station %in% c(&quot;tf3.3&quot;,&quot;tf4.2&quot;,&quot;tf5.5&quot;, &quot;ret3.1&quot;,&quot;ret4.3&quot;,&quot;ret3.1&quot;)) 
-# )
-# 
-# missing_other_pd.df &lt;- left_join(missing_other.df, pdepth.df, by = c(&quot;station&quot;, &quot;sampledate&quot;)) %&gt;%
-#   filter(totaldepth &lt;= 5 &amp; station %in% c(&quot;ret3.1&quot;,&quot;ret4.3&quot;) &amp; pdepth &lt;=1 ) </code></pre>
 <pre class="r"><code>wq_above_pdepth.df &lt;- wq_w_pdepth.df%&gt;%
-  filter(depth &lt;= pdepth)
-
-
-#wq_above_pdepth.df &lt;- full_join(wq_above_pdepth.df, missing_pdepth.df)
-
-#&amp; (!station %in% c(&quot;tf3.3&quot;,&quot;tf4.2&quot;,&quot;tf5.5&quot;, &quot;ret3.1&quot;,&quot;ret4.3&quot;,&quot;ret3.1&quot;) &amp; layer != &quot;ap&quot;))</code></pre>
+  filter(depth &lt;= pdepth)</code></pre>
 <p>check for missing(station and date combos that are present in event.df but not represtented in wq_above_pdepth.df)</p>
 <pre class="r"><code>step_4.vec &lt;- c(&quot;station&quot;, &quot;sampledate&quot;, &quot;layer&quot;, &quot;pdepth&quot;, &quot;concat&quot;, &quot;depth&quot;, &quot;parameter&quot;, &quot;measurevalue&quot;, &quot;above_pdepth&quot;, &quot;eventid&quot;)
 
@@ -647,85 +555,12 @@ name_missing &lt;- function(data_backbone, source_data, modified_data, step_vect
     return(final.df)
 }
 
-wq_above_pdepth.df &lt;- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, step_4.vec)
-
-# #finds instances of station/sampledate combo that are missing from wq
-# missing.df &lt;- anti_join(event.df,wq_above_pdepth.df, by = c(&quot;station&quot;, &quot;sampledate&quot;))
-# 
-# #standardize date format and add a unique identifier to missing 
-# missing.df &lt;- missing.df %&gt;%
-#   mutate( sampledate =  as.Date(sampledate)) %&gt;%
-#   mutate(concat = paste0(station, sampledate))
-# 
-# #standardize date format and add a unique identifier to wq
-# wq_w_pdepth.df &lt;- wq_w_pdepth.df %&gt;%
-#   mutate( sampledate =  as.Date(sampledate)) %&gt;%
-#   mutate(concat = paste0(station, sampledate))
-# 
-# #create a vector to store concatinated ids from the missing combos
-# concat_vector2.vec &lt;- pull(missing.df, concat)
-# 
-# #uses the combos in missing.df to retrieve the event data for the missing values
-# missing_full.df &lt;-wq_w_pdepth.df %&gt;%
-#   filter(concat %in% concat_vector2.vec) 
-# 
-# #adds a concat id to wq_above_pdepth
-# wq_above_pdepth.df &lt;- wq_above_pdepth.df %&gt;%
-#   mutate( sampledate =  as.Date(sampledate)) %&gt;%
-#   mutate(concat = paste0(station, sampledate))
-# 
-# #joins the missing values back into most recent wq df
-# wq_above_pdepth.df &lt;- full_join(wq_above_pdepth.df, missing_full.df, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;layer&quot;, &quot;pdepth&quot;, &quot;concat&quot;, &quot;depth&quot;, &quot;parameter&quot;, &quot;measurevalue&quot;, &quot;above_pdepth&quot;, &quot;eventid&quot;))</code></pre>
-<p>COMPARE STEP 4 note: 3483 to 3483 in Claire’s excel</p>
-<pre class="r"><code>step_4.df &lt;- wq_above_pdepth.df
-
-data.table::fwrite(step_4.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_4.csv&quot;))
-
-s4_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step4.csv&quot;)) %&gt;% clean_up() #%&gt;% mutate(sampledate=as.Date(sampledate))</code></pre>
-<p>code to compare dataframes for testing step 4:</p>
-<pre class="r"><code>step_4_modified.df &lt;- step_4.df %&gt;%
-  mutate(sampledate = as.Date(sampledate)) %&gt;%
-  #select(-sampledate, above_pdepth) %&gt;%
-  mutate(author = &quot;Luke&quot;)
-
-# s4_compare.df &lt;- s4_compare.df %&gt;%
-#   mutate(sampledate = as.Date(sampledate))
-
-s4_compare_modified.df &lt;- s4_compare.df %&gt;%
-  rename(above_pdepth = `above_p_depth?`) %&gt;%
-  rename(eventid = wq_eventid) %&gt;%
-  rename(pdepth = p_depth) %&gt;%
-  select(station, sampledate, layer, depth, parameter, measurevalue, eventid, pdepth, above_pdepth) %&gt;%
-  #select(-sampledate, -above_pdepth) %&gt;%
-  mutate(author = &quot;Claire&quot;)</code></pre>
-<p>the objects in diff_check_step_4.df were the 4 entries that exist in Claire’s data but not in mine. Exceptions written for such cases, except one which does not exist in my data:</p>
-<pre class="r"><code>#diff_check.df &lt;- left_join(step_4_modified.df, s4_compare_modified.df)
-
-
-LV_diff_check_step_4.df &lt;- anti_join(step_4_modified.df, s4_compare_modified.df, by = c(&quot;station&quot;, &quot;depth&quot;, &quot;parameter&quot;, &quot;measurevalue&quot;, &quot;eventid&quot;, &quot;pdepth&quot;)) #&quot;layer&quot;,
-
-C_diff_check_step_4.df &lt;- anti_join(s4_compare_modified.df, step_4_modified.df,  by = c(&quot;station&quot;, &quot;depth&quot;, &quot;parameter&quot;, &quot;measurevalue&quot;, &quot;eventid&quot;, &quot;pdepth&quot;)) #&quot;layer&quot;,
-
-# author_check.df &lt;- diff_check.df %&gt;%
-#   filter(author == &quot;Claire&quot;)</code></pre>
-<p>Step 5:</p>
-<p>this code isolates exceptions that need to be added back in after the following chunk of code</p>
-<pre class="r"><code># 
-# step5_exceptions &lt;- wq_above_pdepth.df %&gt;%
-#   filter(above_pdepth == &quot;No, but RET&quot;)
-#   filter(!layer %in% c(&quot;s&quot;,&quot;f&quot;,&quot;m&quot;,&quot;p&quot;, &quot;ap&quot;))</code></pre>
-<p>generates new dataframe with new parameter s_chla (531 items, should be 533)</p>
+wq_above_pdepth.df &lt;- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, step_4.vec)</code></pre>
+<p>generate a new dataframe with new parameter s_chla (531 items, should be 533)</p>
 <pre class="r"><code>s_chla.df &lt;- wq_above_pdepth.df %&gt;%
   filter(layer == &quot;s&quot;, 
          parameter == &quot;chla&quot;) %&gt;% 
-  unite(parameter, c(&quot;layer&quot;, &quot;parameter&quot;), remove = FALSE) #%&gt;%
-  # filter(depth &lt;= pdepth) #%&gt;%
-  #filter(parameter==&quot;s_chla&quot;)
-  #filter(eventid==425680 | eventid==394855)</code></pre>
-<pre class="r"><code># s_chla.df &lt;- s_chla.df %&gt;%
-#   group_by(station, sampledate) %&gt;%
-#   mutate(avg_di_s_chla = mean(measurevalue, na.rm = TRUE)) %&gt;%
-#   ungroup()</code></pre>
+  unite(parameter, c(&quot;layer&quot;, &quot;parameter&quot;), remove = FALSE) #%&gt;%</code></pre>
 <p>Average replicates from s_chla …measure value average</p>
 <pre class="r"><code>di_s_chla.df &lt;- s_chla.df %&gt;%
   group_by(station, sampledate, depth) %&gt;%
@@ -753,62 +588,7 @@ missing_full.df &lt;-wq_above_pdepth.df %&gt;%
   filter(eventid %in% missing_ids.vec ) 
 
 #join missing values into di_s_chla.df with blank values
-di_s_chla.df &lt;- full_join(di_s_chla.df, missing_s_chla.df, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;eventid&quot;, &quot;parameter&quot;, &quot;concat&quot;))
-
-# test.df &lt;- di_s_chla_test.df %&gt;%
-#   filter(is.na(measurevalue_averaged))</code></pre>
-<p>I have eventid 39855 with s_chla in my wq data this is the check:</p>
-<pre class="r"><code>mystery.df &lt;- wq_above_pdepth.df %&gt;%
-  filter(eventid == 394855)
-
-mystery2.df &lt;- event.df %&gt;%
-  filter(station == &quot;tf4.2&quot; &amp; sampledate ==&quot;2014-07-15&quot;)
-  
-mystery3.df &lt;- wq.df %&gt;%
-  filter(eventid == 394855)
-
-mystery4.df &lt;- di_s_chla.df %&gt;%
-  filter(eventid == 394855)</code></pre>
-<p>STEP 5 COMPARE my 533 to Claire’s 531(was 533?)</p>
-<pre class="r"><code>step_5.df &lt;- di_s_chla.df
-
-data.table::fwrite(step_5.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_5.csv&quot;))
-
-s5_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step5.csv&quot;)) %&gt;% clean_up() #%&gt;% mutate(sampledate=as.Date(sampledate))</code></pre>
-<pre class="r"><code>step_5_modified.df &lt;- step_5.df %&gt;%
-  mutate(sampledate = as.Date(sampledate)) %&gt;%
-  #select(-sampledate, above_pdepth) %&gt;%
-  mutate(author = &quot;Luke&quot;) %&gt;%
-  clean_up() %&gt;%
-  mutate(measurevalue_averaged = as.numeric(measurevalue_averaged))
-
-# s5_compare.df &lt;- s5_compare.df %&gt;%
-#   mutate(sampledate = as.Date(sampledate))
-
-s5_compare_modified.df &lt;- s5_compare.df %&gt;%
-  rename(eventid = wq_eventid) %&gt;%
-  rename(measurevalue_averaged = average_of_measurevalue) %&gt;%
-  #rename(pdepth = p_depth) %&gt;%
-  #select(station, sampledate, layer, depth, parameter, measurevalue, eventid, pdepth, above_pdepth) %&gt;%
-  #select(-sampledate, -above_pdepth) %&gt;%
-  mutate(author = &quot;Claire&quot;) %&gt;%
-  clean_up() %&gt;%
-  mutate(measurevalue_averaged = as.numeric(measurevalue_averaged))
-
-
-C_diff_check_step_5.df &lt;- anti_join(s5_compare_modified.df, step_5_modified.df, by = c(&quot;station&quot;,  &quot;parameter&quot;, &quot;measurevalue_averaged&quot;, &quot;eventid&quot;, &quot;layer&quot;))
-
-C_diff_check_step_5.df &lt;- C_diff_check_step_5.df%&gt;%
-  mutate(measure_type = typeof(measurevalue_averaged)) %&gt;%
-  filter(eventid==425680 | eventid==394855)
-
-LV_diff_check_step_5.df &lt;- anti_join(step_5_modified.df, s5_compare_modified.df, by = c(&quot;station&quot;, &quot;measurevalue_averaged&quot;, &quot;parameter&quot;, &quot;eventid&quot;,&quot;layer&quot;)) 
-
-LV_diff_check_step_5.df &lt;- LV_diff_check_step_5.df%&gt;%
-  mutate(measure_type = typeof(measurevalue_averaged))</code></pre>
-<pre class="r"><code># wq_rep_check.df &lt;- wq_above_pdepth.df %&gt;%
-#   select(station, sampledate, depth, parameter) %&gt;%
-#   distinct()</code></pre>
+di_s_chla.df &lt;- full_join(di_s_chla.df, missing_s_chla.df, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;eventid&quot;, &quot;parameter&quot;, &quot;concat&quot;))</code></pre>
 <p>Averge replicates for the rest of the data …measure value average</p>
 <pre class="r"><code>wq_above_pdepth.df &lt;- wq_above_pdepth.df %&gt;%
   group_by(station, sampledate, depth, parameter) %&gt;%
@@ -816,73 +596,26 @@ LV_diff_check_step_5.df &lt;- LV_diff_check_step_5.df%&gt;%
   mutate(measurevalue_averaged = mean(measurevalue)) %&gt;%
   distinct(station, sampledate, depth, parameter,measurevalue_averaged) %&gt;%
   ungroup()</code></pre>
-<p>COMPARE STEP 6 my 3366 to Claire’s is 3357(was 3366)</p>
-<pre class="r"><code>step_6.df &lt;- wq_above_pdepth.df
-
-data.table::fwrite(step_6.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_6.csv&quot;))
-
-s6_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step6.csv&quot;)) %&gt;% clean_up()
-
-C_diff_check_step_6.df &lt;- anti_join(step_6.df,s6_compare.df, by = c(
-  #&quot;station&quot;, &quot;depth&quot;,&quot;parameter&quot;, 
-  &quot;measurevalue_averaged&quot;
-  )) 
-
-LV_diff_check_step_6.df &lt;- anti_join(s6_compare.df, step_6.df, by = c(
-  #&quot;station&quot;, &quot;depth&quot;, &quot;parameter&quot;, 
-  &quot;measurevalue_averaged&quot;)) </code></pre>
 <pre class="r"><code>wq_above_pdepth.df &lt;- wq_above_pdepth.df %&gt;%
   group_by(station, sampledate, parameter) %&gt;%
   mutate(depth_integrated_value = mean(measurevalue_averaged)) %&gt;%
   distinct(station, sampledate, depth_integrated_value) %&gt;%
   ungroup()</code></pre>
-<p>COMPARE STEP 7 mine is 2028 to Claire’s 2026(was 2028)</p>
-<pre class="r"><code>step_7.df &lt;- wq_above_pdepth.df
-
-data.table::fwrite(step_7.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_7.csv&quot;))
-
-s7_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step7.csv&quot;)) %&gt;% clean_up() %&gt;% 
-  rename(depth_integrated_value =`depth-integrated_value`)
-
-
-C_diff_check_step_7.df &lt;- anti_join(step_7.df,s7_compare.df, by = c(#&quot;station&quot;, &quot;parameter&quot;, 
-  &quot;depth_integrated_value&quot;)) 
-
-LV_diff_check_step_7.df &lt;- anti_join(s7_compare.df, step_7.df, by = c(#&quot;station&quot;, &quot;parameter&quot;, 
-  &quot;depth_integrated_value&quot;)) </code></pre>
 <p>join surface chloraphyl into water quality data measurevalued_averaged is renamed depth_integrated_value to match water quality naming convention (note:check against Claire’s data to confirm that s_chla depth integrated values look right just to be sure)</p>
 <pre class="r"><code>di_s_chla.df &lt;- di_s_chla.df %&gt;% 
   rename(depth_integrated_value = measurevalue_averaged)
   
 
-wq_all.df &lt;- full_join(wq_above_pdepth.df, di_s_chla.df, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;parameter&quot;, &quot;depth_integrated_value&quot;))
-
-# wq_all.df &lt;- wq_all.df %&gt;%
-#   filter(parameter != &quot;s_chla&quot;)</code></pre>
-<p>COMPARE STEP 8 my 2561 to Claire’s 2555(was 2558)</p>
-<pre class="r"><code>print(2028 + 533)</code></pre>
-<pre><code>## [1] 2561</code></pre>
-<pre class="r"><code>step_8.df &lt;- wq_all.df
-
-data.table::fwrite(step_8.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_8.csv&quot;))
-
-s8_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step8.csv&quot;)) %&gt;% clean_up() %&gt;% 
-  rename(depth_integrated_value =`depth-integrated_value`)
-
-C_diff_check_step_8.df &lt;- anti_join(step_8.df,s8_compare.df, by = c(&quot;depth_integrated_value&quot;)) 
-
-LV_diff_check_step_8.df &lt;- anti_join(s8_compare.df, step_8.df, by = c(&quot;depth_integrated_value&quot;)) </code></pre>
-<p>filter out dates outside Mar-May and Jul-Sept borrowed this chunk from Zach</p>
+wq_all.df &lt;- full_join(wq_above_pdepth.df, di_s_chla.df, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;parameter&quot;, &quot;depth_integrated_value&quot;))</code></pre>
+<p>filter out dates outside Mar-May and Jul-Sept</p>
 <pre class="r"><code>wq_warm.df &lt;- wq_all.df %&gt;%
   mutate(month = month(sampledate),
          season = case_when(
            month %in% c(3, 4, 5) ~ &quot;spring&quot;,
            month %in% c(7, 8, 9) ~ &quot;summer&quot;,
            TRUE ~ &quot;remove&quot;
-          )) 
-  #%&gt;% 
-  # filter(season %in% c(&quot;spring&quot;, &quot;summer&quot;))</code></pre>
-<p>assign salzones…work in progress</p>
+          )) </code></pre>
+<p>assign salzones</p>
 <pre class="r"><code>wq_sal.df &lt;- wq_warm.df %&gt;%
   filter(parameter == &quot;salinity&quot;)
 
@@ -903,9 +636,7 @@ wq_warm.df &lt;- wq_warm.df %&gt;%
 
 wq_warm_sal.df &lt;- left_join(wq_warm.df, wq_sal_id.df, by = c(&quot;concat&quot;))#, &quot;salzone&quot;))</code></pre>
 <p>Find events without salinity and assign salinity when possible…Assign F salzone to some station/season instances based on known salinity profiles</p>
-<pre class="r"><code># salinities are less than 0.5 ppt, or &quot;F&quot; more than 90% of the time: CB1.1, ET5.1, TF1.5, TF2.3, TF4.2, TF5.5 in Spring;                               
-# CB1.1, TF2.3, TF4.2, TF5.5 in Summer. We can assume their Salzone is F and replace 61 of the 78 blanks.                               
-wq_no_sal.df &lt;- anti_join(wq_warm_sal.df, wq_sal_id.df, by = c(&quot;concat&quot;))
+<pre class="r"><code>wq_no_sal.df &lt;- anti_join(wq_warm_sal.df, wq_sal_id.df, by = c(&quot;concat&quot;))
 
 wq_sal_fill.df &lt;-  wq_no_sal.df %&gt;%
   distinct(concat, station, sampledate, season, salzone) %&gt;%
@@ -916,6 +647,7 @@ wq_sal_fill.df &lt;-  wq_no_sal.df %&gt;%
 wq_sal_filled.df &lt;- wq_sal_fill.df %&gt;%
   filter(salzone == &quot;F&quot;)
 
+# test for number of na salzone values remaining
 test_na.df &lt;- wq_sal_fill.df %&gt;%
   filter(is.na(salzone))</code></pre>
 <p>Add the data assigned salzones back into backbone</p>
@@ -929,7 +661,7 @@ jackie_salzones.df &lt;- readxl::read_excel(file.path(project.dir, &quot;data/Ja
                          sheet = &quot;JMJ Salzone+Scores&quot;) %&gt;% clean_up() %&gt;%
   rename(salzone = ibi_salzone)
 
-wq_need_sal.df &lt;- wq_warm_sal_added.df %&gt;%#wq_sal_test.df %&gt;%
+wq_need_sal.df &lt;- wq_warm_sal_added.df %&gt;%
   mutate(year = year(sampledate)) %&gt;%
   filter(year &gt;= 1984 &amp; year &lt;= 2011 &amp; is.na(salzone))
 
@@ -943,38 +675,15 @@ if (nrow(wq_need_sal.df) &gt; 1) {
 <pre class="r"><code>wq_warm.wide &lt;- wq_warm_sal_added.df %&gt;%
   select(-layer, -depth,-eventid,-concat) %&gt;%
   spread(parameter, depth_integrated_value)</code></pre>
-<p>COMPARE STEP 9</p>
-<pre class="r"><code>step_9.df &lt;- wq_warm.wide
-
-data.table::fwrite(step_9.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_9.csv&quot;))
-
-s9_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step9.csv&quot;)) %&gt;% clean_up() 
-
-C_diff_check_step_9.df &lt;- anti_join(step_9.df,s9_compare.df, by = c(&quot;chla&quot;, &quot;s_chla&quot;, &quot;pheo&quot;, &quot;salinity&quot;, &quot;doc&quot;)) 
-
-LV_diff_check_step_9.df &lt;- anti_join(s9_compare.df, step_9.df, by = c(&quot;chla&quot;, &quot;s_chla&quot;, &quot;pheo&quot;, &quot;salinity&quot;, &quot;doc&quot;)) </code></pre>
 <p>remove winter and fall</p>
 <pre class="r"><code>wq_final.df &lt;- wq_warm.wide %&gt;%
 
  filter(season %in% c(&quot;spring&quot;, &quot;summer&quot;))</code></pre>
-<p>COMPARE STEP 10</p>
-<pre class="r"><code>step_10.df &lt;- wq_final.df
-
-data.table::fwrite(step_10.df, file.path(project.dir, &quot;data/test&quot;, &quot;step_10.csv&quot;))
-
-s10_compare.df &lt;- data.table::fread(file.path(project.dir, &quot;data/test/&quot;, &quot;C_step10.csv&quot;)) %&gt;% clean_up() 
-
-C_diff_check_step_10.df &lt;- anti_join(step_10.df,s10_compare.df, by = c(&quot;chla&quot;, &quot;s_chla&quot;, &quot;pheo&quot;, &quot;salinity&quot;, &quot;doc&quot;)) 
-
-LV_diff_check_step_10.df &lt;- anti_join(s10_compare.df, step_10.df, by = c(&quot;chla&quot;, &quot;s_chla&quot;, &quot;pheo&quot;, &quot;salinity&quot;, &quot;doc&quot;))</code></pre>
-<p>itis</p>
-<pre class="r"><code># carbon.df &lt;- readxl::read_excel(file.path(project.dir, &quot;data/carbon/carbon_list_2014.xlsx&quot;),
-#                          sheet = &quot;OldBiomassEstimates&quot;) %&gt;% clean_up()
-
-carbon.df &lt;- data.table::fread(file.path(project.dir, &quot;data/carbon/&quot;, &quot;carbon_list_2014.csv&quot;)) %&gt;% clean_up()</code></pre>
 </div>
 <div id="prep-carbon-data" class="section level4">
 <h4>Prep Carbon Data</h4>
+<p>read the carbon data into a dataframe</p>
+<pre class="r"><code>carbon.df &lt;- data.table::fread(file.path(project.dir, &quot;data/carbon/&quot;, &quot;carbon_list_2014.csv&quot;)) %&gt;% clean_up()</code></pre>
 <p>carbon data needs to be reformatted to work with bay data</p>
 <pre class="r"><code>carbon.df &lt;- carbon.df %&gt;%
   mutate(tsn =  gsub(&quot;(?&lt;![0-9])0+&quot;, &quot;&quot;, tsn, perl = TRUE)) %&gt;%
@@ -983,7 +692,7 @@ carbon.df &lt;- data.table::fread(file.path(project.dir, &quot;data/carbon/&quot
   mutate(tsn = as.integer(tsn)) %&gt;%
   mutate(size = case_when(size == &quot;not_applicable&quot;~ as.character(NA), TRUE ~size))</code></pre>
 <pre><code>## Warning: NAs introduced by coercion</code></pre>
-<p>bring in phyto taxa data</p>
+<p>bring in phyto taxanomic data that was downloaded from CEDR (originally into phyto.df)</p>
 <pre class="r"><code>col.class.vec &lt;- c(&quot;samplenumber&quot; = &quot;character&quot;,
                    &quot;tsn&quot; = &quot;character&quot;,
                    &quot;speccode&quot; = &quot;character&quot;)
@@ -1026,6 +735,7 @@ bay.df &lt;- bay.df %&gt;%
                            #&quot;blue_green_sphere&quot;,
                            &quot;epiphytic_flagellates&quot;,
                            &quot;hydrodictyon_reticulatum&quot;))</code></pre>
+<p>assigns tsn values to taxa that are not expected to be in the ITIS database</p>
 <pre class="r"><code>bay.df &lt;- bay.df %&gt;% 
   mutate(
     tsn = as.integer(tsn),
@@ -1161,40 +871,9 @@ bay.df &lt;- bay.df %&gt;%
 <pre class="r"><code>bay.df &lt;- left_join(bay.df, partial.match.df, by = c(&quot;latinname&quot;, &quot;size&quot;,&quot;tsn&quot;)) %&gt;% 
   mutate(reported_size = size,
          size = if_else(!is.na(new_size), new_size, size))</code></pre>
-<p>note:not sure what,if anything, to do with this one: Z. Some taxa require specific attention before they can be finalized.</p>
-<pre class="r"><code># bay.df &lt;- bay.df %&gt;%
-#   mutate(
-#     final_id = if_else(latinname == &quot;trinacria_regina&quot;, &quot;trinacria_regina&quot;,  final_id),
-#     final_id = case_when(
-#       latinname == &quot;green_cells&quot; ~ &quot;green_cells&quot;,
-#       latinname == &quot;blue_green_spheres&quot; ~ &quot;blue_green_spheres&quot;,
-#       TRUE ~ final_id
-#     ),
-#     kingdom = if_else(latinname == &quot;trinacria_regina&quot;,
-#                       &quot;chromista&quot;, kingdom),
-#     phylum = if_else(latinname == &quot;trinacria_regina&quot;,
-#                      &quot;bacillariophyta&quot;, phylum),
-#     subphylum = if_else(latinname == &quot;trinacria_regina&quot;,
-#                         &quot;bacillariophytina&quot;, subphylum),
-#     class = if_else(latinname == &quot;trinacria_regina&quot;,
-#                     &quot;mediophyceae&quot;, class),
-#     subclass = if_else(latinname == &quot;trinacria_regina&quot;,
-#                        &quot;chaetocerotophycidae&quot;, subclass),
-#     order = if_else(latinname == &quot;trinacria_regina&quot;,
-#                     &quot;hemiaulales&quot;, order),
-#     family = if_else(latinname == &quot;trinacria_regina&quot;,
-#                      &quot;hemiaulaceae&quot;, family),
-#     genus = case_when(latinname == &quot;trinacria_regina&quot; ~ &quot;trinacria&quot;,
-#                       latinname == &quot;didymocystis&quot; ~ &quot;didymocystis&quot;,
-#                       latinname == &quot;Lauterborniella_elegantissima&quot; ~ &quot;lauterborniella&quot;,
-#                       TRUE ~ genus),
-#     species = case_when(latinname == &quot;trinacria_regina&quot; ~ &quot;trinacria_regina&quot;,
-#                         latinname == &quot;lauterborniella_elegantissima&quot; ~ &quot;lauterborniella_elegantissima&quot;,
-#                         TRUE ~ species)
-#   )</code></pre>
-<p>fixes a spelling error in carbon_list (should fix in actual csv…) other fixes to carbon_list such as assigning tsn to latinnames with known tsns</p>
-<pre class="r"><code>carbon.df &lt;- carbon.df %&gt;%
-  mutate(size = ifelse(size ==&quot;microphytoflaggelates&quot;, &quot;microphytoflagellates&quot;, size)) %&gt;%
+<p>fixes to carbon_list such as assigning tsn to latinnames with known tsns</p>
+<pre class="r"><code>test_carbon.df &lt;- carbon.df %&gt;%
+  #mutate(size = ifelse(size ==&quot;microphytoflaggelates&quot;, &quot;microphytoflagellates&quot;, size)) %&gt;%
   mutate(size = ifelse(size ==&quot;unidentified&quot;, as.character(NA), size)) %&gt;%
   mutate(tsn = case_when(latinname == &quot;aphanizomenon_issatschenkoi&quot;~as.integer(1191), 
                          latinname == &quot;chaetoceros_neogracilis&quot;~as.integer(1004011), 
@@ -1215,10 +894,8 @@ bay.df &lt;- bay.df %&gt;%
                        tsn = 615890,
                        group = &quot;diatom&quot;,
                        stringsAsFactors = FALSE))</code></pre>
-<pre class="r"><code># bay.df &lt;- bay.df %&gt;%
-#   mutate(tsn = ifelse(tsn == 0, as.character(NA), tsn)) 
-
-carbon.df &lt;- carbon.df %&gt;%
+<p>assigns tsns of NA to zero</p>
+<pre class="r"><code>carbon.df &lt;- carbon.df %&gt;%
   mutate(tsn = ifelse(is.na(tsn)==TRUE, 0, tsn))</code></pre>
 <p>changes to bay data to match changes to carbon list</p>
 <pre class="r"><code>bay.df &lt;- bay.df %&gt;%
@@ -1230,20 +907,16 @@ carbon.df &lt;- carbon.df %&gt;%
   mutate(tsn = ifelse(latinname==&quot;woronichinia_naegeliana&quot;, 0, tsn)) %&gt;%
   #modify centratractus_belonophorus tsn to match carbon_list
   mutate(tsn = ifelse(tsn==2014, 2013, tsn))</code></pre>
-<p>finally, join bay and carbon</p>
+<p>finally, join bay.df and carbon.df</p>
 <pre class="r"><code>bay_merged.df &lt;- left_join(bay.df, carbon.df, by = c(&quot;latinname&quot;,&quot;size&quot;,&quot;tsn&quot;)) %&gt;%
   #remove dupliactes
   distinct()</code></pre>
-<p>we are generating duplicates on the above merge</p>
-<pre class="r"><code># bay_ex.df &lt;- bay_merged.df %&gt;%
-#   distinct()
-  #anti_join(bay.df, bay_merged.df,    by = c(&quot;station&quot;, &quot;sampledate&quot;))</code></pre>
 <p>clean up bay_merged(make group and nodc_phyla from carbon_list primary variable and remove value brought in from bay.df)</p>
 <pre class="r"><code>bay_merged.df &lt;- bay_merged.df %&gt;%
   rename(group = group.y) %&gt;%
   rename(nodc_phyla = nodc_phyla.y) %&gt;%
   select(-group.x, -nodc_phyla.x)</code></pre>
-<p>turn carbon NA’s into zeroes and calcualte biomass</p>
+<p>turn carbon NA’s into zeroes and calcualte nano_micro_biomass</p>
 <pre class="r"><code>bay_merged.df &lt;- bay_merged.df %&gt;%
   mutate(carbon = ifelse(is.na(carbon)==TRUE, 0, carbon)) %&gt;%
   mutate(nano_micro_biomass = reportingvalue * carbon / 10 ^ 6) </code></pre>
@@ -1255,60 +928,87 @@ wq_final.df &lt;- wq_final.df %&gt;%
   mutate(concat = paste0(station, sampledate)) 
 
 bay_wq_merged.df &lt;- left_join(bay_merged.df, wq_final.df, by = c(&quot;concat&quot;, &quot;station&quot;,&quot;sampledate&quot;, &quot;month&quot;, &quot;season&quot;))</code></pre>
-<pre class="r"><code>#tf3.3_ap_fs1_2016-03-17
-#2013-03-05
-
-test &lt;-  bay_merged.df %&gt;%
-  filter(station == &quot;tf3.3&quot; &amp; sampledate == &quot;2016-03-17&quot;)</code></pre>
 </div>
 <div id="calulate-metrics" class="section level4">
 <h4>Calulate Metrics</h4>
-<pre class="r"><code>bay_wq_merged_calc.df &lt;-  bay_wq_merged.df %&gt;%
+<p>selecting out unneeded columns, filter out na salzone entries, and pare down to your unique_id’s</p>
+<pre class="r"><code>bay_wq_merged_calc.df  &lt;-  bay_wq_merged.df %&gt;%
+
   
-  #group by event
-  group_by(concat) %&gt;%
+  mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = &quot;_&quot;)) %&gt;%
+  select(-reported_size, -surveyid, -fieldactivityid, -source, -sampletype, -gmethod, -tsn, -size, -method, -parameter, -reportingunit, -nodccode, -serialnumber, -month, -new_size, -nodc_phyla, -speccode, -salinity) %&gt;%
   
+  filter(!is.na(salzone)) %&gt;%
+  distinct() </code></pre>
+<p>calculate metrics</p>
+<pre class="r"><code>bay_wq_merged_calc.df &lt;-  bay_wq_merged_calc.df  %&gt;%
+
+  group_by(unique_id) %&gt;%
   
-  #number of members in group
-  # mutate(count = n()) %&gt;%
-  #name of new biomass?
-  mutate(total_biomass = sum(carbon)) %&gt;%
   mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %&gt;%
-  #
   
-  #mutate(carbon_chlorophyll_ratio_wrong = nano_micro_biomass/chla) %&gt;% #invert division to get reverse
   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %&gt;%
-  
-  group_by(group, add=TRUE) %&gt;%
 
-  mutate(diatom_biomass = case_when(group == &quot;diatom&quot;~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %&gt;%
-  mutate(dinoflagellate_biomass = case_when(group == &quot;dinoflagellates&quot;~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %&gt;%
-  mutate(cyanophyte_biomass = case_when(group == &quot;cyanophyte&quot;| group == &quot;cyanobacteria&quot;~sum(carbon)/1000000, TRUE ~ as.numeric(NA))) %&gt;%
-  mutate(cryptophyte_biomass = case_when(group == &quot;cryptophyte&quot; | group == &quot;cryptophyceae&quot; | group == &quot;cryptophyta&quot; | group == &quot;cryptomonads&quot;~sum(carbon), TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass)%&gt;%
+  mutate(diatom_carbon = case_when(group == &quot;diatom&quot;~ nano_micro_biomass
+                                    , TRUE ~ as.numeric(NA))) %&gt;%
+  mutate(diatom_biomass = case_when(!is.na(diatom_carbon)~ sum(diatom_carbon, na.rm = T)
+                                    , TRUE ~ as.numeric(NA))) %&gt;%
   
-  # #how should this be calculated?
-  # mutate(new_metric = other_biomass*micro_biomass/count) %&gt;%
-  ungroup()
-
-
-# test &lt;- bay_wq_merged_calc.df %&gt;%
-#   filter(group == &quot;cyanoophytes&quot;)</code></pre>
-<pre class="r"><code>test &lt;- bay_wq_merged_calc.df %&gt;%
-  filter((group == &quot;diatom&quot; &amp; concat == &quot;tf5.52013-03-05&quot;) |  (group == &quot;diatom&quot; &amp; concat ==&quot;sbe52013-03-13&quot;))</code></pre>
-<pre class="r"><code>test &lt;- bay.df %&gt;%
-  filter(latinname == &quot;microcystis_aeruginosa&quot;)</code></pre>
-<pre class="r"><code># groups &lt;- bay_wq_merged_calc.df %&gt;%
-#   select(group) %&gt;%
-#   distinct()</code></pre>
+  
+  mutate(dinoflagellate_carbon = case_when(group == &quot;dinoflagellates&quot;~ nano_micro_biomass
+                                    , TRUE ~ as.numeric(NA))) %&gt;%
+  mutate(dinoflagellate_biomass = case_when(!is.na(dinoflagellate_carbon)~ sum(dinoflagellate_carbon, na.rm = T)
+                                    , TRUE ~ as.numeric(NA))) %&gt;%
+  
+  
+  mutate(cyanophyte_carbon = case_when(group == &quot;cyanophyte&quot;| group == &quot;cyanobacteria&quot;~ nano_micro_biomass
+                                    , TRUE ~ as.numeric(NA))) %&gt;%
+  mutate(cyanophyte_biomass = case_when(!is.na(cyanophyte_carbon)~ sum(cyanophyte_carbon, na.rm = T)
+                                    , TRUE ~ as.numeric(NA))) %&gt;%
+  
+  
+  mutate(cryptophyte_carbon = case_when(group == &quot;cryptophyte&quot; | group == &quot;cryptophyceae&quot; | group == &quot;cryptophyta&quot; | group == &quot;cryptomonads&quot;~ nano_micro_biomass
+                                    , TRUE ~ as.numeric(NA))) %&gt;%
+  mutate(cryptophyte_biomass = case_when(!is.na(cryptophyte_carbon)~ sum(cryptophyte_carbon, na.rm = T)
+                                    , TRUE ~ as.numeric(NA))) %&gt;%
+  
+  select(-diatom_carbon, -dinoflagellate_carbon, -cyanophyte_carbon, -cryptophyte_carbon) %&gt;%
+  
+  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass * 100) %&gt;% 
+  
+  select(-group, -carbon, -nano_micro_biomass) %&gt;%
+  distinct()</code></pre>
 <pre class="r"><code>bay_wq_merged_calc.df &lt;- bay_wq_merged_calc.df %&gt;%
-  group_by(concat) %&gt;%
+  group_by(unique_id) %&gt;%
   mutate(prorocentrum_minimum_abundance = case_when(latinname == &quot;prorocentrum_minimum&quot;~ sum(as.double(reportingvalue)), TRUE ~ as.numeric(NA))) %&gt;%
   mutate(microcystis_aeruginosa_abundance = case_when(latinname == &quot;microcystis_aeruginosa&quot;~ sum(as.double(reportingvalue)), TRUE ~ as.numeric(NA))) %&gt;%
+
+  mutate(prorocentrum_minimum_abundance = sum(prorocentrum_minimum_abundance, na.rm=T)) %&gt;%
+  mutate(microcystis_aeruginosa_abundance = sum(microcystis_aeruginosa_abundance, na.rm=T)) %&gt;%
+  ungroup() %&gt;%
+  select(-latinname, -reportingvalue) %&gt;%
+  distinct()</code></pre>
+<p>apply metrics to all rows applicable we turn NA’s to zero because…</p>
+<pre class="r"><code>bay_wq_merged_calc.df[is.na(bay_wq_merged_calc.df)] &lt;- 0
+
+bay_wq_merged_calc.df &lt;- bay_wq_merged_calc.df %&gt;%
+  
+  group_by(unique_id) %&gt;%
+  
+  mutate(diatom_biomass = max(diatom_biomass, na.rm=T)) %&gt;%
+
+  mutate(cyanophyte_biomass = max(cyanophyte_biomass, na.rm=T)) %&gt;%
+  
+  mutate(dinoflagellate_biomass = max(dinoflagellate_biomass , na.rm=T)) %&gt;%
+
+  mutate(cryptophyte_biomass = max(cryptophyte_biomass, na.rm=T)) %&gt;%
+
+  mutate(percent_cryptophyte_biomass = max(percent_cryptophyte_biomass, na.rm=T)) %&gt;%
+  mutate(percent_cryptophyte_biomass =( case_when(percent_cryptophyte_biomass == &quot;-inf&quot;~as.numeric(NA), TRUE~percent_cryptophyte_biomass))) %&gt;%
+  
+  distinct() %&gt;%
   ungroup()</code></pre>
-<pre class="r"><code># bay_test &lt;- bay_wq_merged_calc.df %&gt;%
-#   filter(latinname == &quot;microcystis_aeruginosa&quot; | latinname == &quot;prorocentrum_minimum&quot;)  </code></pre>
 <p>join the picoplankton data into the bay data and average duplicates and generate picoplankton_abundance</p>
 <pre class="r"><code>picoplankton.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_pico_taxa.csv&quot;)) %&gt;% clean_up() %&gt;%
   rename(pico_reportingvalue = reportingvalue) %&gt;%
@@ -1327,12 +1027,12 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
 </div>
 <div id="scoring" class="section level4">
 <h4>Scoring</h4>
-<pre class="r"><code>  metric.vec &lt;- c(&quot;total_phyto_biomass_chla_ratio&quot;,
+<pre class="r"><code>  metric.vec &lt;- c(&quot;total_nano_micro_biomass_chla_ratio&quot;,
                   &quot;surface_chla&quot;,
                   &quot;chla&quot;,
                   &quot;doc&quot;,
                   &quot;pheophytin&quot;,
-                  &quot;total_phyto_biomass&quot;, 
+                  &quot;total_nano_micro_biomass&quot;, 
                   &quot;diatom_biomass&quot;,
                   &quot;dinoflagellate_biomass&quot;,
                   &quot;cyanophyte_biomass&quot;,
@@ -1344,31 +1044,26 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
                   &quot;picoplankton_abundance&quot;
                   
                   )</code></pre>
-<p>add a unique_id to match Zach’s scoring function later on replacing concat with it</p>
-<pre class="r"><code>bay_full_calc.df &lt;- bay_full_calc.df %&gt;%
-  mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = &quot;_&quot;)) %&gt;%
-  select(-concat)</code></pre>
 <p>rename some metrics to fit Zach’s code(that I have rewritten now)</p>
 <pre class="r"><code>metrics_prep.df &lt;- bay_full_calc.df %&gt;%
   rename(pheophytin = pheo) %&gt;% 
-  rename(total_phyto_biomass = total_nano_micro_biomass) %&gt;%
-  rename(total_phyto_biomass_chla_ratio = carbon_chlorophyll_ratio) %&gt;%
+  rename(total_nano_micro_biomass_chla_ratio = carbon_chlorophyll_ratio) %&gt;%
   rename(pct_cryptophyte = percent_cryptophyte_biomass) %&gt;%
   rename(surface_chla = s_chla) %&gt;%
   mutate(salzone = tolower(salzone)) </code></pre>
 <pre class="r"><code>test &lt;- metrics_prep.df %&gt;%
-  select(salzone)</code></pre>
-<pre class="r"><code>test &lt;- metrics_prep.df %&gt;%
-  filter( (season == &quot;summer&quot; &amp; salzone == &quot;F&quot;) | (season == &quot;summer&quot; &amp; salzone == &quot;f&quot;)) %&gt;%
+  #filter( (season == &quot;summer&quot; &amp; salzone == &quot;F&quot;) | (season == &quot;summer&quot; &amp; salzone == &quot;f&quot;)) %&gt;%
+  filter(unique_id == &quot;cb6.1_ap_fs1_2016-04-27&quot;) %&gt;%
+
   distinct()</code></pre>
 <p>try selecting only relevant fields</p>
 <pre class="r"><code>metrics_prep.df &lt;- metrics_prep.df %&gt;%
-  select(unique_id, station, sampledate, samplenumber, season, salzone, total_phyto_biomass_chla_ratio,
+  select(unique_id, station, sampledate, samplenumber, season, salzone, total_nano_micro_biomass_chla_ratio,
                   surface_chla,
                   chla,
                   doc,
                   pheophytin,
-                  total_phyto_biomass, 
+                  total_nano_micro_biomass, 
                   diatom_biomass,
                   dinoflagellate_biomass,
                   cyanophyte_biomass,
@@ -1376,263 +1071,251 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
                   pct_cryptophyte,
                   prorocentrum_minimum_abundance, 
                   microcystis_aeruginosa_abundance,
-                  picoplankton_abundance)</code></pre>
+                  picoplankton_abundance) #%&gt;%
+  #distinct()</code></pre>
 <pre class="r"><code>score_spring_f &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
-           salzone == &quot;f&quot;#,
-
-           # is.na(total_phyto_biomass_chla_ratio) == FALSE #|
-           # is.na(surface_chla) == FALSE |
-           # is.na(cyanophyte_biomass) == FALSE |
-           # is.na(doc) == FALSE |
-           # is.na(pheophytin) == FALSE |
-           # is.na(total_phyto_biomass) == FALSE
-           ) %&gt;%
-  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
-      total_phyto_biomass_chla_ratio &lt; 39.28 ~1,
-      total_phyto_biomass_chla_ratio&gt;= 39.28 &amp; total_phyto_biomass_chla_ratio &lt;= 41.72 ~ 3,
-      total_phyto_biomass_chla_ratio &gt; 41.72 ~ 5,
+           salzone == &quot;f&quot;) %&gt;%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio &lt; 39.28 ~1,
+      total_nano_micro_biomass_chla_ratio&gt;= 39.28 &amp; total_nano_micro_biomass_chla_ratio &lt;= 41.72 ~ 3,
+      total_nano_micro_biomass_chla_ratio &gt; 41.72 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(surface_chla_rating = case_when(
+  mutate(surface_chla_score = case_when(
       surface_chla &lt; 3.42 &amp; surface_chla &gt; 14.45~1,
       (surface_chla &gt;= 3.42 &amp; surface_chla &lt;= 4.37) |(surface_chla &gt;= 13.98 &amp; surface_chla &lt;= 14.45) ~ 3,
       surface_chla &gt; 4.37 &amp; surface_chla &lt; 13.98 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(cyanophyte_biomass_rating = case_when(
+  mutate(cyanophyte_biomass_score = case_when(
       cyanophyte_biomass &gt; 23.02 ~ 1,
       cyanophyte_biomass &lt;= 23.02 ~ as.numeric(NA))) %&gt;%
   
-  mutate(doc_rating = case_when(
+  mutate(doc_score = case_when(
       doc &gt; 2.40 ~ 1,
       doc &gt;= 2.19 &amp; doc &lt;= 2.40 ~ 3,
       doc  &lt; 2.19 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(pheophytin_rating = case_when(
+  mutate(pheophytin_score = case_when(
       pheophytin &gt; 2.50 ~ 1,
       pheophytin &gt;= 1.55 &amp; pheophytin &lt;= 2.50 ~ 3,
       pheophytin &lt; 1.55 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(total_phyto_biomass_rating = case_when(
-      total_phyto_biomass &lt;= 172.99 | total_phyto_biomass &gt; 828.5 ~ 1,
-      total_phyto_biomass &gt;= 583.9 &amp; total_phyto_biomass &lt;= 828.5 ~ 3,
-      total_phyto_biomass &gt; 172.99 &amp; total_phyto_biomass &lt; 583.9 ~ 5,
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass &lt;= 172.99 | total_nano_micro_biomass &gt; 828.5 ~ 1,
+      total_nano_micro_biomass &gt;= 583.9 &amp; total_nano_micro_biomass &lt;= 828.5 ~ 3,
+      total_nano_micro_biomass &gt; 172.99 &amp; total_nano_micro_biomass &lt; 583.9 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
 <pre class="r"><code>score_spring_o &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
-           salzone == &quot;o&quot;#,
-
-           ) %&gt;%
-  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
-      total_phyto_biomass_chla_ratio &lt; 18.8 | total_phyto_biomass_chla_ratio &gt; 48.6 ~ 1,
-      total_phyto_biomass_chla_ratio &gt;= 18.8 &amp; total_phyto_biomass_chla_ratio &lt;= 21.2 ~ 3,
-      total_phyto_biomass_chla_ratio &gt; 21.2 &amp; total_phyto_biomass_chla_ratio &lt; 48.6 ~ 5,
+           salzone == &quot;o&quot;) %&gt;%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio &lt; 18.8 | total_nano_micro_biomass_chla_ratio &gt; 48.6 ~ 1,
+      total_nano_micro_biomass_chla_ratio &gt;= 18.8 &amp; total_nano_micro_biomass_chla_ratio &lt;= 21.2 ~ 3,
+      total_nano_micro_biomass_chla_ratio &gt; 21.2 &amp; total_nano_micro_biomass_chla_ratio &lt; 48.6 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
 
-  mutate(surface_chla_rating = case_when(
+  mutate(surface_chla_score = case_when(
       surface_chla &lt; 6.77 | surface_chla &gt; 33.64 ~ 1,
       (surface_chla &gt;= 20.93 &amp; surface_chla &lt;= 33.64) |(surface_chla &gt;= 6.77 &amp; surface_chla &lt;= 8.82) ~ 3,
       surface_chla &gt; 8.82 &amp; surface_chla &lt; 20.93 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
 
-  mutate(doc_rating = case_when(
+  mutate(doc_score = case_when(
       doc &gt; 3.27 ~ 1,
       doc &gt;= 2.69 &amp; doc &lt;= 3.27 ~ 3,
       doc &lt; 2.69 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
 
-  mutate(pheophytin_rating = case_when(
+  mutate(pheophytin_score = case_when(
       pheophytin &gt; 2.68 ~ 1,
       pheophytin &gt;= 2.23 &amp; pheophytin &lt;= 2.68 ~ 3,
       pheophytin &lt; 2.23 ~ 5,
     TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(total_phyto_biomass_rating = case_when(
-      total_phyto_biomass &gt; 133.67 &amp; total_phyto_biomass &lt; 426.31 ~ 5,
-      (total_phyto_biomass &gt;= 131.37 &amp; total_phyto_biomass &lt;= 133.67) | (total_phyto_biomass &gt;= 426.31 &amp; total_phyto_biomass &lt; 685.81) ~ 3,
-      total_phyto_biomass &lt; 131.37 | total_phyto_biomass &gt;= 685.81 ~ 1,
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass &gt; 133.67 &amp; total_nano_micro_biomass &lt; 426.31 ~ 5,
+      (total_nano_micro_biomass &gt;= 131.37 &amp; total_nano_micro_biomass &lt;= 133.67) | (total_nano_micro_biomass &gt;= 426.31 &amp; total_nano_micro_biomass &lt; 685.81) ~ 3,
+      total_nano_micro_biomass &lt; 131.37 | total_nano_micro_biomass &gt;= 685.81 ~ 1,
       TRUE ~ as.numeric(NA))) </code></pre>
 <pre class="r"><code>score_spring_m &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
-           salzone == &quot;m&quot;#,
-
-           ) %&gt;%
-  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
-       total_phyto_biomass_chla_ratio &lt; 45.04 ~ 1,
-      total_phyto_biomass_chla_ratio &gt;= 45.04 &amp; total_phyto_biomass_chla_ratio &lt;= 69.52 ~ 3,
-      total_phyto_biomass_chla_ratio &gt; 69.52 ~ 5,
+           salzone == &quot;m&quot;) %&gt;%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio &lt; 45.04 ~ 1,
+      total_nano_micro_biomass_chla_ratio &gt;= 45.04 &amp; total_nano_micro_biomass_chla_ratio &lt;= 69.52 ~ 3,
+      total_nano_micro_biomass_chla_ratio &gt; 69.52 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(surface_chla_rating = case_when(
+  mutate(surface_chla_score = case_when(
       surface_chla &lt; 2.60 | surface_chla &gt; 8.00 ~ 1,
       (surface_chla &gt;= 2.60 &amp; surface_chla &lt;= 2.90) |(surface_chla &gt;= 6.17 &amp; surface_chla &lt;= 8.00) ~ 3,
       surface_chla &gt; 2.90 &amp; surface_chla &lt; 6.17 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
   
-  mutate(diatom_biomass_rating = case_when(
+  mutate(diatom_biomass_score = case_when(
       diatom_biomass &lt; 149 | diatom_biomass &gt;= 2513 ~ 1,
       diatom_biomass &gt;= 149 &amp; diatom_biomass &lt;= 275.4 ~ 3,
       diatom_biomass &gt; 275.4 &amp; diatom_biomass &lt; 2513 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(dinoflagellate_biomass_rating = case_when(
+  mutate(dinoflagellate_biomass_score = case_when(
       dinoflagellate_biomass &lt; 28.3 | dinoflagellate_biomass &gt; 268.2 ~ 1,
       dinoflagellate_biomass &gt;= 156.9 &amp; dinoflagellate_biomass &lt;= 268.2 ~ 3,
       dinoflagellate_biomass &gt; 28.3 &amp; dinoflagellate_biomass &lt; 156.9 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(doc_rating = case_when(
+  mutate(doc_score = case_when(
       doc &gt; 3.17 ~ 1,
       doc &gt;= 2.84 &amp; doc &lt;= 3.17 ~ 3,
       doc &lt; 2.84 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(pheophytin_rating = case_when(
+  mutate(pheophytin_score = case_when(
       pheophytin &gt; 1.03 ~ 1,
       pheophytin &gt;= 1.00 &amp; pheophytin &lt;= 1.03 ~ 3,
       pheophytin &lt; 1.00 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(prorocentrum_minimum_abundance_rating = case_when(
+  mutate(prorocentrum_minimum_abundance_score = case_when(
       prorocentrum_minimum_abundance &gt; 1477600 ~ 1,
       prorocentrum_minimum_abundance &lt;= 1477600 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(total_phyto_biomass_rating = case_when(
-      total_phyto_biomass &gt; 1150 ~ 1,
-      total_phyto_biomass &lt;= 1150 ~ as.numeric(NA),
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass &gt; 1150 ~ 1,
+      total_nano_micro_biomass &lt;= 1150 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) #%&gt;%</code></pre>
 <pre class="r"><code>score_spring_p &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
-           salzone == &quot;p&quot;#,
-
-           ) %&gt;%
-  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
-      total_phyto_biomass_chla_ratio &lt; 71.0 ~ 1,
-      total_phyto_biomass_chla_ratio &gt;= 71.0 &amp; total_phyto_biomass_chla_ratio &lt;= 107.5 ~ 3,
-      total_phyto_biomass_chla_ratio &gt; 107.5 ~ 5,
+           salzone == &quot;p&quot;) %&gt;%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio &lt; 71.0 ~ 1,
+      total_nano_micro_biomass_chla_ratio &gt;= 71.0 &amp; total_nano_micro_biomass_chla_ratio &lt;= 107.5 ~ 3,
+      total_nano_micro_biomass_chla_ratio &gt; 107.5 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(surface_chla_rating = case_when(
+  mutate(surface_chla_score = case_when(
       surface_chla &gt; 4.00 ~ 1,
       surface_chla &gt;= 2.80 &amp; surface_chla &lt;= 4.00 ~ 3,
       surface_chla &lt; 2.80 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(pct_cryptophyte_rating = case_when(
+  mutate(pct_cryptophyte_score = case_when(
       pct_cryptophyte &gt; 7.06 ~ 1,
       pct_cryptophyte &gt;= 4.93 &amp; pct_cryptophyte &lt;= 7.06 ~ 3,
       pct_cryptophyte &lt; 4.93 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(doc_rating = case_when(
+  mutate(doc_score = case_when(
       doc &gt; 2.61 ~ 1,
       doc &gt;= 2.50 &amp; doc &lt;= 2.61 ~ 3,
       doc &lt; 2.50 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(pheophytin_rating = case_when(
+  mutate(pheophytin_score = case_when(
       pheophytin &gt; 0.90 ~ 1,
       pheophytin &gt;= 0.55 &amp; pheophytin &lt;= 0.90 ~ 3,
       pheophytin &lt; 0.55 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(prorocentrum_minimum_abundance_rating = case_when(
+  mutate(prorocentrum_minimum_abundance_score = case_when(
       prorocentrum_minimum_abundance &gt; 7488 ~ 1,
       prorocentrum_minimum_abundance &gt;= 672 &amp; prorocentrum_minimum_abundance &lt;= 7488 ~ 3,
       prorocentrum_minimum_abundance &lt; 672 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(total_phyto_biomass_rating = case_when(
-      total_phyto_biomass &gt; 1061.7 ~ 1,
-      total_phyto_biomass &lt;= 1061.7 ~ as.numeric(NA),
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass &gt; 1061.7 ~ 1,
+      total_nano_micro_biomass &lt;= 1061.7 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) </code></pre>
 <pre class="r"><code>score_summer_f &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;summer&quot;,
-           salzone == &quot;f&quot;#,
-
-           ) %&gt;%
+           salzone == &quot;f&quot;) %&gt;%
   
-  mutate(surface_chla_rating = case_when(
+  mutate(surface_chla_score = case_when(
       surface_chla &gt; 12.30 ~ 1,
       (surface_chla &gt;= 12.00 &amp; surface_chla &lt;= 12.30) | surface_chla &lt;= 5.4 ~ 3,
       surface_chla &gt; 5.40 &amp; surface_chla &lt; 12.00 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(cyanophyte_biomass_rating = case_when(
+  mutate(cyanophyte_biomass_score = case_when(
       cyanophyte_biomass &gt; 67.4 ~ 1,
       cyanophyte_biomass &gt;= 38.87 &amp; cyanophyte_biomass &lt;= 67.4 ~ 3,
       cyanophyte_biomass &lt; 38.87 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(diatom_biomass_rating = case_when(
+  mutate(diatom_biomass_score = case_when(
       diatom_biomass &gt; 192.6 ~ 1,
       diatom_biomass &gt;= 122.1 &amp; diatom_biomass &lt;= 192.6 ~ 3,
       diatom_biomass &lt; 122.1 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(doc_rating = case_when(
+  mutate(doc_score = case_when(
       doc &gt; 3.18 ~ 1,
       doc &gt;= 2.67 &amp; doc &lt;= 3.18 ~ 3,
       doc &lt; 2.67 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(microcystis_aeruginosa_abundance_rating = case_when(
+  mutate(microcystis_aeruginosa_abundance_score = case_when(
       microcystis_aeruginosa_abundance &gt; 262507 ~ 1,
       microcystis_aeruginosa_abundance &lt;= 262507 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(pheophytin_rating = case_when(
+  mutate(pheophytin_score = case_when(
       pheophytin &gt; 4.30 ~ 1,
       pheophytin &gt;= 2.40 &amp; pheophytin &lt;= 4.30 ~ 3,
       pheophytin &lt; 2.40 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(total_phyto_biomass_rating = case_when(
-      total_phyto_biomass &gt; 555.7 ~ 1,
-      total_phyto_biomass &lt; 231.3 ~ 3,
-      total_phyto_biomass &gt;= 231.3 &amp; total_phyto_biomass &lt;= 555.7 ~ 5,
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass &gt; 555.7 ~ 1,
+      total_nano_micro_biomass &lt; 231.3 ~ 3,
+      total_nano_micro_biomass &gt;= 231.3 &amp; total_nano_micro_biomass &lt;= 555.7 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
 <pre class="r"><code>score_summer_o &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;summer&quot;,
-           salzone == &quot;o&quot;#,
-
-           ) %&gt;%
-  mutate(surface_chla_rating = case_when(
+           salzone == &quot;o&quot;) %&gt;%
+  
+  mutate(surface_chla_score = case_when(
       surface_chla &gt;= 9.47 ~ 1,
       surface_chla &lt;= 4.20 ~ 3,
       surface_chla &gt; 4.20 &amp; surface_chla &lt; 9.47 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(cyanophyte_biomass_rating = case_when(
+  mutate(cyanophyte_biomass_score = case_when(
       cyanophyte_biomass &gt;= 26.55 ~ 1,
       cyanophyte_biomass &lt; 1.79 ~ 3,
       cyanophyte_biomass &gt;= 1.79 &amp; cyanophyte_biomass &lt; 26.55 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(diatom_biomass_rating = case_when(
+  mutate(diatom_biomass_score = case_when(
       diatom_biomass &gt;= 126.59 ~ 1,
       diatom_biomass &lt;= 44.14 ~ 3,
       diatom_biomass &gt; 44.14 &amp; diatom_biomass &lt; 126.59 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(doc_rating = case_when(
+  mutate(doc_score = case_when(
       doc &gt; 4.00 ~ 1,
       doc &gt;= 3.15 &amp; doc &lt;= 4.00 ~ 3,
       doc &lt; 3.15 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(pheophytin_rating = case_when(
+  mutate(pheophytin_score = case_when(
       pheophytin &gt; 2.81 ~ 1,
       pheophytin &gt;= 1.58 &amp; pheophytin &lt;= 2.81 ~ 3,
       pheophytin &lt; 1.58 ~ 5,
@@ -1640,48 +1323,47 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
 <pre class="r"><code>score_summer_m &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;summer&quot;,
-           salzone == &quot;m&quot;#,
-
-           ) %&gt;%
-  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
-      total_phyto_biomass_chla_ratio &lt; 32.2 ~ 1,
-      total_phyto_biomass_chla_ratio &gt;= 32.2 &amp; total_phyto_biomass_chla_ratio &lt;= 36.9 ~ 3,
-      total_phyto_biomass_chla_ratio &gt; 36.9 ~ 5,
+           salzone == &quot;m&quot;) %&gt;%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio &lt; 32.2 ~ 1,
+      total_nano_micro_biomass_chla_ratio &gt;= 32.2 &amp; total_nano_micro_biomass_chla_ratio &lt;= 36.9 ~ 3,
+      total_nano_micro_biomass_chla_ratio &gt; 36.9 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
 
-  mutate(surface_chla_rating = case_when(
+  mutate(surface_chla_score = case_when(
       surface_chla &gt;= 9.74 ~ 1,
       (surface_chla &gt;= 7.70 &amp; surface_chla &lt; 9.74) | surface_chla &lt;= 4.00 ~ 3,
       surface_chla &gt; 4.00 &amp; surface_chla &lt; 7.70 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(dinoflagellate_biomass_rating = case_when(
+  mutate(dinoflagellate_biomass_score = case_when(
       dinoflagellate_biomass &lt;= 31.22 | dinoflagellate_biomass &gt; 200.92 ~ 1,
       dinoflagellate_biomass &gt; 31.22 &amp; dinoflagellate_biomass&lt;= 55.98 ~ 3, 
       dinoflagellate_biomass &gt; 55.98 &amp; dinoflagellate_biomass &lt; 200.92 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(doc_rating = case_when(
+  mutate(doc_score = case_when(
       doc &gt; 3.35 ~ 1,
       doc &gt;= 2.99 &amp; doc &lt;= 3.35 ~ 3,
       doc &lt; 2.99 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(pheophytin_rating = case_when(
+  mutate(pheophytin_score = case_when(
       pheophytin &gt; 1.60 ~ 1,
       pheophytin &gt;= 1.23 &amp; pheophytin &lt;= 1.60 ~ 3,
       pheophytin &lt; 1.23 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(picoplankton_abundance_rating = case_when(
+  mutate(picoplankton_abundance_score = case_when(
       picoplankton_abundance &lt; 352000000 ~ 1,
       picoplankton_abundance &gt;= 352000000 &amp; picoplankton_abundance &lt;= 598720000 ~ 3,
       picoplankton_abundance &gt; 598720000 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(total_phyto_biomass_rating = case_when(
-      total_phyto_biomass &gt; 660 ~ 1,
-      total_phyto_biomass &lt;= 660 ~ as.numeric(NA),
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass &gt; 660 ~ 1,
+      total_nano_micro_biomass &lt;= 660 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) </code></pre>
 <pre class="r"><code>score_summer_p &lt;- metrics_prep.df %&gt;% 
   filter(
@@ -1689,97 +1371,116 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
            salzone == &quot;p&quot;#,
 
            ) %&gt;%
-  mutate(total_phyto_biomass_chla_ratio_rating = case_when(
-      total_phyto_biomass_chla_ratio &lt; 37.7 ~ 1,
-      total_phyto_biomass_chla_ratio &gt;= 37.7 &amp; total_phyto_biomass_chla_ratio &lt;= 74.5 ~ 3,
-      total_phyto_biomass_chla_ratio &gt; 74.5 ~ 5,
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio &lt; 37.7 ~ 1,
+      total_nano_micro_biomass_chla_ratio &gt;= 37.7 &amp; total_nano_micro_biomass_chla_ratio &lt;= 74.5 ~ 3,
+      total_nano_micro_biomass_chla_ratio &gt; 74.5 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
 
-  mutate(surface_chla_rating = case_when(
+  mutate(surface_chla_score = case_when(
       surface_chla &gt; 5.33 ~ 1,
       surface_chla &gt;= 4.52 &amp; surface_chla &lt;= 5.33 ~ 3,
       surface_chla &lt; 4.52 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(pct_cryptophyte_rating = case_when(
+  mutate(pct_cryptophyte_score = case_when(
       pct_cryptophyte &gt; 6.5 ~ 1,
       pct_cryptophyte &gt;= 3.9 &amp; pct_cryptophyte &lt;= 6.5 ~ 3,
       pct_cryptophyte&lt; 3.9 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(diatom_biomass_rating = case_when(
+  mutate(diatom_biomass_score = case_when(
       diatom_biomass &gt;= 799 | diatom_biomass &lt; 137 ~ 1,
       diatom_biomass &gt;= 137 &amp; diatom_biomass &lt;= 181 ~ 3,
       diatom_biomass &gt; 181 &amp; diatom_biomass &lt; 799 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(dinoflagellate_biomass_rating = case_when(
+  mutate(dinoflagellate_biomass_score = case_when(
       dinoflagellate_biomass &lt; 23 | dinoflagellate_biomass &gt;= 544 ~ 1,
       dinoflagellate_biomass &gt;= 23 &amp; dinoflagellate_biomass &lt;= 37 ~ 3, 
       dinoflagellate_biomass &gt; 37 &amp; dinoflagellate_biomass &lt; 554 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(doc_rating = case_when(
+  mutate(doc_score = case_when(
       doc &gt; 2.80 ~ 1,
       doc &gt;= 2.58 &amp; doc &lt;= 2.80 ~ 3,
       doc &lt; 2.58 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(pheophytin_rating = case_when(
+  mutate(pheophytin_score = case_when(
       pheophytin &gt; 1.50 ~ 1,
       pheophytin &gt;= 0.93 &amp; pheophytin &lt;= 1.50 ~ 3,
       pheophytin &lt; 0.93 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-  mutate(picoplankton_abundance_rating = case_when(
+  mutate(picoplankton_abundance_score = case_when(
       picoplankton_abundance &lt; 208600000 ~ 1,
       picoplankton_abundance &gt;= 208600000 &amp; picoplankton_abundance &lt;= 269500000 ~ 3,
       picoplankton_abundance &gt; 269500000 ~ 5,
       TRUE ~ as.numeric(NA))) %&gt;%
   
-    mutate(total_phyto_biomass_rating = case_when(
-      total_phyto_biomass &lt; 181 | total_phyto_biomass &gt; 831 ~ 1,
-      (total_phyto_biomass &gt;= 181 &amp; total_phyto_biomass &lt;= 207) | (total_phyto_biomass &gt;= 718 &amp; total_phyto_biomass &lt;= 831) ~ 3,
-      total_phyto_biomass &lt; 718 ~ 5,
+    mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass &lt; 181 | total_nano_micro_biomass &gt; 831 ~ 1,
+      (total_nano_micro_biomass &gt;= 181 &amp; total_nano_micro_biomass &lt;= 207) | (total_nano_micro_biomass &gt;= 718 &amp; total_nano_micro_biomass &lt;= 831) ~ 3,
+      total_nano_micro_biomass &lt; 718 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
 <pre class="r"><code>all_seasons &lt;- bind_rows(score_spring_f, score_spring_o ,score_spring_m, score_spring_p, score_summer_f, score_summer_o, score_summer_m, score_summer_p)</code></pre>
-<pre class="r"><code>test &lt;-  bay_full_calc.df %&gt;%
-  filter(is.na(season) | is.na(salzone))</code></pre>
+<pre class="r"><code>test &lt;-  all_seasons %&gt;%
+  filter(unique_id == &quot;cb6.1_ap_fs1_2016-04-27&quot;) %&gt;%
+  distinct()</code></pre>
 <pre class="r"><code>#disable scientific notation
 options(scipen=999)
 
+#converts all NA values in all_seasons to zero
+all_seasons[is.na(all_seasons)] &lt;- 0 
+ 
 
-
-
-test_all_seasons &lt;- all_seasons 
-
-#this is not what we want to do
-test_all_seasons[is.na(test_all_seasons)] &lt;- 0 
-
-scores_ratings_final &lt;- test_all_seasons%&gt;%
-    # mutate(ibi_score =  case_when(season == &quot;spring&quot; &amp; salzone == &quot;f&quot; ~ mean(total_phyto_biomass_chla_ratio_rating, surface_chla_rating, cyanophyte_biomass_rating, doc_rating, pheophytin_rating, total_phyto_biomass_rating, na.rm = T), TRUE~ as.numeric(NA)))
+scores_ratings_final &lt;- all_seasons%&gt;%
   
-  mutate(ibi_score =  case_when(season == &quot;spring&quot; &amp; salzone == &quot;f&quot; ~ (total_phyto_biomass_chla_ratio_rating + surface_chla_rating + cyanophyte_biomass_rating + doc_rating + pheophytin_rating + total_phyto_biomass_rating) / 6,
+  mutate(ibi_score =  case_when(season == &quot;spring&quot; &amp; salzone == &quot;f&quot; ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + cyanophyte_biomass_score + doc_score + pheophytin_score + total_nano_micro_biomass_score)/ 6,
                                 
-                                  season == &quot;spring&quot; &amp; salzone == &quot;o&quot; ~ (total_phyto_biomass_chla_ratio_rating + surface_chla_rating + doc_rating + pheophytin_rating +  total_phyto_biomass_rating) / 5,
+                                  season == &quot;spring&quot; &amp; salzone == &quot;o&quot; ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + doc_score + pheophytin_score +  total_nano_micro_biomass_score) / 5,
                                 
-                                  season == &quot;spring&quot; &amp; salzone == &quot;m&quot; ~ (total_phyto_biomass_chla_ratio_rating + surface_chla_rating + diatom_biomass_rating + dinoflagellate_biomass_rating + doc_rating + pheophytin_rating + prorocentrum_minimum_abundance_rating + total_phyto_biomass_rating) / 8,
+                                  season == &quot;spring&quot; &amp; salzone == &quot;m&quot; ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + diatom_biomass_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + prorocentrum_minimum_abundance_score + total_nano_micro_biomass_score) / 8,
                                 
-                                  season == &quot;spring&quot; &amp; salzone == &quot;p&quot; ~ (total_phyto_biomass_chla_ratio_rating + surface_chla_rating + pct_cryptophyte_rating + doc_rating + pheophytin_rating + prorocentrum_minimum_abundance_rating + total_phyto_biomass_rating) / 7,
-                                
-                                
-                                  season == &quot;summer&quot; &amp; salzone == &quot;f&quot; ~ ( surface_chla_rating + cyanophyte_biomass_rating + diatom_biomass_rating + doc_rating + microcystis_aeruginosa_abundance_rating + pheophytin_rating + total_phyto_biomass_rating) / 7,
-                                
-                                  season == &quot;summer&quot; &amp; salzone == &quot;o&quot; ~ (surface_chla_rating + cyanophyte_biomass_rating + diatom_biomass_rating + doc_rating + pheophytin_rating) / 5,
-                                
-                                  season == &quot;summer&quot; &amp; salzone == &quot;m&quot; ~ (total_phyto_biomass_chla_ratio_rating + surface_chla_rating + dinoflagellate_biomass_rating + doc_rating + pheophytin_rating + picoplankton_abundance_rating + total_phyto_biomass_rating) / 7,
-                                
-                                  season == &quot;summer&quot; &amp; salzone == &quot;p&quot; ~ (total_phyto_biomass_chla_ratio_rating +
-surface_chla_rating + pct_cryptophyte_rating + diatom_biomass_rating + dinoflagellate_biomass_rating + doc_rating + pheophytin_rating + picoplankton_abundance_rating + total_phyto_biomass_rating) / 9,
+                                  season == &quot;spring&quot; &amp; salzone == &quot;p&quot; ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + pct_cryptophyte_score + doc_score + pheophytin_score + prorocentrum_minimum_abundance_score + total_nano_micro_biomass_score) / 7,
                                 
                                 
+                                  season == &quot;summer&quot; &amp; salzone == &quot;f&quot; ~ ( surface_chla_score + cyanophyte_biomass_score + diatom_biomass_score + doc_score + microcystis_aeruginosa_abundance_score + pheophytin_score + total_nano_micro_biomass_score) / 7,
                                 
-                                                TRUE~ as.numeric(NA)))</code></pre>
+                                  season == &quot;summer&quot; &amp; salzone == &quot;o&quot; ~ (surface_chla_score + cyanophyte_biomass_score + diatom_biomass_score + doc_score + pheophytin_score) / 5,
+                                
+                                  season == &quot;summer&quot; &amp; salzone == &quot;m&quot; ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + picoplankton_abundance_score + total_nano_micro_biomass_score) / 7,
+                                
+                                  season == &quot;summer&quot; &amp; salzone == &quot;p&quot; ~ (total_nano_micro_biomass_chla_ratio_score +
+surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + picoplankton_abundance_score + total_nano_micro_biomass_score) / 9,
+                                
+                                
+                                
+                                                TRUE~ 0
+  )) </code></pre>
+<p>replace 0 values in scores with blanks for clarity</p>
+<pre class="r"><code>scores_ratings_final &lt;- scores_ratings_final %&gt;%
+  mutate_at(vars(ends_with(&quot;_score&quot;)), list( 
+  ~case_when(.== 0 ~ &quot; &quot;, TRUE~ as.character(.))))</code></pre>
+</div>
+<div id="ratings" class="section level4">
+<h4>ratings</h4>
+<pre class="r"><code>scores_ratings_final &lt;- scores_ratings_final %&gt;%
+  #mutate(ibi_score = round(ibi_score, 2)) %&gt;%
+  mutate(
+      rating = case_when(
+        ibi_score &lt; 2 ~ &quot;poor&quot;,
+        ibi_score &gt;= 2 &amp; ibi_score &lt; 2.67 ~ &quot;fair_poor&quot;,
+        ibi_score &gt;= 2.67 &amp; ibi_score &lt; 3.33 ~ &quot;fair&quot;,
+        ibi_score &gt;= 3.33 &amp; ibi_score &lt; 4 ~ &quot;fair_good&quot;,
+        ibi_score &gt;= 4 ~ &quot;good&quot;,
+        TRUE ~ &quot;ERROR&quot;))</code></pre>
+<p>clean-up the dataframe before exporting</p>
+<pre class="r"><code>scores_ratings_final &lt;- scores_ratings_final %&gt;%
+  select(-chla) %&gt;%
+  select(-rating ,rating)</code></pre>
+<p>Save the final score to directory data/ScoresRatings</p>
 <pre class="r"><code>scores_ratings_final %&gt;% 
 data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), &quot;data/ScoresRatings&quot;, &quot;final_scores_ratings.csv&quot;))</code></pre>
 </div>
