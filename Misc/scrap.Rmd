@@ -271,20 +271,37 @@ LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla",
 
 
 
+this is a check to see if any wq.df sampledate values fall outside of the date range.  None do
+```{r}
+print(min(wq.df$sampledate))
+
+print(max(wq.df$sampledate))
+
+narrow_date_range.df <-  wq.df %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  filter( sampledate < as.Date("2013-1-1'") |  sampledate > as.Date("2016-12-31"))
 
 
+```
 
+"ProjectId":7,"ProjectIdentifier":"MAIN","ProjectName":"Tidal Mainstem Water Quality Monitoring Project"
+"ProjectId":16,"ProjectIdentifier":"PART","ProjectName":"Tidal Non-Traditional Partners"
+"ProjectId":23,"ProjectIdentifier":"TRIB","ProjectName":"Tidal Tributary Water Quality Monitoring Project"
+"ProjectId":24,"ProjectIdentifier":"TSPECIAL","ProjectName":"Special Tidal Water Quality Monitoring Project"
 
-
+```{r}
+missing_other.df <- wq.df %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  #filter(eventid == 394855 %>% 
+  filter(totaldepth <= 5 & station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")) 
+  #filter( station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1") &  (is.na(layer)) |!layer %in% c("s","f","m","p", "ap","b", "bp"))
+```
 
 ```{r}
 # test <- scores_ratings_final %>%
 #   mutate(test = (diatom_biomass + dinoflagellate_biomass + cryptophyte_biomass + cyanophyte_biomass)) %>%
 #   select(total_biomass, total_nano_micro_biomass, test)
 ```
-
-
-
 
 ```{r}
 # test_id <-  metrics_prep.df %>%

@@ -17,7 +17,7 @@ knitr::opts_chunk$set(error = TRUE)
 
 
 
-#### Download Packages
+# Download Packages
 ```{r load_packages, message=FALSE}
 library(dplyr)
 library(tidyr)
@@ -39,8 +39,8 @@ library(parallel)
 
 this is an example of `code`
 
-#### Funcs and Variables
-these varaible should be changed by the user as needed.
+# Funcs and Variables
+these varaible should be changed by the user as needed.  Use min_date and max date to set the date range of the data you want to download.  Note that max date can be set to variable `todays.date` if you want to grab the most up to date data every time you run the download code.  Also, note that the format of the date input into these variables must match with the examples in place below(`xx-xx-xxxx`). 
 ```{r}
 #this is the minimum date to be included
 min_date = "1-1-2013"
@@ -48,7 +48,7 @@ min_date = "1-1-2013"
 max_date = "12-31-2016"
 ```
 
-these variables references values found in the API guide at http://datahub.chesapeakebay.net 
+The below variables references values found in the API guide at http://datahub.chesapeakebay.net/API .  They should not need to be changed, unless changes occur to the API's structure.  If you run into problems during the Download CEDR data step below, you may want to check the API guide for the number values associated with these parameters.
 ```{r}
 #number for picoplankton in CEDR api
 pico_num = "18"
@@ -61,15 +61,17 @@ chla=21
 doc=34 
 pheo=74 
 salinity=83
-
-#data_source = ""
 ```
 
-variables and functions that will likely not be changed
+All other variables and functions will likely not need to be changed
 
 The clean_string() function modifies character objects by removing leading/trailing white space, converting all characters to lower case, and replacing all spaces (" “) with an underscore (”_“). These specifications eliminate common typos and standardize character objects.
 
 The clean_up() function is a wrapper for clean_string(). This function applies clean_string() to the column headers and character columns of data frames. Again, this process standardizes character values and makes it easier work with the data.
+
+The use of the dir.creat structure ensures that the proper directory structure is in place.  If you have pulled this document down rfom GIT, the full directory structure will already be in place.
+
+`station.vec` is another required input for the CEDR data pull in the next step.
 
 ```{r}
 project.dir <- rprojroot::find_rstudio_root_file()
@@ -91,7 +93,7 @@ clean_up <- function(x) {
     distinct()
 }
 
-#thisvariable holds the url for the CEDR api
+#this variable holds the url for the CEDR api
 url.root <- "http://datahub.chesapeakebay.net/api.JSON"
 todays.date <- format(Sys.Date(), "%m-%d-%Y")
 
@@ -126,9 +128,7 @@ station.vec <- file.path(url.root,
 
 ```
 
-#### CEDR data
-
-
+# CEDR data acquisition
 
 upload the sample and event data from cedr to a dataframe(phyto.df) using the CEDR(chesapeakebay.net) api
 ```{r}
@@ -138,9 +138,7 @@ phyto.df <- file.path(url.root,
                       "TidalPlankton",
                       "Reported",
                        min_date,
-                       # "1-1-2013",
                        max_date, 
-                       # "12-31-2016",
                       phyto_num,
                       "Station",
                       paste(station.vec, collapse = ",")) %>%
@@ -162,10 +160,8 @@ event.df <- file.path(url.root,
                       "LivingResources",
                       "TidalPlankton",
                       "MonitorEvent",
-                       min_date,
-                       # "1-1-2013",
-                       max_date, 
-                       # "12-31-2016",
+                      min_date,
+                      max_date, 
                       phyto_num,
                       "Station",
                       paste(station.vec, collapse = ",")) %>%
@@ -179,17 +175,15 @@ event.df <- file.path(url.root,
 data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_event.csv"))
 ```
 
-pico data(note that the number above "station" is now 18 rather than 17.  The project id for picoplankton is 18, and 17 for phytoplankton)
+pico data(note that the number above "station" is now 18 rather than 17.  The project id for picoplankton is 18, and 17 for phytoplankton).  Download the data and then write the dataframe to the data/CEDR/ directory as a csv.
 ```{r}
 pico.df <- file.path(url.root,
                       "LivingResources",
                       "TidalPlankton",
                       "Reported",
-                       min_date,
-                       # "1-1-2013",
-                       max_date, 
-                       # "12-31-2016",
-                       pico_num,
+                      min_date,
+                      max_date, 
+                      pico_num,
                       "Station",
                       paste(station.vec, collapse = ",")) %>%
   fromJSON() %>% 
@@ -197,7 +191,7 @@ pico.df <- file.path(url.root,
 
 
 pico.df %>% 
-  mutate(reportingvalue = as.character(reportingvalue)) %>% #need this?
+  mutate(reportingvalue = as.character(reportingvalue)) %>% 
 data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
 ```
 
@@ -205,7 +199,7 @@ data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
 Read csv's to dataframes
 
 
-You can run the code from here if you've already pulled from the api
+It is recommendedthat you run the code from here if you've already pulled from the api.  It will save time to start from here.  You will need to run the variables and functions section again to populate them into your RStudio environment tab. 
 CEDR
 ```{r}
 phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
@@ -216,9 +210,9 @@ pico.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_tax
 
 ```
 
-#### water quality data
+# Water Quality Data
 
-download water quality data:
+downloading the water quality data is done in a similar manner as the event and sample data
 ```{r}
 wq.df <- file.path(url.root,
                    "WaterQuality",
@@ -226,65 +220,34 @@ wq.df <- file.path(url.root,
 
                    min_date,
                    max_date,
-                   # format(min(phyto.df$sampledate) - days(3), "%m-%d-%Y"),
-                   # format(max(phyto.df$sampledate) + days(3), "%m-%d-%Y"),
-                   "6",  #programIds..."6"" or, "2,4,6",
+                   "6",  #programIds
                    "7,23",#"7,16,23,24",  #projectIds
                    "station",
                    paste(station.vec, collapse = ","),
                    paste(
+                     #these are the parameter variables declared in Funcs and Variables section
                      chla,doc,pheo,salinity
                      , sep=",")) %>%
-                   #"21,34,74,83") %>% #parameter:21=chla, 34=doc, 74=pheo, 83=salinity
   fromJSON() %>% 
   clean_up()
 
 ```
-"ProjectId":7,"ProjectIdentifier":"MAIN","ProjectName":"Tidal Mainstem Water Quality Monitoring Project"
-"ProjectId":16,"ProjectIdentifier":"PART","ProjectName":"Tidal Non-Traditional Partners"
-"ProjectId":23,"ProjectIdentifier":"TRIB","ProjectName":"Tidal Tributary Water Quality Monitoring Project"
-"ProjectId":24,"ProjectIdentifier":"TSPECIAL","ProjectName":"Special Tidal Water Quality Monitoring Project"
-
-search for mutant ret3.1
-```{r}
-wq_mutant.df <- wq.df %>%
-  filter(eventid == 425680) #%>%
-  #filter(is.na(parameter)) 
-```
-
-```{r}
-missing_other.df <- wq.df %>%
-  mutate(sampledate = as.Date(sampledate)) %>%
-  #filter(eventid == 394855 %>% 
-  filter(totaldepth <= 5 & station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1")) 
-  #filter( station %in% c("tf3.3","tf4.2","tf5.5", "ret3.1","ret4.3","ret3.1") &  (is.na(layer)) |!layer %in% c("s","f","m","p", "ap","b", "bp"))
-```
-
-this is a check to see if any wq.df sampledate values fall outside of the date range.  None do
-```{r}
-print(min(wq.df$sampledate))
-
-print(max(wq.df$sampledate))
-
-narrow_date_range.df <-  wq.df %>%
-  mutate(sampledate = as.Date(sampledate)) %>%
-  filter( sampledate < as.Date("2013-1-1'") |  sampledate > as.Date("2016-12-31"))
+note: more information about programIds and projectIds canbe found at http://datahub.chesapeakebay.net/API
 
 
-```
-
+save the dataframe as a csv in the data/waterquality directory
 ```{r}
 data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
 
+the below code reads saved dataframe back into wq.df.  Runnning this code allows you to skip the downloading process in cases where your dataset is static.
 ```{r}
 wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
                             data.table = FALSE,
                            na.strings = c(""))
 ```
 
-run from war wq(right after CEDR pull) note: this is actually STEP 3
-we reduce the wq data to match teh phyto data
+we reduce the water quality data to match the phytoplankton data
 ```{r}
 #create concatinated id for phyto events
 phyto.df <- phyto.df %>%
@@ -304,21 +267,21 @@ wq.df <-wq.df %>%
   filter(concat %in% concat_vector) 
 ```
 
-selects columns from wq (eventid recently added)
+selects columns from water quality data
 ```{r}
 wq.df <- wq.df %>%
-  select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %>% #eventid,
+  select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %>% 
   mutate(sampledate=as.Date(sampledate))
 ```
 
-#### Prep Event
+# Prep Event Data
 
+
+sampledate from both phytoplankton data and event data are converted to date format
 ```{r}
 phyto.df <- phyto.df %>%
   mutate(sampledate = as.Date(sampledate))
-```
 
-```{r}
 event.df <- event.df %>%
   mutate(sampledate = as.Date(sampledate))
 ```
@@ -327,7 +290,7 @@ this is Zach's code for use with use for (I believe) older data that uses older 
 it's doing nothing for our current data set (2013-2016)
 ```{r}
 event.df <- event.df %>%
-  mutate(sampledate = as.Date(sampledate),
+    mutate(
          salzone = case_when(
            salzone %in% c("tf", "fe") ~ "f",
            salzone %in% c("m", "me") ~ "m",
@@ -337,15 +300,15 @@ event.df <- event.df %>%
          ))
 ```
 
+filter out all data outside of layers __above pycnocline__ and __water column__ and select only columsn we wish to join.
 ```{r}
 pdepth.df <- event.df %>%
   filter(layer %in% c("ap","wc")) %>%
-  mutate(sampledate = as.Date(sampledate)) %>%
   select(station, sampledate, pdepth) %>%
   dplyr::distinct()
 ```
 
-applies pdepth to water quality dataframe
+join selected event data to water quality data
 ```{r}
 wq_w_pdepth.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
 ```
@@ -595,7 +558,7 @@ wq_final.df <- wq_warm.wide %>%
  filter(season %in% c("spring", "summer"))
 ```
 
-#### Prep Carbon Data
+# Prep Carbon Data
 
 read the carbon data into a dataframe
 ```{r}
@@ -913,7 +876,7 @@ wq_final.df <- wq_final.df %>%
 bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate", "month", "season"))
 ```
 
-#### Calulate Metrics
+# Calulate Metrics
 
 selecting out unneeded columns, filter out na salzone entries, and pare down to your unique_id's
 ```{r}
@@ -1037,7 +1000,7 @@ bay_full_calc.df <- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = c("
 
 ```
 
-#### Scoring
+# Scoring
 
 ```{r}
   metric.vec <- c("total_nano_micro_biomass_chla_ratio",
@@ -1091,7 +1054,7 @@ metrics_prep.df <- metrics_prep.df %>%
                   picoplankton_abundance) 
 ```
 
-## Score Spring Fresh Water
+### Score Spring Fresh Water
 ```{r}
 
 score_spring_f <- metrics_prep.df %>% 
@@ -1134,7 +1097,7 @@ score_spring_f <- metrics_prep.df %>%
       TRUE ~ as.numeric(NA))) 
 ```
 
-## Score Spring Oligohaline
+### Score Spring Oligohaline
 ```{r}
 score_spring_o <- metrics_prep.df %>% 
   filter(
@@ -1172,7 +1135,7 @@ score_spring_o <- metrics_prep.df %>%
       TRUE ~ as.numeric(NA))) 
 ```
  
-## Score Spring Mesohaline  
+### Score Spring Mesohaline  
 ```{r}
 score_spring_m <- metrics_prep.df %>% 
   filter(
@@ -1227,7 +1190,7 @@ score_spring_m <- metrics_prep.df %>%
       TRUE ~ as.numeric(NA))) #%>%
 ```
 
-## Score Spring polyhaline
+### Score Spring polyhaline
 ```{r}
 score_spring_p <- metrics_prep.df %>% 
   filter(
@@ -1277,7 +1240,7 @@ score_spring_p <- metrics_prep.df %>%
   
 ```
 
-## Score Summer Fresh Water
+### Score Summer Fresh Water
 ```{r}
 score_summer_f <- metrics_prep.df %>% 
   filter(
@@ -1326,7 +1289,7 @@ score_summer_f <- metrics_prep.df %>%
       TRUE ~ as.numeric(NA))) 
 ```
 
-## Score Summer Oligohaline
+### Score Summer Oligohaline
 ```{r}
 score_summer_o <- metrics_prep.df %>% 
   filter(
@@ -1365,7 +1328,7 @@ score_summer_o <- metrics_prep.df %>%
   
 ```
 
-## Score Summer Mesohaline
+### Score Summer Mesohaline
 ```{r}
 score_summer_m <- metrics_prep.df %>% 
   filter(
@@ -1416,7 +1379,7 @@ score_summer_m <- metrics_prep.df %>%
 
 ```
 
-## Score Summer Polyhaline
+### Score Summer Polyhaline
 ```{r}
 score_summer_p <- metrics_prep.df %>% 
   filter(
@@ -1534,7 +1497,7 @@ scores_ratings_final <- scores_ratings_final %>%
 
 ```
 
-#### ratings
+# ratings
 ```{r}
 scores_ratings_final <- scores_ratings_final %>%
   #mutate(ibi_score = round(ibi_score, 2)) %>%

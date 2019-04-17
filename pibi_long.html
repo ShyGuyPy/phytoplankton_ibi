@@ -231,8 +231,8 @@ div.tocify {
 
 <p>supress error warnings</p>
 <pre class="r"><code>knitr::opts_chunk$set(error = TRUE)</code></pre>
-<div id="download-packages" class="section level4">
-<h4>Download Packages</h4>
+<div id="download-packages" class="section level1">
+<h1>Download Packages</h1>
 <pre class="r"><code>library(dplyr)</code></pre>
 <pre><code>## Warning: package 'dplyr' was built under R version 3.5.3</code></pre>
 <pre class="r"><code>library(tidyr)</code></pre>
@@ -254,14 +254,14 @@ library(ritis)</code></pre>
 <pre class="r"><code>library(parallel)</code></pre>
 <p>this is an example of <code>code</code></p>
 </div>
-<div id="funcs-and-variables" class="section level4">
-<h4>Funcs and Variables</h4>
-<p>these varaible should be changed by the user as needed.</p>
+<div id="funcs-and-variables" class="section level1">
+<h1>Funcs and Variables</h1>
+<p>these varaible should be changed by the user as needed. Use min_date and max date to set the date range of the data you want to download. Note that max date can be set to variable <code>todays.date</code> if you want to grab the most up to date data every time you run the download code. Also, note that the format of the date input into these variables must match with the examples in place below(<code>xx-xx-xxxx</code>).</p>
 <pre class="r"><code>#this is the minimum date to be included
 min_date = &quot;1-1-2013&quot;
 #this is the minimum date to be included, add the variable todays.date intot his variable if you want the most recent data
 max_date = &quot;12-31-2016&quot;</code></pre>
-<p>these variables references values found in the API guide at <a href="http://datahub.chesapeakebay.net" class="uri">http://datahub.chesapeakebay.net</a></p>
+<p>The below variables references values found in the API guide at <a href="http://datahub.chesapeakebay.net/API" class="uri">http://datahub.chesapeakebay.net/API</a> . They should not need to be changed, unless changes occur to the API’s structure. If you run into problems during the Download CEDR data step below, you may want to check the API guide for the number values associated with these parameters.</p>
 <pre class="r"><code>#number for picoplankton in CEDR api
 pico_num = &quot;18&quot;
 
@@ -272,12 +272,12 @@ phyto_num = &quot;17&quot;
 chla=21
 doc=34 
 pheo=74 
-salinity=83
-
-#data_source = &quot;&quot;</code></pre>
-<p>variables and functions that will likely not be changed</p>
+salinity=83</code></pre>
+<p>All other variables and functions will likely not need to be changed</p>
 <p>The clean_string() function modifies character objects by removing leading/trailing white space, converting all characters to lower case, and replacing all spaces (&quot; “) with an underscore (”_“). These specifications eliminate common typos and standardize character objects.</p>
 <p>The clean_up() function is a wrapper for clean_string(). This function applies clean_string() to the column headers and character columns of data frames. Again, this process standardizes character values and makes it easier work with the data.</p>
+<p>The use of the dir.creat structure ensures that the proper directory structure is in place. If you have pulled this document down rfom GIT, the full directory structure will already be in place.</p>
+<p><code>station.vec</code> is another required input for the CEDR data pull in the next step.</p>
 <pre class="r"><code>project.dir &lt;- rprojroot::find_rstudio_root_file()
 
 
@@ -297,7 +297,7 @@ clean_up &lt;- function(x) {
     distinct()
 }
 
-#thisvariable holds the url for the CEDR api
+#this variable holds the url for the CEDR api
 url.root &lt;- &quot;http://datahub.chesapeakebay.net/api.JSON&quot;
 todays.date &lt;- format(Sys.Date(), &quot;%m-%d-%Y&quot;)
 
@@ -330,8 +330,8 @@ station.vec &lt;- file.path(url.root,
   fromJSON() %&gt;% 
   pull(unique(MonitoringLocationId))</code></pre>
 </div>
-<div id="cedr-data" class="section level4">
-<h4>CEDR data</h4>
+<div id="cedr-data" class="section level1">
+<h1>CEDR data</h1>
 <p>upload the sample and event data from cedr to a dataframe(phyto.df) using the CEDR(chesapeakebay.net) api</p>
 <pre class="r"><code>phyto.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
@@ -409,8 +409,8 @@ event.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, 
 
 pico.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_pico_taxa.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))</code></pre>
 </div>
-<div id="water-quality-data" class="section level4">
-<h4>water quality data</h4>
+<div id="water-quality-data" class="section level1">
+<h1>water quality data</h1>
 <p>download water quality data:</p>
 <pre class="r"><code>wq.df &lt;- file.path(url.root,
                    &quot;WaterQuality&quot;,
@@ -474,8 +474,8 @@ wq.df &lt;-wq.df %&gt;%
   select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %&gt;% #eventid,
   mutate(sampledate=as.Date(sampledate))</code></pre>
 </div>
-<div id="prep-event" class="section level4">
-<h4>Prep Event</h4>
+<div id="prep-event" class="section level1">
+<h1>Prep Event</h1>
 <pre class="r"><code>phyto.df &lt;- phyto.df %&gt;%
   mutate(sampledate = as.Date(sampledate))</code></pre>
 <pre class="r"><code>event.df &lt;- event.df %&gt;%
@@ -680,8 +680,8 @@ if (nrow(wq_need_sal.df) &gt; 1) {
 
  filter(season %in% c(&quot;spring&quot;, &quot;summer&quot;))</code></pre>
 </div>
-<div id="prep-carbon-data" class="section level4">
-<h4>Prep Carbon Data</h4>
+<div id="prep-carbon-data" class="section level1">
+<h1>Prep Carbon Data</h1>
 <p>read the carbon data into a dataframe</p>
 <pre class="r"><code>carbon.df &lt;- data.table::fread(file.path(project.dir, &quot;data/carbon/&quot;, &quot;carbon_list_2014.csv&quot;)) %&gt;% clean_up()</code></pre>
 <p>carbon data needs to be reformatted to work with bay data</p>
@@ -929,8 +929,8 @@ wq_final.df &lt;- wq_final.df %&gt;%
 
 bay_wq_merged.df &lt;- left_join(bay_merged.df, wq_final.df, by = c(&quot;concat&quot;, &quot;station&quot;,&quot;sampledate&quot;, &quot;month&quot;, &quot;season&quot;))</code></pre>
 </div>
-<div id="calulate-metrics" class="section level4">
-<h4>Calulate Metrics</h4>
+<div id="calulate-metrics" class="section level1">
+<h1>Calulate Metrics</h1>
 <p>selecting out unneeded columns, filter out na salzone entries, and pare down to your unique_id’s</p>
 <pre class="r"><code>bay_wq_merged_calc.df  &lt;-  bay_wq_merged.df %&gt;%
 
@@ -1025,8 +1025,8 @@ bay_wq_merged_calc.df &lt;- bay_wq_merged_calc.df %&gt;%
 
 bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = c(&quot;concat&quot;))</code></pre>
 </div>
-<div id="scoring" class="section level4">
-<h4>Scoring</h4>
+<div id="scoring" class="section level1">
+<h1>Scoring</h1>
 <pre class="r"><code>  metric.vec &lt;- c(&quot;total_nano_micro_biomass_chla_ratio&quot;,
                   &quot;surface_chla&quot;,
                   &quot;chla&quot;,
@@ -1051,12 +1051,7 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
   rename(pct_cryptophyte = percent_cryptophyte_biomass) %&gt;%
   rename(surface_chla = s_chla) %&gt;%
   mutate(salzone = tolower(salzone)) </code></pre>
-<pre class="r"><code>test &lt;- metrics_prep.df %&gt;%
-  #filter( (season == &quot;summer&quot; &amp; salzone == &quot;F&quot;) | (season == &quot;summer&quot; &amp; salzone == &quot;f&quot;)) %&gt;%
-  filter(unique_id == &quot;cb6.1_ap_fs1_2016-04-27&quot;) %&gt;%
-
-  distinct()</code></pre>
-<p>try selecting only relevant fields</p>
+<p>select only the relevant fields</p>
 <pre class="r"><code>metrics_prep.df &lt;- metrics_prep.df %&gt;%
   select(unique_id, station, sampledate, samplenumber, season, salzone, total_nano_micro_biomass_chla_ratio,
                   surface_chla,
@@ -1071,8 +1066,9 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
                   pct_cryptophyte,
                   prorocentrum_minimum_abundance, 
                   microcystis_aeruginosa_abundance,
-                  picoplankton_abundance) #%&gt;%
-  #distinct()</code></pre>
+                  picoplankton_abundance) </code></pre>
+<div id="score-spring-fresh-water" class="section level3">
+<h3>Score Spring Fresh Water</h3>
 <pre class="r"><code>score_spring_f &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
@@ -1111,6 +1107,9 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
       total_nano_micro_biomass &gt;= 583.9 &amp; total_nano_micro_biomass &lt;= 828.5 ~ 3,
       total_nano_micro_biomass &gt; 172.99 &amp; total_nano_micro_biomass &lt; 583.9 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
+</div>
+<div id="score-spring-oligohaline" class="section level3">
+<h3>Score Spring Oligohaline</h3>
 <pre class="r"><code>score_spring_o &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
@@ -1145,6 +1144,9 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
       (total_nano_micro_biomass &gt;= 131.37 &amp; total_nano_micro_biomass &lt;= 133.67) | (total_nano_micro_biomass &gt;= 426.31 &amp; total_nano_micro_biomass &lt; 685.81) ~ 3,
       total_nano_micro_biomass &lt; 131.37 | total_nano_micro_biomass &gt;= 685.81 ~ 1,
       TRUE ~ as.numeric(NA))) </code></pre>
+</div>
+<div id="score-spring-mesohaline" class="section level3">
+<h3>Score Spring Mesohaline</h3>
 <pre class="r"><code>score_spring_m &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
@@ -1196,6 +1198,9 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
       total_nano_micro_biomass &gt; 1150 ~ 1,
       total_nano_micro_biomass &lt;= 1150 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) #%&gt;%</code></pre>
+</div>
+<div id="score-spring-polyhaline" class="section level3">
+<h3>Score Spring polyhaline</h3>
 <pre class="r"><code>score_spring_p &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
@@ -1241,6 +1246,9 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
       total_nano_micro_biomass &gt; 1061.7 ~ 1,
       total_nano_micro_biomass &lt;= 1061.7 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) </code></pre>
+</div>
+<div id="score-summer-fresh-water" class="section level3">
+<h3>Score Summer Fresh Water</h3>
 <pre class="r"><code>score_summer_f &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;summer&quot;,
@@ -1286,6 +1294,9 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
       total_nano_micro_biomass &lt; 231.3 ~ 3,
       total_nano_micro_biomass &gt;= 231.3 &amp; total_nano_micro_biomass &lt;= 555.7 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
+</div>
+<div id="score-summer-oligohaline" class="section level3">
+<h3>Score Summer Oligohaline</h3>
 <pre class="r"><code>score_summer_o &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;summer&quot;,
@@ -1320,6 +1331,9 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
       pheophytin &gt;= 1.58 &amp; pheophytin &lt;= 2.81 ~ 3,
       pheophytin &lt; 1.58 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
+</div>
+<div id="score-summer-mesohaline" class="section level3">
+<h3>Score Summer Mesohaline</h3>
 <pre class="r"><code>score_summer_m &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;summer&quot;,
@@ -1365,6 +1379,9 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
       total_nano_micro_biomass &gt; 660 ~ 1,
       total_nano_micro_biomass &lt;= 660 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) </code></pre>
+</div>
+<div id="score-summer-polyhaline" class="section level3">
+<h3>Score Summer Polyhaline</h3>
 <pre class="r"><code>score_summer_p &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;summer&quot;,
@@ -1464,8 +1481,9 @@ surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagella
   mutate_at(vars(ends_with(&quot;_score&quot;)), list( 
   ~case_when(.== 0 ~ &quot; &quot;, TRUE~ as.character(.))))</code></pre>
 </div>
-<div id="ratings" class="section level4">
-<h4>ratings</h4>
+</div>
+<div id="ratings" class="section level1">
+<h1>ratings</h1>
 <pre class="r"><code>scores_ratings_final &lt;- scores_ratings_final %&gt;%
   #mutate(ibi_score = round(ibi_score, 2)) %&gt;%
   mutate(
