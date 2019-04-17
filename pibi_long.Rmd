@@ -300,7 +300,7 @@ event.df <- event.df %>%
          ))
 ```
 
-filter out all data outside of layers __above pycnocline__ and __water column__ and select only columsn we wish to join.
+filter out all data outside of layers __above pycnocline__ and __water column__ and select only columns we wish to join.
 ```{r}
 pdepth.df <- event.df %>%
   filter(layer %in% c("ap","wc")) %>%
@@ -308,33 +308,30 @@ pdepth.df <- event.df %>%
   dplyr::distinct()
 ```
 
-join selected event data to water quality data
+join selected event data to water quality data (becoming water quality with pycnocline depth data)
 ```{r}
 wq_w_pdepth.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
 ```
 
 determine if depth is above pdepth
-with exception for RET stations
+with exception for RET stations included if needed(RET stations can be problematic)
 ```{r}
 wq_w_pdepth.df <- wq_w_pdepth.df %>%
   mutate(above_pdepth = case_when(depth <= pdepth~"Yes",
                                   #depth > pdepth & station %in% c("ret3.1","ret4.3","ret3.1")~"No, but RET",
                                   depth > pdepth~"No"
-
                                   ))
 ```
 
+wq_w_pdepth becomes wq_above_pdepth by filtering out data with depth below or equal to pdepth
 ```{r}
 wq_above_pdepth.df <- wq_w_pdepth.df%>%
   filter(depth <= pdepth)
-
 ```
 
 check for missing(station and date combos that are present in event.df but not represtented in wq_above_pdepth.df) 
+find_missing is a function for finding backbone values missing from recently modified data and add them into recently modified(latest) date
 ```{r}
-step_4.vec <- c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid")
-
-#function for finding backbone values missing from recently modified data and add them into recently modified(latest) date
 find_missing <- function(data_backbone, source_data, modified_data, step_vector) {
   missing.df <- anti_join(data_backbone, modified_data, by = c("station","sampledate"))
   
@@ -380,12 +377,14 @@ name_missing <- function(data_backbone, source_data, modified_data, step_vector)
     return(final.df)
 }
 
-wq_above_pdepth.df <- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, step_4.vec)
+find_missing_apdepth.vec <- c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid")
+
+wq_above_pdepth.df <- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, find_missing_apdepth.vec)
 
 ```
 
 
-generate a new dataframe with new parameter s_chla (531 items, should be 533)
+generate a new dataframe with new parameter s_chla(surface chloraphyll a)
 ```{r}
 s_chla.df <- wq_above_pdepth.df %>%
   filter(layer == "s", 
@@ -394,6 +393,7 @@ s_chla.df <- wq_above_pdepth.df %>%
 ```
 
 Average replicates from s_chla ...measure value average
+generate depth integrated surface chlorophyll a
 ```{r}
 di_s_chla.df <- s_chla.df %>%
   group_by(station, sampledate, depth) %>%
@@ -405,13 +405,13 @@ di_s_chla.df <- s_chla.df %>%
 ```
 
 
-find missing values in step 5
+find missing values in di_s_chla.df and join them into the dataframe
 ```{r}
-step_5.vec <- c("station", "sampledate", "layer", "concat", "depth", "parameter", "eventid")
+find_missing_schla.vec <- c("station", "sampledate", "layer", "concat", "depth", "parameter", "eventid")
 
 
 #grabs missing values
-missing_s_chla.df <- name_missing(event.df, wq_above_pdepth.df, di_s_chla.df, step_5.vec) %>%
+missing_s_chla.df <- name_missing(event.df, wq_above_pdepth.df, di_s_chla.df, find_missing_schla.vec) %>%
   #reduce to only a single isntance for each eventid
   distinct(eventid, station, sampledate, concat) %>%
   mutate(parameter =  "s_chla") %>%
@@ -450,7 +450,6 @@ wq_above_pdepth.df <- wq_above_pdepth.df %>%
 
 join surface chloraphyl into water quality data
 measurevalued_averaged is renamed depth_integrated_value to match water quality naming convention
-(note:check against Claire's data to confirm that s_chla depth integrated values look right just to be sure)
 ```{r}
 di_s_chla.df <- di_s_chla.df %>% 
   rename(depth_integrated_value = measurevalue_averaged)
@@ -460,7 +459,7 @@ wq_all.df <- full_join(wq_above_pdepth.df, di_s_chla.df, by = c("station", "samp
 
 ```
 
-filter out dates outside Mar-May and Jul-Sept
+Select dates between Mar-May and Jul-Sept and assign a season value according to the range they fall into
 ```{r}
 wq_warm.df <- wq_all.df %>%
   mutate(month = month(sampledate),
@@ -491,11 +490,10 @@ wq_warm.df <- wq_warm.df %>%
     mutate(concat = paste0(station, sampledate))   
 
 
-wq_warm_sal.df <- left_join(wq_warm.df, wq_sal_id.df, by = c("concat"))#, "salzone"))
-
+wq_warm_sal.df <- left_join(wq_warm.df, wq_sal_id.df, by = c("concat"))
 ```
 
-Find events without salinity and assign salinity when possible...Assign F salzone to some station/season instances based on known salinity profiles
+Find events without salinity and assign salinity when possible. We can assign Fresh Water(F) salzone to some station/season instances based on known salinity profiles.
 ```{r}
 wq_no_sal.df <- anti_join(wq_warm_sal.df, wq_sal_id.df, by = c("concat"))
 
@@ -504,29 +502,20 @@ wq_sal_fill.df <-  wq_no_sal.df %>%
   mutate(salzone = case_when((station %in% c("cb1.1", "tf2.3", "tf4.2","tf5.5" ) & is.na(salzone)) | (season == "spring" & station %in% c("et5.1", "tf1.5")& is.na(salzone))
          ~ "F", TRUE ~ salzone  ))
 
-#test number of exceptions above code is catching
 wq_sal_filled.df <- wq_sal_fill.df %>%
   filter(salzone == "F")
-
-# test for number of na salzone values remaining
-test_na.df <- wq_sal_fill.df %>%
-  filter(is.na(salzone))
 ```
 
 Add the data assigned salzones back into backbone
 ```{r}
 wq_warm_sal_added.df <- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c("concat", "salzone","station","sampledate", "season"))
 
-# test to determine if we are retaining the right values
-test.df <- anti_join(wq_warm.df, wq_warm_sal_added.df,  by = c("concat", "station","sampledate", "season", "parameter", "month", "depth_integrated_value"))
 ```
 
 bring in Jackies data to compare salzones against
 import jackie's salzones if data falls within the applicable date range and is missing salzone data
 note:this should be the last method of acquiring salzone data implemented
-(this code is untested)
 ```{r}
-#jackie.df <- data.table::fread(file.path(project.dir, "data/Jackie/", "JMJ_PIBI_Salzone_Data.csv"))
 jackie_salzones.df <- readxl::read_excel(file.path(project.dir, "data/Jackie/JMJ_PIBI_Salzone_Data.xlsx"),
                          sheet = "JMJ Salzone+Scores") %>% clean_up() %>%
   rename(salzone = ibi_salzone)
@@ -545,6 +534,7 @@ if (nrow(wq_need_sal.df) > 1) {
              
 ```
 
+Convert to a wide format
 ```{r}
 wq_warm.wide <- wq_warm_sal_added.df %>%
   select(-layer, -depth,-eventid,-concat) %>%
@@ -601,7 +591,7 @@ bay.df <- taxa.raw %>%
            TRUE ~ "remove"
          )) %>% 
   filter(season %in% c("spring", "summer")) %>%
-  #changing types to match as is done in Zach's code using col.class.vec
+  #changing types to match as is done in Zach's original code using col.class.vec
   mutate(tsn=as.character(tsn)) %>%
   mutate(speccode = as.character(speccode)) %>%
   mutate(reportingvalue = as.integer(reportingvalue)) %>%
@@ -610,7 +600,6 @@ bay.df <- taxa.raw %>%
 bay.df <- bay.df %>%
     mutate(size = case_when(size == "not_applicable"~ as.character(NA), TRUE ~size))
 ```
-
 
 If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon. (currently removes a single value)
 ```{r}
@@ -631,7 +620,6 @@ bay.df <- bay.df %>%
                            "epiphytic_flagellates",
                            "hydrodictyon_reticulatum"))
 ```
-
 
 assigns tsn values to taxa that are not expected to be in the ITIS database
 ```{r}
@@ -705,34 +693,6 @@ bay.df <- bay.df %>%
   )
 ```
 
-carbon adjustments
-
-L. this code requires the diameter variable from the carbon sheet in jackie's data.  We are currently using the biomass_estimates sheet.  To run this code(if it is determined to be necessary), you will need to import the carbon sheet from jackie's data and append the diameter variable through a join.
-```{r}
-# carbon.df <- carbon.df %>% 
-#   mutate(size = case_when(
-#     size %in% "unidentified" ~ as.character(NA),
-#     str_detect(size, "species|sp.") ~ str_replace_all(size, "sp.#|species_#|species_|species", "sp#"),
-#     TRUE ~size
-#   ),
-#   latinname = if_else(latinname == "blue_green_trichome", "blue_green_sphere", latinname)) %>% 
-#   mutate(picoplankton = if_else(
-#     diameter <= 20 &
-#       height <= 20 &
-#       width <= 20 &
-#       width <= 20 &
-#       height_2 <= 20 &
-#       width_2 <= 20,
-#     TRUE,
-#     FALSE
-#   )) %>% 
-#   select(latinname, size, carbon) %>%
-#   distinct() %>% 
-#   bind_rows(data.frame(latinname = "asterionellopsis_glacialis", 
-#                        carbon = carbon.df[carbon.df$latinname == "asterionellopsis_kariana", "carbon"],
-#                        stringsAsFactors = FALSE))
-```
-
 check for duplicate values
 ```{r}
 carbon.dups <- carbon.df %>% 
@@ -751,13 +711,13 @@ carbon.df <- carbon.df %>%
 ```
 
 Identify all taxa (latinname) in bay.df that do not have a size equivalent in carbon.df.
-
 ```{r}
 no.match.df <- anti_join(bay.df, carbon.df, by = c("latinname", "size")) %>% 
   select(latinname, size) %>% 
   distinct()
 ```
 
+Attempt to find partial matches for taxa in no.match.df. Each row in no.match.df represents a unique taxon and size combination. lapply loops through each row, extracts the unique size string, splits the string into smaller pieces, and attempts to find partial matches with associated size strings in  carbon.df. The string in carbon.df with the most partial matches will be used to replace the size string in bay.df.
 ```{r}
 partial.match.df <- lapply(1:nrow(no.match.df), function(row.i) {
   sub.df <- no.match.df %>% 
@@ -786,30 +746,11 @@ partial.match.df <- lapply(1:nrow(no.match.df), function(row.i) {
   bind_rows()
 ```
 
+Merge bay.df with partial.match.df and if a new_size is present from partial.match.df, then replace the size string with the new_size string. By updating the size strings it is possible to obtain more matches when merging bay.df and carbon.df.
 ```{r}
 bay.df <- left_join(bay.df, partial.match.df, by = c("latinname", "size","tsn")) %>% 
   mutate(reported_size = size,
          size = if_else(!is.na(new_size), new_size, size))
-```
-
-
-fixes to carbon_list such as assigning tsn to latinnames with known tsns
-```{r}
-test_carbon.df <- carbon.df %>%
-  #mutate(size = ifelse(size =="microphytoflaggelates", "microphytoflagellates", size)) %>%
-  mutate(size = ifelse(size =="unidentified", as.character(NA), size)) %>%
-  mutate(tsn = case_when(latinname == "aphanizomenon_issatschenkoi"~as.integer(1191), 
-                         latinname == "chaetoceros_neogracilis"~as.integer(1004011), 
-                         latinname =="guinardia_striata" ~ as.integer(2921), 
-                         latinname == "lagerheimia" ~ as.integer(6017), 
-                         latinname == "odontella_alternans"~ as.integer(573604),
-                         #latinname == "protoperidinium_orbiculare" ~ as.integer(), 
-                         latinname == "psuedosolenia_calcar-avis" ~ as.integer(970064),
-                         
-                         #over-writes tsn of 591037 for the itis tsn of 591383
-                         latinname == "pleurosigma_obscurum" ~ as.integer(591383),
-                         
-                         TRUE ~ as.integer(tsn))) 
 ```
 
 adds asterionellopsis_glacialis to the carbon.df with asterionellopsis_kariana carbon value
@@ -842,23 +783,20 @@ bay.df <- bay.df %>%
   mutate(tsn = ifelse(tsn==2014, 2013, tsn))
 ```
 
+remove columns that will be replaced with data from carbon dataframe(next step)
+```{r}
+bay.df <- bay.df %>%
+  select(-nodc_phyla, -group) 
+```
 
-finally, join bay.df and carbon.df
+finally,join bay.df and carbon.df
 ```{r}
 bay_merged.df <- left_join(bay.df, carbon.df, by = c("latinname","size","tsn")) %>%
-  #remove dupliactes
+  #remove duplicates
   distinct()
 ```
 
-clean up bay_merged(make group and nodc_phyla from carbon_list primary variable and remove value brought in from bay.df)
-```{r}
-bay_merged.df <- bay_merged.df %>%
-  rename(group = group.y) %>%
-  rename(nodc_phyla = nodc_phyla.y) %>%
-  select(-group.x, -nodc_phyla.x)
-```
-
-turn carbon NA's into zeroes and calcualte nano_micro_biomass
+turn carbon NA's into zeroes and calcualte nano_micro_biomass.  
 ```{r}
 bay_merged.df <- bay_merged.df %>%
   mutate(carbon = ifelse(is.na(carbon)==TRUE, 0, carbon)) %>%
@@ -882,13 +820,11 @@ selecting out unneeded columns, filter out na salzone entries, and pare down to 
 ```{r}
 bay_wq_merged_calc.df  <-  bay_wq_merged.df %>%
 
-  
   mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_")) %>%
   select(-reported_size, -surveyid, -fieldactivityid, -source, -sampletype, -gmethod, -tsn, -size, -method, -parameter, -reportingunit, -nodccode, -serialnumber, -month, -new_size, -nodc_phyla, -speccode, -salinity) %>%
   
   filter(!is.na(salzone)) %>%
   distinct() 
-
 ```
 
 calculate metrics
