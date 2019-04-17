@@ -938,27 +938,7 @@ bay_full_calc.df <- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = c("
 
 # Scoring
 
-```{r}
-  metric.vec <- c("total_nano_micro_biomass_chla_ratio",
-                  "surface_chla",
-                  "chla",
-                  "doc",
-                  "pheophytin",
-                  "total_nano_micro_biomass", 
-                  "diatom_biomass",
-                  "dinoflagellate_biomass",
-                  "cyanophyte_biomass",
-                  "cryptophyte_biomass",
-                  "pct_cryptophyte",
-                  "prorocentrum_minimum_abundance", 
-                  "microcystis_aeruginosa_abundance",
-                  #"pico_reportingvalue" 
-                  "picoplankton_abundance"
-                  
-                  )
-```
-
-rename some metrics to fit Zach's code(that I have rewritten now)
+rename some metrics to fit the following code
 ```{r}
 metrics_prep.df <- bay_full_calc.df %>%
   rename(pheophytin = pheo) %>% 
@@ -989,6 +969,9 @@ metrics_prep.df <- metrics_prep.df %>%
                   microcystis_aeruginosa_abundance,
                   picoplankton_abundance) 
 ```
+
+
+The preceeding 8 chunks of code each correspond to a particular season and salinity zone combination.  Each one has very specific scoring ranges.  
 
 ### Score Spring Fresh Water
 ```{r}
@@ -1382,13 +1365,7 @@ score_summer_p <- metrics_prep.df %>%
 all_seasons <- bind_rows(score_spring_f, score_spring_o ,score_spring_m, score_spring_p, score_summer_f, score_summer_o, score_summer_m, score_summer_p)
 ```
 
-```{r}
-test <-  all_seasons %>%
-  filter(unique_id == "cb6.1_ap_fs1_2016-04-27") %>%
-  distinct()
-```
-
-
+the following generates the index of biotic integrity(ibi) scores
 ```{r}
 #disable scientific notation
 options(scipen=999)
@@ -1434,6 +1411,8 @@ scores_ratings_final <- scores_ratings_final %>%
 ```
 
 # ratings
+
+generate ratings for ibi scores within certain ranges
 ```{r}
 scores_ratings_final <- scores_ratings_final %>%
   #mutate(ibi_score = round(ibi_score, 2)) %>%

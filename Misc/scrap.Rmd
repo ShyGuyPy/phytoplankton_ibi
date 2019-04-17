@@ -263,7 +263,25 @@ LV_diff_check_step_10.df <- anti_join(s10_compare.df, step_10.df, by = c("chla",
 
 
 
-
+```{r}
+  metric.vec <- c("total_nano_micro_biomass_chla_ratio",
+                  "surface_chla",
+                  "chla",
+                  "doc",
+                  "pheophytin",
+                  "total_nano_micro_biomass", 
+                  "diatom_biomass",
+                  "dinoflagellate_biomass",
+                  "cyanophyte_biomass",
+                  "cryptophyte_biomass",
+                  "pct_cryptophyte",
+                  "prorocentrum_minimum_abundance", 
+                  "microcystis_aeruginosa_abundance",
+                  #"pico_reportingvalue" 
+                  "picoplankton_abundance"
+                  
+                  )
+```
 
 ```{r}
 
