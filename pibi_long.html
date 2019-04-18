@@ -330,17 +330,15 @@ station.vec &lt;- file.path(url.root,
   fromJSON() %&gt;% 
   pull(unique(MonitoringLocationId))</code></pre>
 </div>
-<div id="cedr-data" class="section level1">
-<h1>CEDR data</h1>
+<div id="cedr-data-acquisition" class="section level1">
+<h1>CEDR data acquisition</h1>
 <p>upload the sample and event data from cedr to a dataframe(phyto.df) using the CEDR(chesapeakebay.net) api</p>
 <pre class="r"><code>phyto.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
                       &quot;TidalPlankton&quot;,
                       &quot;Reported&quot;,
                        min_date,
-                       # &quot;1-1-2013&quot;,
                        max_date, 
-                       # &quot;12-31-2016&quot;,
                       phyto_num,
                       &quot;Station&quot;,
                       paste(station.vec, collapse = &quot;,&quot;)) %&gt;%
@@ -367,10 +365,8 @@ event.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
                       &quot;TidalPlankton&quot;,
                       &quot;MonitorEvent&quot;,
-                       min_date,
-                       # &quot;1-1-2013&quot;,
-                       max_date, 
-                       # &quot;12-31-2016&quot;,
+                      min_date,
+                      max_date, 
                       phyto_num,
                       &quot;Station&quot;,
                       paste(station.vec, collapse = &quot;,&quot;)) %&gt;%
@@ -382,16 +378,14 @@ event.df &lt;- file.path(url.root,
 
 
 data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), &quot;data/CEDR&quot;, &quot;cedr_phyto_event.csv&quot;))</code></pre>
-<p>pico data(note that the number above “station” is now 18 rather than 17. The project id for picoplankton is 18, and 17 for phytoplankton)</p>
+<p>pico data(note that the number above “station” is now 18 rather than 17. The project id for picoplankton is 18, and 17 for phytoplankton). Download the data and then write the dataframe to the data/CEDR/ directory as a csv.</p>
 <pre class="r"><code>pico.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
                       &quot;TidalPlankton&quot;,
                       &quot;Reported&quot;,
-                       min_date,
-                       # &quot;1-1-2013&quot;,
-                       max_date, 
-                       # &quot;12-31-2016&quot;,
-                       pico_num,
+                      min_date,
+                      max_date, 
+                      pico_num,
                       &quot;Station&quot;,
                       paste(station.vec, collapse = &quot;,&quot;)) %&gt;%
   fromJSON() %&gt;% 
@@ -399,10 +393,10 @@ data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), &quo
 
 
 pico.df %&gt;% 
-  mutate(reportingvalue = as.character(reportingvalue)) %&gt;% #need this?
+  mutate(reportingvalue = as.character(reportingvalue)) %&gt;% 
 data.table::fwrite(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_pico_taxa.csv&quot;))</code></pre>
 <p>Read csv’s to dataframes</p>
-<p>You can run the code from here if you’ve already pulled from the api CEDR</p>
+<p>It is recommendedthat you run the code from here if you’ve already pulled from the api. It will save time to start from here. You will need to run the variables and functions section again to populate them into your RStudio environment tab. CEDR</p>
 <pre class="r"><code>phyto.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_phyto_taxa.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))
 
 event.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_phyto_event.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))
@@ -410,49 +404,32 @@ event.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, 
 pico.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_pico_taxa.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))</code></pre>
 </div>
 <div id="water-quality-data" class="section level1">
-<h1>water quality data</h1>
-<p>download water quality data:</p>
+<h1>Water Quality Data</h1>
+<p>downloading the water quality data is done in a similar manner as the event and sample data</p>
 <pre class="r"><code>wq.df &lt;- file.path(url.root,
                    &quot;WaterQuality&quot;,
                    &quot;WaterQuality&quot;,
 
                    min_date,
                    max_date,
-                   # format(min(phyto.df$sampledate) - days(3), &quot;%m-%d-%Y&quot;),
-                   # format(max(phyto.df$sampledate) + days(3), &quot;%m-%d-%Y&quot;),
-                   &quot;6&quot;,  #programIds...&quot;6&quot;&quot; or, &quot;2,4,6&quot;,
+                   &quot;6&quot;,  #programIds
                    &quot;7,23&quot;,#&quot;7,16,23,24&quot;,  #projectIds
                    &quot;station&quot;,
                    paste(station.vec, collapse = &quot;,&quot;),
                    paste(
+                     #these are the parameter variables declared in Funcs and Variables section
                      chla,doc,pheo,salinity
                      , sep=&quot;,&quot;)) %&gt;%
-                   #&quot;21,34,74,83&quot;) %&gt;% #parameter:21=chla, 34=doc, 74=pheo, 83=salinity
   fromJSON() %&gt;% 
   clean_up()</code></pre>
-<p>“ProjectId”:7,“ProjectIdentifier”:“MAIN”,“ProjectName”:“Tidal Mainstem Water Quality Monitoring Project” “ProjectId”:16,“ProjectIdentifier”:“PART”,“ProjectName”:“Tidal Non-Traditional Partners” “ProjectId”:23,“ProjectIdentifier”:“TRIB”,“ProjectName”:“Tidal Tributary Water Quality Monitoring Project” “ProjectId”:24,“ProjectIdentifier”:“TSPECIAL”,“ProjectName”:“Special Tidal Water Quality Monitoring Project”</p>
-<p>search for mutant ret3.1</p>
-<pre class="r"><code>wq_mutant.df &lt;- wq.df %&gt;%
-  filter(eventid == 425680) #%&gt;%
-  #filter(is.na(parameter)) </code></pre>
-<pre class="r"><code>missing_other.df &lt;- wq.df %&gt;%
-  mutate(sampledate = as.Date(sampledate)) %&gt;%
-  #filter(eventid == 394855 %&gt;% 
-  filter(totaldepth &lt;= 5 &amp; station %in% c(&quot;tf3.3&quot;,&quot;tf4.2&quot;,&quot;tf5.5&quot;, &quot;ret3.1&quot;,&quot;ret4.3&quot;,&quot;ret3.1&quot;)) 
-  #filter( station %in% c(&quot;tf3.3&quot;,&quot;tf4.2&quot;,&quot;tf5.5&quot;, &quot;ret3.1&quot;,&quot;ret4.3&quot;,&quot;ret3.1&quot;) &amp;  (is.na(layer)) |!layer %in% c(&quot;s&quot;,&quot;f&quot;,&quot;m&quot;,&quot;p&quot;, &quot;ap&quot;,&quot;b&quot;, &quot;bp&quot;))</code></pre>
-<p>this is a check to see if any wq.df sampledate values fall outside of the date range. None do</p>
-<pre class="r"><code>print(min(wq.df$sampledate))</code></pre>
-<pre><code>## [1] &quot;2013-01-08t00:00:00&quot;</code></pre>
-<pre class="r"><code>print(max(wq.df$sampledate))</code></pre>
-<pre><code>## [1] &quot;2016-12-20t00:00:00&quot;</code></pre>
-<pre class="r"><code>narrow_date_range.df &lt;-  wq.df %&gt;%
-  mutate(sampledate = as.Date(sampledate)) %&gt;%
-  filter( sampledate &lt; as.Date(&quot;2013-1-1'&quot;) |  sampledate &gt; as.Date(&quot;2016-12-31&quot;))</code></pre>
+<p>note: more information about programIds and projectIds canbe found at <a href="http://datahub.chesapeakebay.net/API" class="uri">http://datahub.chesapeakebay.net/API</a></p>
+<p>save the dataframe as a csv in the data/waterquality directory</p>
 <pre class="r"><code>data.table::fwrite(wq.df, file.path(project.dir, &quot;data/water_quality&quot;, &quot;cedr_wq.csv&quot;))</code></pre>
+<p>the below code reads saved dataframe back into wq.df. Runnning this code allows you to skip the downloading process in cases where your dataset is static.</p>
 <pre class="r"><code>wq.df &lt;- data.table::fread(file.path(project.dir, &quot;data/water_quality/cedr_wq.csv&quot;),
                             data.table = FALSE,
                            na.strings = c(&quot;&quot;))</code></pre>
-<p>run from war wq(right after CEDR pull) note: this is actually STEP 3 we reduce the wq data to match teh phyto data</p>
+<p>we reduce the water quality data to match the phytoplankton data</p>
 <pre class="r"><code>#create concatinated id for phyto events
 phyto.df &lt;- phyto.df %&gt;%
   mutate( sampledate =  as.Date(sampledate)) %&gt;%
@@ -469,20 +446,22 @@ concat_vector &lt;- pull(phyto.df, concat)
 #include only the data in water quality data that has a matching concat id with phyto events
 wq.df &lt;-wq.df %&gt;%
   filter(concat %in% concat_vector) </code></pre>
-<p>selects columns from wq (eventid recently added)</p>
+<p>selects columns from water quality data</p>
 <pre class="r"><code>wq.df &lt;- wq.df %&gt;%
-  select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %&gt;% #eventid,
+  select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %&gt;% 
   mutate(sampledate=as.Date(sampledate))</code></pre>
 </div>
-<div id="prep-event" class="section level1">
-<h1>Prep Event</h1>
+<div id="prep-event-data" class="section level1">
+<h1>Prep Event Data</h1>
+<p>sampledate from both phytoplankton data and event data are converted to date format</p>
 <pre class="r"><code>phyto.df &lt;- phyto.df %&gt;%
-  mutate(sampledate = as.Date(sampledate))</code></pre>
-<pre class="r"><code>event.df &lt;- event.df %&gt;%
+  mutate(sampledate = as.Date(sampledate))
+
+event.df &lt;- event.df %&gt;%
   mutate(sampledate = as.Date(sampledate))</code></pre>
 <p>this is Zach’s code for use with use for (I believe) older data that uses older salzone designations, it’s doing nothing for our current data set (2013-2016)</p>
 <pre class="r"><code>event.df &lt;- event.df %&gt;%
-  mutate(sampledate = as.Date(sampledate),
+    mutate(
          salzone = case_when(
            salzone %in% c(&quot;tf&quot;, &quot;fe&quot;) ~ &quot;f&quot;,
            salzone %in% c(&quot;m&quot;, &quot;me&quot;) ~ &quot;m&quot;,
@@ -490,27 +469,24 @@ wq.df &lt;-wq.df %&gt;%
            salzone %in% c(&quot;p&quot;, &quot;pe&quot;) ~ &quot;p&quot;,
            TRUE ~ as.character(NA)
          ))</code></pre>
+<p>filter out all data outside of layers <strong>above pycnocline</strong> and <strong>water column</strong> and select only columns we wish to join.</p>
 <pre class="r"><code>pdepth.df &lt;- event.df %&gt;%
   filter(layer %in% c(&quot;ap&quot;,&quot;wc&quot;)) %&gt;%
-  mutate(sampledate = as.Date(sampledate)) %&gt;%
   select(station, sampledate, pdepth) %&gt;%
   dplyr::distinct()</code></pre>
-<p>applies pdepth to water quality dataframe</p>
+<p>join selected event data to water quality data (becoming water quality with pycnocline depth data)</p>
 <pre class="r"><code>wq_w_pdepth.df &lt;- left_join(wq.df, pdepth.df, by = c(&quot;station&quot;, &quot;sampledate&quot;))</code></pre>
-<p>determine if depth is above pdepth with exception for RET stations</p>
+<p>determine if depth is above pdepth with exception for RET stations included if needed(RET stations can be problematic)</p>
 <pre class="r"><code>wq_w_pdepth.df &lt;- wq_w_pdepth.df %&gt;%
   mutate(above_pdepth = case_when(depth &lt;= pdepth~&quot;Yes&quot;,
                                   #depth &gt; pdepth &amp; station %in% c(&quot;ret3.1&quot;,&quot;ret4.3&quot;,&quot;ret3.1&quot;)~&quot;No, but RET&quot;,
                                   depth &gt; pdepth~&quot;No&quot;
-
                                   ))</code></pre>
+<p>wq_w_pdepth becomes wq_above_pdepth by filtering out data with depth below or equal to pdepth</p>
 <pre class="r"><code>wq_above_pdepth.df &lt;- wq_w_pdepth.df%&gt;%
   filter(depth &lt;= pdepth)</code></pre>
-<p>check for missing(station and date combos that are present in event.df but not represtented in wq_above_pdepth.df)</p>
-<pre class="r"><code>step_4.vec &lt;- c(&quot;station&quot;, &quot;sampledate&quot;, &quot;layer&quot;, &quot;pdepth&quot;, &quot;concat&quot;, &quot;depth&quot;, &quot;parameter&quot;, &quot;measurevalue&quot;, &quot;above_pdepth&quot;, &quot;eventid&quot;)
-
-#function for finding backbone values missing from recently modified data and add them into recently modified(latest) date
-find_missing &lt;- function(data_backbone, source_data, modified_data, step_vector) {
+<p>check for missing(station and date combos that are present in event.df but not represtented in wq_above_pdepth.df) find_missing is a function for finding backbone values missing from recently modified data and add them into recently modified(latest) date</p>
+<pre class="r"><code>find_missing &lt;- function(data_backbone, source_data, modified_data, step_vector) {
   missing.df &lt;- anti_join(data_backbone, modified_data, by = c(&quot;station&quot;,&quot;sampledate&quot;))
   
   missing.df &lt;-  missing.df %&gt;%
@@ -555,25 +531,27 @@ name_missing &lt;- function(data_backbone, source_data, modified_data, step_vect
     return(final.df)
 }
 
-wq_above_pdepth.df &lt;- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, step_4.vec)</code></pre>
-<p>generate a new dataframe with new parameter s_chla (531 items, should be 533)</p>
+find_missing_apdepth.vec &lt;- c(&quot;station&quot;, &quot;sampledate&quot;, &quot;layer&quot;, &quot;pdepth&quot;, &quot;concat&quot;, &quot;depth&quot;, &quot;parameter&quot;, &quot;measurevalue&quot;, &quot;above_pdepth&quot;, &quot;eventid&quot;)
+
+wq_above_pdepth.df &lt;- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, find_missing_apdepth.vec)</code></pre>
+<p>generate a new dataframe with new parameter s_chla(surface chloraphyll a)</p>
 <pre class="r"><code>s_chla.df &lt;- wq_above_pdepth.df %&gt;%
   filter(layer == &quot;s&quot;, 
          parameter == &quot;chla&quot;) %&gt;% 
   unite(parameter, c(&quot;layer&quot;, &quot;parameter&quot;), remove = FALSE) #%&gt;%</code></pre>
-<p>Average replicates from s_chla …measure value average</p>
+<p>Average replicates from s_chla …measure value average generate depth integrated surface chlorophyll a</p>
 <pre class="r"><code>di_s_chla.df &lt;- s_chla.df %&gt;%
   group_by(station, sampledate, depth) %&gt;%
   #do not remove NAs
   mutate(measurevalue_averaged = mean(measurevalue)) %&gt;%
   distinct(station, sampledate, depth, eventid, layer, parameter, measurevalue_averaged, concat) %&gt;%
   ungroup()</code></pre>
-<p>find missing values in step 5</p>
-<pre class="r"><code>step_5.vec &lt;- c(&quot;station&quot;, &quot;sampledate&quot;, &quot;layer&quot;, &quot;concat&quot;, &quot;depth&quot;, &quot;parameter&quot;, &quot;eventid&quot;)
+<p>find missing values in di_s_chla.df and join them into the dataframe</p>
+<pre class="r"><code>find_missing_schla.vec &lt;- c(&quot;station&quot;, &quot;sampledate&quot;, &quot;layer&quot;, &quot;concat&quot;, &quot;depth&quot;, &quot;parameter&quot;, &quot;eventid&quot;)
 
 
 #grabs missing values
-missing_s_chla.df &lt;- name_missing(event.df, wq_above_pdepth.df, di_s_chla.df, step_5.vec) %&gt;%
+missing_s_chla.df &lt;- name_missing(event.df, wq_above_pdepth.df, di_s_chla.df, find_missing_schla.vec) %&gt;%
   #reduce to only a single isntance for each eventid
   distinct(eventid, station, sampledate, concat) %&gt;%
   mutate(parameter =  &quot;s_chla&quot;) %&gt;%
@@ -601,13 +579,13 @@ di_s_chla.df &lt;- full_join(di_s_chla.df, missing_s_chla.df, by = c(&quot;stati
   mutate(depth_integrated_value = mean(measurevalue_averaged)) %&gt;%
   distinct(station, sampledate, depth_integrated_value) %&gt;%
   ungroup()</code></pre>
-<p>join surface chloraphyl into water quality data measurevalued_averaged is renamed depth_integrated_value to match water quality naming convention (note:check against Claire’s data to confirm that s_chla depth integrated values look right just to be sure)</p>
+<p>join surface chloraphyl into water quality data measurevalued_averaged is renamed depth_integrated_value to match water quality naming convention</p>
 <pre class="r"><code>di_s_chla.df &lt;- di_s_chla.df %&gt;% 
   rename(depth_integrated_value = measurevalue_averaged)
   
 
 wq_all.df &lt;- full_join(wq_above_pdepth.df, di_s_chla.df, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;parameter&quot;, &quot;depth_integrated_value&quot;))</code></pre>
-<p>filter out dates outside Mar-May and Jul-Sept</p>
+<p>Select dates between Mar-May and Jul-Sept and assign a season value according to the range they fall into</p>
 <pre class="r"><code>wq_warm.df &lt;- wq_all.df %&gt;%
   mutate(month = month(sampledate),
          season = case_when(
@@ -634,8 +612,8 @@ wq_warm.df &lt;- wq_warm.df %&gt;%
     mutate(concat = paste0(station, sampledate))   
 
 
-wq_warm_sal.df &lt;- left_join(wq_warm.df, wq_sal_id.df, by = c(&quot;concat&quot;))#, &quot;salzone&quot;))</code></pre>
-<p>Find events without salinity and assign salinity when possible…Assign F salzone to some station/season instances based on known salinity profiles</p>
+wq_warm_sal.df &lt;- left_join(wq_warm.df, wq_sal_id.df, by = c(&quot;concat&quot;))</code></pre>
+<p>Find events without salinity and assign salinity when possible. We can assign Fresh Water(F) salzone to some station/season instances based on known salinity profiles.</p>
 <pre class="r"><code>wq_no_sal.df &lt;- anti_join(wq_warm_sal.df, wq_sal_id.df, by = c(&quot;concat&quot;))
 
 wq_sal_fill.df &lt;-  wq_no_sal.df %&gt;%
@@ -643,21 +621,12 @@ wq_sal_fill.df &lt;-  wq_no_sal.df %&gt;%
   mutate(salzone = case_when((station %in% c(&quot;cb1.1&quot;, &quot;tf2.3&quot;, &quot;tf4.2&quot;,&quot;tf5.5&quot; ) &amp; is.na(salzone)) | (season == &quot;spring&quot; &amp; station %in% c(&quot;et5.1&quot;, &quot;tf1.5&quot;)&amp; is.na(salzone))
          ~ &quot;F&quot;, TRUE ~ salzone  ))
 
-#test number of exceptions above code is catching
 wq_sal_filled.df &lt;- wq_sal_fill.df %&gt;%
-  filter(salzone == &quot;F&quot;)
-
-# test for number of na salzone values remaining
-test_na.df &lt;- wq_sal_fill.df %&gt;%
-  filter(is.na(salzone))</code></pre>
+  filter(salzone == &quot;F&quot;)</code></pre>
 <p>Add the data assigned salzones back into backbone</p>
-<pre class="r"><code>wq_warm_sal_added.df &lt;- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c(&quot;concat&quot;, &quot;salzone&quot;,&quot;station&quot;,&quot;sampledate&quot;, &quot;season&quot;))
-
-# test to determine if we are retaining the right values
-test.df &lt;- anti_join(wq_warm.df, wq_warm_sal_added.df,  by = c(&quot;concat&quot;, &quot;station&quot;,&quot;sampledate&quot;, &quot;season&quot;, &quot;parameter&quot;, &quot;month&quot;, &quot;depth_integrated_value&quot;))</code></pre>
-<p>bring in Jackies data to compare salzones against import jackie’s salzones if data falls within the applicable date range and is missing salzone data note:this should be the last method of acquiring salzone data implemented (this code is untested)</p>
-<pre class="r"><code>#jackie.df &lt;- data.table::fread(file.path(project.dir, &quot;data/Jackie/&quot;, &quot;JMJ_PIBI_Salzone_Data.csv&quot;))
-jackie_salzones.df &lt;- readxl::read_excel(file.path(project.dir, &quot;data/Jackie/JMJ_PIBI_Salzone_Data.xlsx&quot;),
+<pre class="r"><code>wq_warm_sal_added.df &lt;- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c(&quot;concat&quot;, &quot;salzone&quot;,&quot;station&quot;,&quot;sampledate&quot;, &quot;season&quot;))</code></pre>
+<p>bring in Jackies data to compare salzones against import jackie’s salzones if data falls within the applicable date range and is missing salzone data note:this should be the last method of acquiring salzone data implemented</p>
+<pre class="r"><code>jackie_salzones.df &lt;- readxl::read_excel(file.path(project.dir, &quot;data/Jackie/JMJ_PIBI_Salzone_Data.xlsx&quot;),
                          sheet = &quot;JMJ Salzone+Scores&quot;) %&gt;% clean_up() %&gt;%
   rename(salzone = ibi_salzone)
 
@@ -672,6 +641,7 @@ if (nrow(wq_need_sal.df) &gt; 1) {
   #join wq_need_sal to main wq data
   wq_warm_sal_added.df &lt;- left_join(wq_warm_sal_added., wq_has_sal.df, by= c(&quot;concat&quot;, &quot;salzone&quot;))
 }</code></pre>
+<p>Convert to a wide format</p>
 <pre class="r"><code>wq_warm.wide &lt;- wq_warm_sal_added.df %&gt;%
   select(-layer, -depth,-eventid,-concat) %&gt;%
   spread(parameter, depth_integrated_value)</code></pre>
@@ -713,7 +683,7 @@ taxa.raw &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/cedr_phy
            TRUE ~ &quot;remove&quot;
          )) %&gt;% 
   filter(season %in% c(&quot;spring&quot;, &quot;summer&quot;)) %&gt;%
-  #changing types to match as is done in Zach's code using col.class.vec
+  #changing types to match as is done in Zach's original code using col.class.vec
   mutate(tsn=as.character(tsn)) %&gt;%
   mutate(speccode = as.character(speccode)) %&gt;%
   mutate(reportingvalue = as.integer(reportingvalue)) %&gt;%
@@ -804,30 +774,6 @@ bay.df &lt;- bay.df %&gt;%
       TRUE ~ as.integer(tsn)
     )
   )</code></pre>
-<p>carbon adjustments</p>
-<p>L. this code requires the diameter variable from the carbon sheet in jackie’s data. We are currently using the biomass_estimates sheet. To run this code(if it is determined to be necessary), you will need to import the carbon sheet from jackie’s data and append the diameter variable through a join.</p>
-<pre class="r"><code># carbon.df &lt;- carbon.df %&gt;% 
-#   mutate(size = case_when(
-#     size %in% &quot;unidentified&quot; ~ as.character(NA),
-#     str_detect(size, &quot;species|sp.&quot;) ~ str_replace_all(size, &quot;sp.#|species_#|species_|species&quot;, &quot;sp#&quot;),
-#     TRUE ~size
-#   ),
-#   latinname = if_else(latinname == &quot;blue_green_trichome&quot;, &quot;blue_green_sphere&quot;, latinname)) %&gt;% 
-#   mutate(picoplankton = if_else(
-#     diameter &lt;= 20 &amp;
-#       height &lt;= 20 &amp;
-#       width &lt;= 20 &amp;
-#       width &lt;= 20 &amp;
-#       height_2 &lt;= 20 &amp;
-#       width_2 &lt;= 20,
-#     TRUE,
-#     FALSE
-#   )) %&gt;% 
-#   select(latinname, size, carbon) %&gt;%
-#   distinct() %&gt;% 
-#   bind_rows(data.frame(latinname = &quot;asterionellopsis_glacialis&quot;, 
-#                        carbon = carbon.df[carbon.df$latinname == &quot;asterionellopsis_kariana&quot;, &quot;carbon&quot;],
-#                        stringsAsFactors = FALSE))</code></pre>
 <p>check for duplicate values</p>
 <pre class="r"><code>carbon.dups &lt;- carbon.df %&gt;% 
   group_by(latinname, size) %&gt;% 
@@ -843,6 +789,7 @@ bay.df &lt;- bay.df %&gt;%
 <pre class="r"><code>no.match.df &lt;- anti_join(bay.df, carbon.df, by = c(&quot;latinname&quot;, &quot;size&quot;)) %&gt;% 
   select(latinname, size) %&gt;% 
   distinct()</code></pre>
+<p>Attempt to find partial matches for taxa in no.match.df. Each row in no.match.df represents a unique taxon and size combination. lapply loops through each row, extracts the unique size string, splits the string into smaller pieces, and attempts to find partial matches with associated size strings in carbon.df. The string in carbon.df with the most partial matches will be used to replace the size string in bay.df.</p>
 <pre class="r"><code>partial.match.df &lt;- lapply(1:nrow(no.match.df), function(row.i) {
   sub.df &lt;- no.match.df %&gt;% 
     slice(row.i)
@@ -868,25 +815,10 @@ bay.df &lt;- bay.df %&gt;%
   return(carbon.sub)
 }) %&gt;% 
   bind_rows()</code></pre>
+<p>Merge bay.df with partial.match.df and if a new_size is present from partial.match.df, then replace the size string with the new_size string. By updating the size strings it is possible to obtain more matches when merging bay.df and carbon.df.</p>
 <pre class="r"><code>bay.df &lt;- left_join(bay.df, partial.match.df, by = c(&quot;latinname&quot;, &quot;size&quot;,&quot;tsn&quot;)) %&gt;% 
   mutate(reported_size = size,
          size = if_else(!is.na(new_size), new_size, size))</code></pre>
-<p>fixes to carbon_list such as assigning tsn to latinnames with known tsns</p>
-<pre class="r"><code>test_carbon.df &lt;- carbon.df %&gt;%
-  #mutate(size = ifelse(size ==&quot;microphytoflaggelates&quot;, &quot;microphytoflagellates&quot;, size)) %&gt;%
-  mutate(size = ifelse(size ==&quot;unidentified&quot;, as.character(NA), size)) %&gt;%
-  mutate(tsn = case_when(latinname == &quot;aphanizomenon_issatschenkoi&quot;~as.integer(1191), 
-                         latinname == &quot;chaetoceros_neogracilis&quot;~as.integer(1004011), 
-                         latinname ==&quot;guinardia_striata&quot; ~ as.integer(2921), 
-                         latinname == &quot;lagerheimia&quot; ~ as.integer(6017), 
-                         latinname == &quot;odontella_alternans&quot;~ as.integer(573604),
-                         #latinname == &quot;protoperidinium_orbiculare&quot; ~ as.integer(), 
-                         latinname == &quot;psuedosolenia_calcar-avis&quot; ~ as.integer(970064),
-                         
-                         #over-writes tsn of 591037 for the itis tsn of 591383
-                         latinname == &quot;pleurosigma_obscurum&quot; ~ as.integer(591383),
-                         
-                         TRUE ~ as.integer(tsn))) </code></pre>
 <p>adds asterionellopsis_glacialis to the carbon.df with asterionellopsis_kariana carbon value</p>
 <pre class="r"><code>carbon.df &lt;- carbon.df %&gt;%
   bind_rows(data.frame(latinname = &quot;asterionellopsis_glacialis&quot;,
@@ -907,16 +839,14 @@ bay.df &lt;- bay.df %&gt;%
   mutate(tsn = ifelse(latinname==&quot;woronichinia_naegeliana&quot;, 0, tsn)) %&gt;%
   #modify centratractus_belonophorus tsn to match carbon_list
   mutate(tsn = ifelse(tsn==2014, 2013, tsn))</code></pre>
-<p>finally, join bay.df and carbon.df</p>
+<p>remove columns that will be replaced with data from carbon dataframe(next step)</p>
+<pre class="r"><code>bay.df &lt;- bay.df %&gt;%
+  select(-nodc_phyla, -group) </code></pre>
+<p>finally,join bay.df and carbon.df</p>
 <pre class="r"><code>bay_merged.df &lt;- left_join(bay.df, carbon.df, by = c(&quot;latinname&quot;,&quot;size&quot;,&quot;tsn&quot;)) %&gt;%
-  #remove dupliactes
+  #remove duplicates
   distinct()</code></pre>
-<p>clean up bay_merged(make group and nodc_phyla from carbon_list primary variable and remove value brought in from bay.df)</p>
-<pre class="r"><code>bay_merged.df &lt;- bay_merged.df %&gt;%
-  rename(group = group.y) %&gt;%
-  rename(nodc_phyla = nodc_phyla.y) %&gt;%
-  select(-group.x, -nodc_phyla.x)</code></pre>
-<p>turn carbon NA’s into zeroes and calcualte nano_micro_biomass</p>
+<p>turn carbon NA’s into zeroes and calcualte nano_micro_biomass.</p>
 <pre class="r"><code>bay_merged.df &lt;- bay_merged.df %&gt;%
   mutate(carbon = ifelse(is.na(carbon)==TRUE, 0, carbon)) %&gt;%
   mutate(nano_micro_biomass = reportingvalue * carbon / 10 ^ 6) </code></pre>
@@ -934,7 +864,6 @@ bay_wq_merged.df &lt;- left_join(bay_merged.df, wq_final.df, by = c(&quot;concat
 <p>selecting out unneeded columns, filter out na salzone entries, and pare down to your unique_id’s</p>
 <pre class="r"><code>bay_wq_merged_calc.df  &lt;-  bay_wq_merged.df %&gt;%
 
-  
   mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = &quot;_&quot;)) %&gt;%
   select(-reported_size, -surveyid, -fieldactivityid, -source, -sampletype, -gmethod, -tsn, -size, -method, -parameter, -reportingunit, -nodccode, -serialnumber, -month, -new_size, -nodc_phyla, -speccode, -salinity) %&gt;%
   
@@ -1027,24 +956,7 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
 </div>
 <div id="scoring" class="section level1">
 <h1>Scoring</h1>
-<pre class="r"><code>  metric.vec &lt;- c(&quot;total_nano_micro_biomass_chla_ratio&quot;,
-                  &quot;surface_chla&quot;,
-                  &quot;chla&quot;,
-                  &quot;doc&quot;,
-                  &quot;pheophytin&quot;,
-                  &quot;total_nano_micro_biomass&quot;, 
-                  &quot;diatom_biomass&quot;,
-                  &quot;dinoflagellate_biomass&quot;,
-                  &quot;cyanophyte_biomass&quot;,
-                  &quot;cryptophyte_biomass&quot;,
-                  &quot;pct_cryptophyte&quot;,
-                  &quot;prorocentrum_minimum_abundance&quot;, 
-                  &quot;microcystis_aeruginosa_abundance&quot;,
-                  #&quot;pico_reportingvalue&quot; 
-                  &quot;picoplankton_abundance&quot;
-                  
-                  )</code></pre>
-<p>rename some metrics to fit Zach’s code(that I have rewritten now)</p>
+<p>rename some metrics to fit the following code</p>
 <pre class="r"><code>metrics_prep.df &lt;- bay_full_calc.df %&gt;%
   rename(pheophytin = pheo) %&gt;% 
   rename(total_nano_micro_biomass_chla_ratio = carbon_chlorophyll_ratio) %&gt;%
@@ -1067,6 +979,7 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
                   prorocentrum_minimum_abundance, 
                   microcystis_aeruginosa_abundance,
                   picoplankton_abundance) </code></pre>
+<p>The preceeding 8 chunks of code each correspond to a particular season and salinity zone combination. Each one has very specific scoring ranges.</p>
 <div id="score-spring-fresh-water" class="section level3">
 <h3>Score Spring Fresh Water</h3>
 <pre class="r"><code>score_spring_f &lt;- metrics_prep.df %&gt;% 
@@ -1442,9 +1355,7 @@ bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = 
       total_nano_micro_biomass &lt; 718 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
 <pre class="r"><code>all_seasons &lt;- bind_rows(score_spring_f, score_spring_o ,score_spring_m, score_spring_p, score_summer_f, score_summer_o, score_summer_m, score_summer_p)</code></pre>
-<pre class="r"><code>test &lt;-  all_seasons %&gt;%
-  filter(unique_id == &quot;cb6.1_ap_fs1_2016-04-27&quot;) %&gt;%
-  distinct()</code></pre>
+<p>the following generates the index of biotic integrity(ibi) scores</p>
 <pre class="r"><code>#disable scientific notation
 options(scipen=999)
 
@@ -1484,6 +1395,7 @@ surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagella
 </div>
 <div id="ratings" class="section level1">
 <h1>ratings</h1>
+<p>generate ratings for ibi scores within certain ranges</p>
 <pre class="r"><code>scores_ratings_final &lt;- scores_ratings_final %&gt;%
   #mutate(ibi_score = round(ibi_score, 2)) %&gt;%
   mutate(
