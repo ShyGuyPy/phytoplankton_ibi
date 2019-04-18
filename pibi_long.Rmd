@@ -196,11 +196,8 @@ data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
 ```
 
 
-Read csv's to dataframes
-
-
+Here we retrieve the data we stored previously.
 It is recommended that you run the code from here if you've already pulled from the api.  It will save time to start from here.  You will need to run the variables and functions section again to populate them into your RStudio environment tab. 
-CEDR
 ```{r}
 phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
 
