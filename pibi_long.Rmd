@@ -1,6 +1,6 @@
 ---
-title: "pibi_long"
-author: "Luke Vawter & Zachary Smith"
+title: "Phytoplankton Index of Biotic Integrity"
+author: "Luke C. Vawter & Zachary M. Smith"
 date: "December 21, 2018"
 output: 
   html_document:
@@ -9,37 +9,64 @@ output:
     toc_depth: '6'
     toc_float: yes
 ---
+
+# Introduction
+
+This R-script and documentation was created to calculate the Phytoplankton Index of Biotic Integrity (PIBI) for the Chesapeake Bay and its tidal tributaries developed by Lacouture et al. (2006). Jacqueline M. Johnson’s documentation of PIBI methodology was used as a reference when Lacouture et al. (2006) did not provide enough information. The following text documents the process used to prepare and calculate the PIBI. Data was acquired from the Chesapeake Bay Program’s (CBP) CEDR database.
+
 supress error warnings
 ```{r setup, cache=FALSE}
 knitr::opts_chunk$set(error = TRUE)
 
 ```
 
+### Download and Edit this Document
 
+This document can be downloaded from a [GitHub repository](https://github.com/InterstateCommissionPotomacRiverBasin/phyto) and edited using R and R Studio. As stated in the previous section, this document was created using __R Markdown__, so that the R-code could be integrated with descriptive text. The document is broken up into multiple child documents in the "notebook" folder, which are all compiled together using the "pipi_notebook.Rmd" parent document. For small corrections, the easiest way to inform me will be to [open a new issue on the GitHub respository for this document](https://github.com/InterstateCommissionPotomacRiverBasin/phyto/issues). However, my hope is that there will be others interested in becoming more involved, of whom I can add as collaborators to the Git Hub repository. [RStudio has made it very easy to connect R projects to GitHub](https://support.rstudio.com/hc/en-us/articles/200532077-Version-Control-with-Git-and-SVN). Using these tools, it can be very easy to "push" and "pull" edits, while maintaining a record of the documents history. If you are interested in collaborating on this document, please contact [Claire Buchanan](https://www.potomacriver.org/about-us/staff/).
+
+#### How to Download from GitHub
+
+For those interested in collaborating, please [install the latest version of RStudio](https://www.rstudio.com/products/rstudio/download/). RStudio interacts well with Git Hub and some aspects of this document may depend on the RStudio IDE. Next create a new project:
+
+1. Create a new project (File -> New Project).
+2. Select Version Control and Git (Version Control -> Git).
+    + If you receive a message say "Git Not Found", then you need to install Git ([Install Git Here](https://git-scm.com/downloads)). Once Git is installed, try setting up the project again in R Studio.
+    + I believe R Studio should automatically recognize Git on your computer but I had to specify where the git.exe was located by going to _Tools -> Global Options -> Git/SVN -> locate git.exe (my file path: "C:/Users/zsmith/AppData/Local/Programs/Git/bin/git.exe")_.
+3. Paste the phyto repository URL (https://github.com/ShyGuyPy/phytoplankton_ibi.git) into the "Repository URL" box.
+4. Use the "Create project as sub-directory of:" box to manage where you want to store the project on your computer.
+
+#### Compile the Document
+
+To view the html document you must compile the document using Knit. Follow these steps to Knit the document:
+
+1. Open *notebook.Rmd* in *phytoplankton_ibi/notebook*.
+2. Find and click the Knit button (it looks like a ball of yarn) in the toolbar above the editor window.
+    + If a window appears saying "Install Required Packages" for R Markdown, install the necessary packages for knitting the document.
+3. Hopefully the document will compile correctly. If the document does not compile correctly, try to interpret and correct for the error message returned. If you cannot interpret the error message, please [open a new issue on the GitHub respository for this document](https://github.com/InterstateCommissionPotomacRiverBasin/phyto/issues) and I will try to help you resolve the issue.
 
 # Download Packages
 ```{r load_packages, message=FALSE}
 library(dplyr)
 library(tidyr)
-library(ggplot2)
-library(purrr)
-library(stringr)
-library(leaflet)
+library(data.table)
 library(lubridate)
 library(readxl)
-library(httr)
-library(RCurl)
-library(data.table)
 library(jsonlite)
 library(rprojroot)
 library(ritis)
-library(parallel)
+library(stringr)
+library(purrr)
+library(lubridate)
+
+# library(ggplot2)
+# library(leaflet)
+# library(httr)
+# library(RCurl)
+
+# library(parallel)
 ```
 
-
-this is an example of `code`
-
-# Funcs and Variables
+# Functions and Variables
 these varaible should be changed by the user as needed.  Use min_date and max date to set the date range of the data you want to download.  Note that max date can be set to variable `todays.date` if you want to grab the most up to date data every time you run the download code.  Also, note that the format of the date input into these variables must match with the examples in place below(`xx-xx-xxxx`). 
 ```{r}
 #this is the minimum date to be included
@@ -48,7 +75,7 @@ min_date = "1-1-2013"
 max_date = "12-31-2016"
 ```
 
-The below variables references values found in the API guide at http://datahub.chesapeakebay.net/API .  They should not need to be changed, unless changes occur to the API's structure.  If you run into problems during the Download CEDR data step below, you may want to check the API guide for the number values associated with these parameters.
+The variables below references values found in the API guide at http://datahub.chesapeakebay.net/API .  They should not need to be changed, unless changes occur to the API's structure.  If you run into problems during the Download CEDR data step below, you may want to check the API guide for the number values associated with these parameters.
 ```{r}
 #number for picoplankton in CEDR api
 pico_num = "18"
@@ -96,7 +123,6 @@ clean_up <- function(x) {
 #this variable holds the url for the CEDR api
 url.root <- "http://datahub.chesapeakebay.net/api.JSON"
 todays.date <- format(Sys.Date(), "%m-%d-%Y")
-
 
 # the following code generates directories that will be used throughout
 dir.create(file.path(project.dir, "data/VA_ODU/"),
@@ -222,7 +248,7 @@ wq.df <- file.path(url.root,
                    "station",
                    paste(station.vec, collapse = ","),
                    paste(
-                     #these are the parameter variables declared in Funcs and Variables section
+                     #these are the parameter variables declared in Functions and Variables section
                      chla,doc,pheo,salinity
                      , sep=",")) %>%
   fromJSON() %>% 
@@ -237,14 +263,14 @@ save the dataframe as a csv in the data/waterquality directory
 data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
 
-the below code reads saved dataframe back into wq.df.  Runnning this code allows you to skip the downloading process in cases where your dataset is static.
+read saved data back into dataframe `wq.df`.  Runnning this code allows you to skip the downloading process in cases where your dataset is static.
 ```{r}
 wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
                             data.table = FALSE,
                            na.strings = c(""))
 ```
 
-we reduce the water quality data to match the phytoplankton data
+reduce the water quality data to match the phytoplankton data
 ```{r}
 #create concatinated id for phyto events
 phyto.df <- phyto.df %>%
@@ -824,7 +850,7 @@ bay_wq_merged_calc.df  <-  bay_wq_merged.df %>%
   distinct() 
 ```
 
-calculate metrics
+here the metrics are calculated
 ```{r}
 bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
 
@@ -1398,7 +1424,7 @@ surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagella
 
 ```
 
-replace 0 values in scores with blanks for clarity
+replace zero values in scores with blanks for clarity
 ```{r}
 scores_ratings_final <- scores_ratings_final %>%
   mutate_at(vars(ends_with("_score")), list( 
@@ -1407,7 +1433,7 @@ scores_ratings_final <- scores_ratings_final %>%
 
 ```
 
-# ratings
+# Ratings
 
 generate ratings for ibi scores within certain ranges
 ```{r}
@@ -1423,7 +1449,7 @@ scores_ratings_final <- scores_ratings_final %>%
         TRUE ~ "ERROR"))
 ```
 
-clean-up the dataframe before exporting
+clean up the dataframe before exporting
 ```{r}
 scores_ratings_final <- scores_ratings_final %>%
   select(-chla) %>%
@@ -1436,3 +1462,40 @@ Save the final score to directory data/ScoresRatings
 scores_ratings_final %>% 
 data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings.csv"))
 ```
+
+
+# Citations
+Buchanan, Claire, Richard V. Lacouture, Harold G. Marshall, Marcia Olson, and Jacqueline M. Johnson. 2005. “Phytoplankton Reference Communities for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 28 (1): 138–59.
+
+Chamberlain, Scott. 2017. “Ritis: Integrated Taxonomic Information System Client.”
+
+Cheng, Joe, Bhaskar Karambelkar, and Yihui Xie. 2017. “Leaflet: Create Interactive Web Maps with the JavaScript ’Leaflet’ Library.”
+
+Dowle, Matt, and Arun Srinivasan. 2017. “Data.Table: Extensions of ’Data.Frame‘.”
+
+Grolemund, Garrett, and Hadley Wickham. 2011. “Dates and Times Made Easy with lubridate.” Journal of Statistical Software 40 (3): 1–25.
+
+Henry, Lionel, and Hadley Wickham. 2017. “Purrr: Functional Programming Tools.”
+
+Lacouture, Richard V., Jacqueline M. Johnson, Claire Buchanan, and Harold G. Marshall. 2006. “Phytoplankton Index of Biotic Integrity for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 29 (4): 598–616.
+
+Lang, Duncan T., and the CRAN team. 2016. “RCurl: General Network (HTTP/FTP/...) Client Interface for R.”
+
+Müller, Kirill. 2017. “Rprojroot: Finding Files in Project Subdirectories.”
+
+Ooms, Jeroen. 2014. “The Jsonlite Package: A Practical and Consistent Mapping Between JSON Data and R Objects.”
+
+R Core Team. 2017. “R: A Languag and Environment for Statistical Computing.” Vienna, Austria: R Foundation for Statistical Computing.
+
+Wickham, Hadley. 2009. Ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York.
+
+———. 2017a. “Httr: Tools for Working with URLs and HTTP.”
+
+———. 2017b. “Stringr: Simple, Consistent Wrappers for Common String Operations.”
+
+Wickham, Hadley, and Jennifer Bryan. 2017. “Readxl: Read Excel Files.”
+
+Wickham, Hadley, and Lionel Henry. 2017. “Tidyr: Easily Tidy Data with ’Spread()’ and ’Gather()’ Functions.”
+
+Wickham, Hadley, Romain Francois, Lionel Henry, and Kirill Müller. 2017. “Dplyr: A Grammar of Data Manipulation.”
+
