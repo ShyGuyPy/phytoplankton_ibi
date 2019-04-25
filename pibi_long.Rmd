@@ -176,7 +176,7 @@ phyto.df <- file.path(url.root,
 
 phyto.df %>% 
   mutate(reportingvalue = as.character(reportingvalue)) %>% 
-data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_taxa.csv"))
+data.table::fwrite(file.path(project.dir, "data/CEDR", "cedr_phyto_taxa.csv"))
 
 
 
@@ -198,7 +198,7 @@ event.df <- file.path(url.root,
 
 
 
-data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), "data/CEDR", "cedr_phyto_event.csv"))
+data.table::fwrite(event.df, file.path(project.dir, "data/CEDR", "cedr_phyto_event.csv"))
 ```
 
 pico data(note that the number above "station" is now 18 rather than 17.  The project id for picoplankton is 18, and 17 for phytoplankton).  Download the data and then write the dataframe to the data/CEDR/ directory as a csv.
@@ -888,7 +888,13 @@ bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
   
   mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass * 100) %>% 
   
-  select(-group, -carbon, -nano_micro_biomass) %>%
+  mutate(other_biomass =(case_when(!group %in% c("cryptophyte","cryptophyceae","cryptophyta","cryptomonads", "cyanophyte","cyanobacteria", "dinoflagellates", "diatom" ) ~ nano_micro_biomass, TRUE~0 )) ) %>%
+  
+  mutate(other_biomass_total = sum(other_biomass)) %>%
+  
+  select(-group, -carbon, -nano_micro_biomass, -other_biomass) %>%
+    
+  ungroup() %>%
   distinct()
 
 
@@ -936,6 +942,23 @@ bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
   
   
 ```
+
+
+this is a test to determine if biomasses are adding up correctly.  If the dataframe `test` is not empty(look in environemtn tab at test, it should say 0 obs. of x 23 variables) your biomasses aren't ading up correctly.
+```{r}
+test <- bay_wq_merged_calc.df %>%
+    #filter(unique_id =="sbe5_ap_fs1_2013-03-13") %>%
+  mutate(biomass_total_test = (dinoflagellate_biomass + diatom_biomass +cryptophyte_biomass + cyanophyte_biomass + other_biomass_total)) %>%
+  mutate(biomass_error =abs( total_nano_micro_biomass-biomass_total_test )) %>%
+  filter( biomass_error > .00000001)
+```
+
+remove other_biomass_total before proceeding
+```{r}
+bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
+  select(-other_biomass_total)
+```
+
 
 join the picoplankton data into the bay data and average duplicates and generate picoplankton_abundance
 ```{r}
@@ -1460,7 +1483,7 @@ Save the final score to directory data/ScoresRatings
 ```{r}
 
 scores_ratings_final %>% 
-data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), "data/ScoresRatings", "final_scores_ratings.csv"))
+data.table::fwrite(file.path(project.dir, "data/ScoresRatings", "final_scores_ratings.csv"))
 ```
 
 
