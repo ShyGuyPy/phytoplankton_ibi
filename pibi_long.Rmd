@@ -67,13 +67,6 @@ library(lubridate)
 ```
 
 # Functions and Variables
-these varaible should be changed by the user as needed.  Use min_date and max date to set the date range of the data you want to download.  Note that max date can be set to variable `todays.date` if you want to grab the most up to date data every time you run the download code.  Also, note that the format of the date input into these variables must match with the examples in place below(`xx-xx-xxxx`). 
-```{r}
-#this is the minimum date to be included
-min_date = "1-1-2013"
-#this is the minimum date to be included, add the variable todays.date intot his variable if you want the most recent data
-max_date = "12-31-2016"
-```
 
 The variables below references values found in the API guide at http://datahub.chesapeakebay.net/API .  They should not need to be changed, unless changes occur to the API's structure.  If you run into problems during the Download CEDR data step below, you may want to check the API guide for the number values associated with these parameters.
 ```{r}
@@ -90,15 +83,13 @@ pheo=74
 salinity=83
 ```
 
-All other variables and functions will likely not need to be changed
+The following variables and functions will likely not need to be changed
 
 The clean_string() function modifies character objects by removing leading/trailing white space, converting all characters to lower case, and replacing all spaces (" “) with an underscore (”_“). These specifications eliminate common typos and standardize character objects.
 
 The clean_up() function is a wrapper for clean_string(). This function applies clean_string() to the column headers and character columns of data frames. Again, this process standardizes character values and makes it easier work with the data.
 
 The use of the dir.creat structure ensures that the proper directory structure is in place.  If you have pulled this document down rfom GIT, the full directory structure will already be in place.
-
-`station.vec` is another required input for the CEDR data pull in the next step.
 
 ```{r}
 project.dir <- rprojroot::find_rstudio_root_file()
@@ -140,6 +131,21 @@ dir.create(file.path(project.dir, "data/water_quality"),
 dir.create(file.path(project.dir, "data/itis"),
            recursive = TRUE, showWarnings = FALSE)
 
+```
+
+these varaible should be changed by the user as needed.  Use min_date and max date to set the date range of the data you want to download.  Note that max date can be set to variable `todays.date` if you want to grab the most up to date data every time you run the download code.  Also, note that the format of the date input into these variables must match with the examples in place below(`xx-xx-xxxx`). 
+```{r}
+#this is the minimum date to be included
+min_date = #"1-01-1970"#
+  "1-1-2013"
+#this is the minimum date to be included, add the variable todays.date intot his variable if you want the most recent data
+max_date = #todays.date#
+  "12-31-2016"
+               
+```
+
+`station.vec` is another required input for the CEDR data pull in the next step.
+```{r}
 
 station.vec <- file.path(url.root,
                        "LivingResources",
@@ -299,7 +305,6 @@ wq.df <- wq.df %>%
 
 # Prep Event Data
 
-
 sampledate from both phytoplankton data and event data are converted to date format
 ```{r}
 phyto.df <- phyto.df %>%
@@ -341,9 +346,15 @@ with exception for RET stations included if needed(RET stations can be problemat
 ```{r}
 wq_w_pdepth.df <- wq_w_pdepth.df %>%
   mutate(above_pdepth = case_when(depth <= pdepth~"Yes",
-                                  #depth > pdepth & station %in% c("ret3.1","ret4.3","ret3.1")~"No, but RET",
+                                  depth > pdepth & station %in% c("ret3.1","ret4.3","ret3.1")~"No, but RET",
                                   depth > pdepth~"No"
                                   ))
+```
+
+(remove)
+```{r}
+test <- wq_w_pdepth.df %>%
+  filter(above_pdepth == "No, but RET")
 ```
 
 wq_w_pdepth becomes wq_above_pdepth by filtering out data with depth below or equal to pdepth
@@ -552,7 +563,7 @@ if (nrow(wq_need_sal.df) > 1) {
   wq_has_sal.df <- left_join(wq_need_sal.df, jackie_salzones.df, by= c("concat", "salzone"))
 
   #join wq_need_sal to main wq data
-  wq_warm_sal_added.df <- left_join(wq_warm_sal_added., wq_has_sal.df, by= c("concat", "salzone"))
+  wq_warm_sal_added.df <- left_join(wq_warm_sal_added.df, wq_has_sal.df, by= c("concat", "salzone"))
 }
              
 ```
