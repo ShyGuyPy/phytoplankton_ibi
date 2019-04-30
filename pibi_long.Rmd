@@ -142,6 +142,10 @@ min_date = #"1-01-1970"#
 max_date = #todays.date#
   "12-31-2016"
                
+
+test_min_date = "1-01-1970"
+
+test_max_date = todays.date
 ```
 
 `station.vec` is another required input for the CEDR data pull in the next step.
@@ -161,6 +165,23 @@ station.vec <- file.path(url.root,
 ```
 
 # CEDR data acquisition
+
+dataframe to compare the non-functioning full date range data pull against the functioning partial date range data pull
+```{r}
+phyto_all.df <-  file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "Reported",
+                       test_min_date,
+                       test_max_date, 
+                      phyto_num,
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+```
+
 
 upload the sample and event data from cedr to a dataframe(phyto.df) using the CEDR(chesapeakebay.net) api
 ```{r}
