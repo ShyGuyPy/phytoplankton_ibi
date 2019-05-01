@@ -142,10 +142,6 @@ min_date = #"1-01-1970"#
 max_date = #todays.date#
   "12-31-2016"
                
-
-test_min_date = "1-01-1970"
-
-test_max_date = todays.date
 ```
 
 `station.vec` is another required input for the CEDR data pull in the next step.
@@ -165,22 +161,6 @@ station.vec <- file.path(url.root,
 ```
 
 # CEDR data acquisition
-
-dataframe to compare the non-functioning full date range data pull against the functioning partial date range data pull
-```{r}
-phyto_all.df <-  file.path(url.root,
-                      "LivingResources",
-                      "TidalPlankton",
-                      "Reported",
-                       test_min_date,
-                       test_max_date, 
-                      phyto_num,
-                      "Station",
-                      paste(station.vec, collapse = ",")) %>%
-  fromJSON() %>% 
-  clean_up()
-
-```
 
 
 upload the sample and event data from cedr to a dataframe(phyto.df) using the CEDR(chesapeakebay.net) api
@@ -249,17 +229,6 @@ data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
 ```
 
 
-Here we retrieve the data we stored previously.
-It is recommended that you run the code from here if you've already pulled from the api.  It will save time to start from here.  You will need to run the variables and functions section again to populate them into your RStudio environment tab. 
-```{r}
-phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
-
-event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
-
-pico.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
-
-```
-
 # Water Quality Data
 
 downloading the water quality data is done in a similar manner as the event and sample data
@@ -281,6 +250,7 @@ wq.df <- file.path(url.root,
   fromJSON() %>% 
   clean_up()
 
+  data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
 note: more information about programIds and projectIds canbe found at http://datahub.chesapeakebay.net/API
 
@@ -290,8 +260,16 @@ save the dataframe as a csv in the data/waterquality directory
 data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
 
-read saved data back into dataframe `wq.df`.  Runnning this code allows you to skip the downloading process in cases where your dataset is static.
+Here we retrieve the data we stored previously.
+It is recommended that you run the code from here if you've already pulled from the api.  It will save time to start from here.  You will need to run the variables and functions section again to populate them into your RStudio environment tab, if you have not already done so this session. 
 ```{r}
+phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+pico.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+
 wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),
                             data.table = FALSE,
                            na.strings = c(""))
@@ -372,16 +350,16 @@ wq_w_pdepth.df <- wq_w_pdepth.df %>%
                                   ))
 ```
 
-(remove)
-```{r}
-test <- wq_w_pdepth.df %>%
-  filter(above_pdepth == "No, but RET")
-```
-
 wq_w_pdepth becomes wq_above_pdepth by filtering out data with depth below or equal to pdepth
 ```{r}
 wq_above_pdepth.df <- wq_w_pdepth.df%>%
-  filter(depth <= pdepth)
+  filter(depth <= pdepth) 
+
+wq_above_pdepth.df <- wq_w_pdepth.df%>%
+  filter(depth <= pdepth) 
+
+test_wq_above_pdepth.df <- wq_above_pdepth.df %>%
+  filter(station == "cb3.3c" & sampledate=="1986-04-08")
 ```
 
 check for missing(station and date combos that are present in event.df but not represtented in wq_above_pdepth.df) 
@@ -445,6 +423,7 @@ s_chla.df <- wq_above_pdepth.df %>%
   filter(layer == "s", 
          parameter == "chla") %>% 
   unite(parameter, c("layer", "parameter"), remove = FALSE) #%>%
+
 ```
 
 Average replicates from s_chla ...measure value average
@@ -508,10 +487,8 @@ measurevalued_averaged is renamed depth_integrated_value to match water quality 
 ```{r}
 di_s_chla.df <- di_s_chla.df %>% 
   rename(depth_integrated_value = measurevalue_averaged)
-  
 
 wq_all.df <- full_join(wq_above_pdepth.df, di_s_chla.df, by = c("station", "sampledate", "parameter", "depth_integrated_value"))
-
 ```
 
 Select dates between Mar-May and Jul-Sept and assign a season value according to the range they fall into
@@ -565,6 +542,8 @@ Add the data assigned salzones back into backbone
 ```{r}
 wq_warm_sal_added.df <- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c("concat", "salzone","station","sampledate", "season"))
 
+# wq_warm_sal_added.df <- wq_warm_sal_added.df %>%
+#   filter(concat ==  "cb3.3c1986-04-08")
 ```
 
 bring in Jackies data to compare salzones against
@@ -575,22 +554,49 @@ jackie_salzones.df <- readxl::read_excel(file.path(project.dir, "data/Jackie/JMJ
                          sheet = "JMJ Salzone+Scores") %>% clean_up() %>%
   rename(salzone = ibi_salzone)
 
+#turn jackie_salzone.df concat into something useful
+jackie_salzones.df <-  jackie_salzones.df %>%
+  mutate(concat = paste0(station, sample_date)) 
+
+#find those that neeed salinity?
 wq_need_sal.df <- wq_warm_sal_added.df %>%
   mutate(year = year(sampledate)) %>%
   filter(year >= 1984 & year <= 2011 & is.na(salzone))
 
+jackie_salzones.df <- jackie_salzones.df %>%
+  select(concat,salzone)
+
+
+# wq_warm_sal_added.df <- wq_warm_sal_added.df %>%
+#   filter(concat=="cb2.21984-08-07")
+# 
+# wq_has_sal.df <- wq_has_sal.df %>%
+#   filter(concat=="cb2.21984-08-07")
+# 
+# jackie_salzones.df <- jackie_salzones.df %>%
+#   filter(concat=="cb2.21984-08-07")
+
 #join jackie salzone values to wq_need_sal by id, but only if sal needed is not an empty dataframe
 if (nrow(wq_need_sal.df) > 1) {
   wq_has_sal.df <- left_join(wq_need_sal.df, jackie_salzones.df, by= c("concat", "salzone"))
+  
+  # wq_has_sal.df <- wq_has_sal.df %>%
+  #   select(concat, salzone)
+  
+  #do an anti-join to remove values we are about to replace
+  anti_wq_warm_sal_added.df <- anti_join(wq_warm_sal_added.df, wq_has_sal.df, by= c("concat"))
 
   #join wq_need_sal to main wq data
-  wq_warm_sal_added.df <- left_join(wq_warm_sal_added.df, wq_has_sal.df, by= c("concat", "salzone"))
+  wq_warm_sal_added.df <- full_join(anti_wq_warm_sal_added.df, wq_has_sal.df)#, by= c("concat"))
 }
              
 ```
 
 Convert to a wide format
 ```{r}
+wq_warm_sal_added.df <- wq_warm_sal_added.df %>%
+  distinct()
+
 wq_warm.wide <- wq_warm_sal_added.df %>%
   select(-layer, -depth,-eventid,-concat) %>%
   spread(parameter, depth_integrated_value)
