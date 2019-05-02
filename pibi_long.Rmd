@@ -434,7 +434,32 @@ di_s_chla.df <- s_chla.df %>%
   #do not remove NAs
   mutate(measurevalue_averaged = mean(measurevalue)) %>%
   distinct(station, sampledate, depth, eventid, layer, parameter, measurevalue_averaged, concat) %>%
-  ungroup()
+  ungroup() #%>%
+  #filter(station == "cb3.3c")
+
+```
+
+```{r}
+#write mutant entries to file water_quality\cb3.3c_mutants.csv.  these are entries that are likely reporting errors to be sent to Mike Malonee.  This is adressing a known issue with station cb3.3c between 1986 and 1991 where a second entry was taken that was vastly different from the first(too high by 100 or more )
+mutants <- di_s_chla.df %>%
+  group_by(concat) %>%
+  filter(station == "cb3.3c" & measurevalue_averaged > 100 & n() >1) %>%
+  data.table::fwrite(file.path(project.dir, "data/water_quality", "cb3.3c_mutants.csv"))  
+
+#address issues with station cb3.3c
+#we group by station and average dupliacte entries, disregarding the mutants entries by turning them into zeros
+
+di_s_chla.df <- di_s_chla.df %>%  
+  group_by(concat) %>%
+  mutate(test=n()) %>%
+  mutate(measurevalue_averaged = case_when(test >1 &station == "cb3.3c" & measurevalue_averaged > 100~0, 
+                                           TRUE~measurevalue_averaged)) %>%
+  mutate( measurevalue_averaged =(case_when(test>1~mean(measurevalue_averaged),
+                                            TRUE~measurevalue_averaged))) %>%
+
+  select(-test) %>%
+  ungroup() %>%
+  distinct(station, sampledate, layer, parameter, measurevalue_averaged, concat) 
 
 ```
 
@@ -457,7 +482,7 @@ missing_ids.vec <- pull(missing_s_chla.df, eventid)
 
 # checks ids against source, which is totally redundant
 missing_full.df <-wq_above_pdepth.df %>%
-  filter(eventid %in% missing_ids.vec ) 
+  filter(eventid %in% missing_ids.vec ) #eventid
 
 #join missing values into di_s_chla.df with blank values
 di_s_chla.df <- full_join(di_s_chla.df, missing_s_chla.df, by = c("station", "sampledate", "eventid", "parameter", "concat"))
