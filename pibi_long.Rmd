@@ -136,11 +136,11 @@ dir.create(file.path(project.dir, "data/itis"),
 these varaible should be changed by the user as needed.  Use min_date and max date to set the date range of the data you want to download.  Note that max date can be set to variable `todays.date` if you want to grab the most up to date data every time you run the download code.  Also, note that the format of the date input into these variables must match with the examples in place below(`xx-xx-xxxx`). 
 ```{r}
 #this is the minimum date to be included
-min_date = #"1-01-1970"#
-  "1-1-2013"
+min_date = "1-01-1970"#
+  #"1-1-2013"
 #this is the minimum date to be included, add the variable todays.date intot his variable if you want the most recent data
-max_date = #todays.date#
-  "12-31-2016"
+max_date = todays.date#
+  #"12-31-2016"
                
 ```
 
@@ -1541,7 +1541,6 @@ Save the final score to directory data/ScoresRatings
 scores_ratings_final %>% 
 data.table::fwrite(file.path(project.dir, "data/ScoresRatings", "final_scores_ratings.csv"))
 ```
-
 
 # Citations
 Buchanan, Claire, Richard V. Lacouture, Harold G. Marshall, Marcia Olson, and Jacqueline M. Johnson. 2005. “Phytoplankton Reference Communities for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 28 (1): 138–59.
