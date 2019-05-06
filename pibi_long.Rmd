@@ -477,15 +477,8 @@ missing_s_chla.df <- name_missing(event.df, wq_above_pdepth.df, di_s_chla.df, fi
   mutate(sampledate = as.Date(sampledate)) %>%
   mutate()
 
-# creates a vector of the unqiue ids of the missing values
-missing_ids.vec <- pull(missing_s_chla.df, eventid) 
-
-# checks ids against source, which is totally redundant
-missing_full.df <-wq_above_pdepth.df %>%
-  filter(eventid %in% missing_ids.vec ) #eventid
-
 #join missing values into di_s_chla.df with blank values
-di_s_chla.df <- full_join(di_s_chla.df, missing_s_chla.df, by = c("station", "sampledate", "eventid", "parameter", "concat"))
+di_s_chla.df <- full_join(di_s_chla.df, missing_s_chla.df, by = c("station", "sampledate", "parameter", "concat"))#"eventid", 
 
 ```
 
@@ -623,7 +616,7 @@ wq_warm_sal_added.df <- wq_warm_sal_added.df %>%
   distinct()
 
 wq_warm.wide <- wq_warm_sal_added.df %>%
-  select(-layer, -depth,-eventid,-concat) %>%
+  select(-layer, -eventid,-concat) %>% #-depth,
   spread(parameter, depth_integrated_value)
 ```
 

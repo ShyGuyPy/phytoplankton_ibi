@@ -10,6 +10,22 @@ output:
     toc_float: yes
 ---
 
+line 480 under missing_s_chla.df <- name_missing(.... 
+```{r}
+# creates a vector of the unqiue ids of the missing values
+missing_ids.vec <- pull(missing_s_chla.df, eventid) 
+
+# checks ids against source, which is totally redundant
+missing_full.df <-wq_above_pdepth.df %>%
+  filter(eventid %in% missing_ids.vec ) #eventid
+```
+
+
+
+
+
+
+
 TEST STEPS
 
 [on line 181, after pulling in event and sample data]
