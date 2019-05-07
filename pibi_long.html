@@ -247,7 +247,7 @@ div.tocify {
 <li>If you receive a message say “Git Not Found”, then you need to install Git (<a href="https://git-scm.com/downloads">Install Git Here</a>). Once Git is installed, try setting up the project again in R Studio.</li>
 <li>I believe R Studio should automatically recognize Git on your computer but I had to specify where the git.exe was located by going to <em>Tools -&gt; Global Options -&gt; Git/SVN -&gt; locate git.exe (my file path: “C:/Users/zsmith/AppData/Local/Programs/Git/bin/git.exe”)</em>.</li>
 </ul></li>
-<li>Paste the phyto repository URL (<a href="https://github.com/InterstateCommissionPotomacRiverBasin/phyto.git" class="uri">https://github.com/InterstateCommissionPotomacRiverBasin/phyto.git</a>) into the “Repository URL” box.</li>
+<li>Paste the phyto repository URL (<a href="https://github.com/ShyGuyPy/phytoplankton_ibi.git" class="uri">https://github.com/ShyGuyPy/phytoplankton_ibi.git</a>) into the “Repository URL” box.</li>
 <li>Use the “Create project as sub-directory of:” box to manage where you want to store the project on your computer.</li>
 </ol>
 </div>
@@ -255,7 +255,7 @@ div.tocify {
 <h4>Compile the Document</h4>
 <p>To view the html document you must compile the document using Knit. Follow these steps to Knit the document:</p>
 <ol style="list-style-type: decimal">
-<li>Open <em>pibi_notebook.Rmd</em> in <em>phyto/notebook</em>.</li>
+<li>Open <em>notebook.Rmd</em> in <em>phytoplankton_ibi/notebook</em>.</li>
 <li>Find and click the Knit button (it looks like a ball of yarn) in the toolbar above the editor window.
 <ul>
 <li>If a window appears saying “Install Required Packages” for R Markdown, install the necessary packages for knitting the document.</li>
@@ -267,16 +267,19 @@ div.tocify {
 </div>
 <div id="download-packages" class="section level1">
 <h1>Download Packages</h1>
-<pre class="r"><code>library(dplyr)
-library(tidyr)
-library(data.table)</code></pre>
+<pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>## Warning: package 'dplyr' was built under R version 3.5.3</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
+<pre><code>## Warning: package 'tidyr' was built under R version 3.5.2</code></pre>
+<pre class="r"><code>library(data.table)</code></pre>
 <pre><code>## Warning: package 'data.table' was built under R version 3.5.2</code></pre>
 <pre class="r"><code>library(lubridate)
 library(readxl)
 library(jsonlite)
 library(rprojroot)
-library(ritis)
-library(stringr)
+library(ritis)</code></pre>
+<pre><code>## Warning: package 'ritis' was built under R version 3.5.2</code></pre>
+<pre class="r"><code>library(stringr)
 library(purrr)
 library(lubridate)
 
@@ -289,11 +292,6 @@ library(lubridate)
 </div>
 <div id="functions-and-variables" class="section level1">
 <h1>Functions and Variables</h1>
-<p>these varaible should be changed by the user as needed. Use min_date and max date to set the date range of the data you want to download. Note that max date can be set to variable <code>todays.date</code> if you want to grab the most up to date data every time you run the download code. Also, note that the format of the date input into these variables must match with the examples in place below(<code>xx-xx-xxxx</code>).</p>
-<pre class="r"><code>#this is the minimum date to be included
-min_date = &quot;1-1-2013&quot;
-#this is the minimum date to be included, add the variable todays.date intot his variable if you want the most recent data
-max_date = &quot;12-31-2016&quot;</code></pre>
 <p>The variables below references values found in the API guide at <a href="http://datahub.chesapeakebay.net/API" class="uri">http://datahub.chesapeakebay.net/API</a> . They should not need to be changed, unless changes occur to the API’s structure. If you run into problems during the Download CEDR data step below, you may want to check the API guide for the number values associated with these parameters.</p>
 <pre class="r"><code>#number for picoplankton in CEDR api
 pico_num = &quot;18&quot;
@@ -306,11 +304,10 @@ chla=21
 doc=34 
 pheo=74 
 salinity=83</code></pre>
-<p>All other variables and functions will likely not need to be changed</p>
+<p>The following variables and functions will likely not need to be changed</p>
 <p>The clean_string() function modifies character objects by removing leading/trailing white space, converting all characters to lower case, and replacing all spaces (&quot; “) with an underscore (”_“). These specifications eliminate common typos and standardize character objects.</p>
 <p>The clean_up() function is a wrapper for clean_string(). This function applies clean_string() to the column headers and character columns of data frames. Again, this process standardizes character values and makes it easier work with the data.</p>
 <p>The use of the dir.creat structure ensures that the proper directory structure is in place. If you have pulled this document down rfom GIT, the full directory structure will already be in place.</p>
-<p><code>station.vec</code> is another required input for the CEDR data pull in the next step.</p>
 <pre class="r"><code>project.dir &lt;- rprojroot::find_rstudio_root_file()
 
 
@@ -348,10 +345,16 @@ dir.create(file.path(project.dir, &quot;data/water_quality&quot;),
            recursive = TRUE, showWarnings = FALSE)
 
 dir.create(file.path(project.dir, &quot;data/itis&quot;),
-           recursive = TRUE, showWarnings = FALSE)
-
-
-station.vec &lt;- file.path(url.root,
+           recursive = TRUE, showWarnings = FALSE)</code></pre>
+<p>these varaible should be changed by the user as needed. Use min_date and max date to set the date range of the data you want to download. Note that max date can be set to variable <code>todays.date</code> if you want to grab the most up to date data every time you run the download code. Also, note that the format of the date input into these variables must match with the examples in place below(<code>xx-xx-xxxx</code>).</p>
+<pre class="r"><code>#this is the minimum date to be included
+min_date = &quot;1-01-1970&quot;#
+  #&quot;1-1-2013&quot;
+#this is the minimum date to be included, add the variable todays.date intot his variable if you want the most recent data
+max_date = todays.date#
+  #&quot;12-31-2016&quot;</code></pre>
+<p><code>station.vec</code> is another required input for the CEDR data pull in the next step.</p>
+<pre class="r"><code>station.vec &lt;- file.path(url.root,
                        &quot;LivingResources&quot;,
                        &quot;TidalPlankton&quot;,
                        &quot;Reported&quot;,
@@ -375,14 +378,19 @@ station.vec &lt;- file.path(url.root,
                       &quot;Station&quot;,
                       paste(station.vec, collapse = &quot;,&quot;)) %&gt;%
   fromJSON() %&gt;% 
-  clean_up()
-
-
-
-
-phyto.df %&gt;% 
+  clean_up()</code></pre>
+<pre><code>## Warning: funs() is soft deprecated as of dplyr 0.8.0
+## please use list() instead
+## 
+## # Before:
+## funs(name = f(.)
+## 
+## # After: 
+## list(name = ~f(.))
+## This warning is displayed once per session.</code></pre>
+<pre class="r"><code>phyto.df %&gt;% 
   mutate(reportingvalue = as.character(reportingvalue)) %&gt;% 
-data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), &quot;data/CEDR&quot;, &quot;cedr_phyto_taxa.csv&quot;))
+data.table::fwrite(file.path(project.dir, &quot;data/CEDR&quot;, &quot;cedr_phyto_taxa.csv&quot;))
 
 
 
@@ -404,7 +412,7 @@ event.df &lt;- file.path(url.root,
 
 
 
-data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), &quot;data/CEDR&quot;, &quot;cedr_phyto_event.csv&quot;))</code></pre>
+data.table::fwrite(event.df, file.path(project.dir, &quot;data/CEDR&quot;, &quot;cedr_phyto_event.csv&quot;))</code></pre>
 <p>pico data(note that the number above “station” is now 18 rather than 17. The project id for picoplankton is 18, and 17 for phytoplankton). Download the data and then write the dataframe to the data/CEDR/ directory as a csv.</p>
 <pre class="r"><code>pico.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
@@ -422,12 +430,6 @@ data.table::fwrite(event.df, file.path(rprojroot::find_rstudio_root_file(), &quo
 pico.df %&gt;% 
   mutate(reportingvalue = as.character(reportingvalue)) %&gt;% 
 data.table::fwrite(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_pico_taxa.csv&quot;))</code></pre>
-<p>Here we retrieve the data we stored previously. It is recommended that you run the code from here if you’ve already pulled from the api. It will save time to start from here. You will need to run the variables and functions section again to populate them into your RStudio environment tab.</p>
-<pre class="r"><code>phyto.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_phyto_taxa.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))
-
-event.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_phyto_event.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))
-
-pico.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_pico_taxa.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))</code></pre>
 </div>
 <div id="water-quality-data" class="section level1">
 <h1>Water Quality Data</h1>
@@ -447,12 +449,21 @@ pico.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &
                      chla,doc,pheo,salinity
                      , sep=&quot;,&quot;)) %&gt;%
   fromJSON() %&gt;% 
-  clean_up()</code></pre>
+  clean_up()
+
+  data.table::fwrite(wq.df, file.path(project.dir, &quot;data/water_quality&quot;, &quot;cedr_wq.csv&quot;))</code></pre>
 <p>note: more information about programIds and projectIds canbe found at <a href="http://datahub.chesapeakebay.net/API" class="uri">http://datahub.chesapeakebay.net/API</a></p>
 <p>save the dataframe as a csv in the data/waterquality directory</p>
 <pre class="r"><code>data.table::fwrite(wq.df, file.path(project.dir, &quot;data/water_quality&quot;, &quot;cedr_wq.csv&quot;))</code></pre>
-<p>read saved data back into dataframe <code>wq.df</code>. Runnning this code allows you to skip the downloading process in cases where your dataset is static.</p>
-<pre class="r"><code>wq.df &lt;- data.table::fread(file.path(project.dir, &quot;data/water_quality/cedr_wq.csv&quot;),
+<p>Here we retrieve the data we stored previously. It is recommended that you run the code from here if you’ve already pulled from the api. It will save time to start from here. You will need to run the variables and functions section again to populate them into your RStudio environment tab, if you have not already done so this session.</p>
+<pre class="r"><code>phyto.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_phyto_taxa.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))
+
+event.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_phyto_event.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))
+
+pico.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_pico_taxa.csv&quot;)) %&gt;% clean_up() %&gt;% mutate(sampledate=as.Date(sampledate))
+
+
+wq.df &lt;- data.table::fread(file.path(project.dir, &quot;data/water_quality/cedr_wq.csv&quot;),
                             data.table = FALSE,
                            na.strings = c(&quot;&quot;))</code></pre>
 <p>reduce the water quality data to match the phytoplankton data</p>
@@ -505,12 +516,18 @@ event.df &lt;- event.df %&gt;%
 <p>determine if depth is above pdepth with exception for RET stations included if needed(RET stations can be problematic)</p>
 <pre class="r"><code>wq_w_pdepth.df &lt;- wq_w_pdepth.df %&gt;%
   mutate(above_pdepth = case_when(depth &lt;= pdepth~&quot;Yes&quot;,
-                                  #depth &gt; pdepth &amp; station %in% c(&quot;ret3.1&quot;,&quot;ret4.3&quot;,&quot;ret3.1&quot;)~&quot;No, but RET&quot;,
+                                  depth &gt; pdepth &amp; station %in% c(&quot;ret3.1&quot;,&quot;ret4.3&quot;,&quot;ret3.1&quot;)~&quot;No, but RET&quot;,
                                   depth &gt; pdepth~&quot;No&quot;
                                   ))</code></pre>
 <p>wq_w_pdepth becomes wq_above_pdepth by filtering out data with depth below or equal to pdepth</p>
 <pre class="r"><code>wq_above_pdepth.df &lt;- wq_w_pdepth.df%&gt;%
-  filter(depth &lt;= pdepth)</code></pre>
+  filter(depth &lt;= pdepth) 
+
+wq_above_pdepth.df &lt;- wq_w_pdepth.df%&gt;%
+  filter(depth &lt;= pdepth) 
+
+test_wq_above_pdepth.df &lt;- wq_above_pdepth.df %&gt;%
+  filter(station == &quot;cb3.3c&quot; &amp; sampledate==&quot;1986-04-08&quot;)</code></pre>
 <p>check for missing(station and date combos that are present in event.df but not represtented in wq_above_pdepth.df) find_missing is a function for finding backbone values missing from recently modified data and add them into recently modified(latest) date</p>
 <pre class="r"><code>find_missing &lt;- function(data_backbone, source_data, modified_data, step_vector) {
   missing.df &lt;- anti_join(data_backbone, modified_data, by = c(&quot;station&quot;,&quot;sampledate&quot;))
@@ -571,7 +588,28 @@ wq_above_pdepth.df &lt;- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.
   #do not remove NAs
   mutate(measurevalue_averaged = mean(measurevalue)) %&gt;%
   distinct(station, sampledate, depth, eventid, layer, parameter, measurevalue_averaged, concat) %&gt;%
-  ungroup()</code></pre>
+  ungroup() #%&gt;%
+  #filter(station == &quot;cb3.3c&quot;)</code></pre>
+<pre class="r"><code>#write mutant entries to file water_quality\cb3.3c_mutants.csv.  these are entries that are likely reporting errors to be sent to Mike Malonee.  This is adressing a known issue with station cb3.3c between 1986 and 1991 where a second entry was taken that was vastly different from the first(too high by 100 or more )
+mutants &lt;- di_s_chla.df %&gt;%
+  group_by(concat) %&gt;%
+  filter(station == &quot;cb3.3c&quot; &amp; measurevalue_averaged &gt; 100 &amp; n() &gt;1) %&gt;%
+  data.table::fwrite(file.path(project.dir, &quot;data/water_quality&quot;, &quot;cb3.3c_mutants.csv&quot;))  
+
+#address issues with station cb3.3c
+#we group by station and average dupliacte entries, disregarding the mutants entries by turning them into zeros
+
+di_s_chla.df &lt;- di_s_chla.df %&gt;%  
+  group_by(concat) %&gt;%
+  mutate(test=n()) %&gt;%
+  mutate(measurevalue_averaged = case_when(test &gt;1 &amp;station == &quot;cb3.3c&quot; &amp; measurevalue_averaged &gt; 100~0, 
+                                           TRUE~measurevalue_averaged)) %&gt;%
+  mutate( measurevalue_averaged =(case_when(test&gt;1~mean(measurevalue_averaged),
+                                            TRUE~measurevalue_averaged))) %&gt;%
+
+  select(-test) %&gt;%
+  ungroup() %&gt;%
+  distinct(station, sampledate, layer, parameter, measurevalue_averaged, concat) </code></pre>
 <p>find missing values in di_s_chla.df and join them into the dataframe</p>
 <pre class="r"><code>find_missing_schla.vec &lt;- c(&quot;station&quot;, &quot;sampledate&quot;, &quot;layer&quot;, &quot;concat&quot;, &quot;depth&quot;, &quot;parameter&quot;, &quot;eventid&quot;)
 
@@ -584,15 +622,8 @@ missing_s_chla.df &lt;- name_missing(event.df, wq_above_pdepth.df, di_s_chla.df,
   mutate(sampledate = as.Date(sampledate)) %&gt;%
   mutate()
 
-# creates a vector of the unqiue ids of the missing values
-missing_ids.vec &lt;- pull(missing_s_chla.df, eventid) 
-
-# checks ids against source, which is totally redundant
-missing_full.df &lt;-wq_above_pdepth.df %&gt;%
-  filter(eventid %in% missing_ids.vec ) 
-
 #join missing values into di_s_chla.df with blank values
-di_s_chla.df &lt;- full_join(di_s_chla.df, missing_s_chla.df, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;eventid&quot;, &quot;parameter&quot;, &quot;concat&quot;))</code></pre>
+di_s_chla.df &lt;- full_join(di_s_chla.df, missing_s_chla.df, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;parameter&quot;, &quot;concat&quot;))#&quot;eventid&quot;, </code></pre>
 <p>Averge replicates for the rest of the data …measure value average</p>
 <pre class="r"><code>wq_above_pdepth.df &lt;- wq_above_pdepth.df %&gt;%
   group_by(station, sampledate, depth, parameter) %&gt;%
@@ -608,7 +639,6 @@ di_s_chla.df &lt;- full_join(di_s_chla.df, missing_s_chla.df, by = c(&quot;stati
 <p>join surface chloraphyl into water quality data measurevalued_averaged is renamed depth_integrated_value to match water quality naming convention</p>
 <pre class="r"><code>di_s_chla.df &lt;- di_s_chla.df %&gt;% 
   rename(depth_integrated_value = measurevalue_averaged)
-  
 
 wq_all.df &lt;- full_join(wq_above_pdepth.df, di_s_chla.df, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;parameter&quot;, &quot;depth_integrated_value&quot;))</code></pre>
 <p>Select dates between Mar-May and Jul-Sept and assign a season value according to the range they fall into</p>
@@ -650,26 +680,57 @@ wq_sal_fill.df &lt;-  wq_no_sal.df %&gt;%
 wq_sal_filled.df &lt;- wq_sal_fill.df %&gt;%
   filter(salzone == &quot;F&quot;)</code></pre>
 <p>Add the data assigned salzones back into backbone</p>
-<pre class="r"><code>wq_warm_sal_added.df &lt;- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c(&quot;concat&quot;, &quot;salzone&quot;,&quot;station&quot;,&quot;sampledate&quot;, &quot;season&quot;))</code></pre>
+<pre class="r"><code>wq_warm_sal_added.df &lt;- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c(&quot;concat&quot;, &quot;salzone&quot;,&quot;station&quot;,&quot;sampledate&quot;, &quot;season&quot;))
+
+# wq_warm_sal_added.df &lt;- wq_warm_sal_added.df %&gt;%
+#   filter(concat ==  &quot;cb3.3c1986-04-08&quot;)</code></pre>
 <p>bring in Jackies data to compare salzones against import jackie’s salzones if data falls within the applicable date range and is missing salzone data note:this should be the last method of acquiring salzone data implemented</p>
 <pre class="r"><code>jackie_salzones.df &lt;- readxl::read_excel(file.path(project.dir, &quot;data/Jackie/JMJ_PIBI_Salzone_Data.xlsx&quot;),
                          sheet = &quot;JMJ Salzone+Scores&quot;) %&gt;% clean_up() %&gt;%
   rename(salzone = ibi_salzone)
 
+#turn jackie_salzone.df concat into something useful
+jackie_salzones.df &lt;-  jackie_salzones.df %&gt;%
+  mutate(concat = paste0(station, sample_date)) 
+
+#find those that neeed salinity?
 wq_need_sal.df &lt;- wq_warm_sal_added.df %&gt;%
   mutate(year = year(sampledate)) %&gt;%
   filter(year &gt;= 1984 &amp; year &lt;= 2011 &amp; is.na(salzone))
 
+jackie_salzones.df &lt;- jackie_salzones.df %&gt;%
+  select(concat,salzone)
+
+
+# wq_warm_sal_added.df &lt;- wq_warm_sal_added.df %&gt;%
+#   filter(concat==&quot;cb2.21984-08-07&quot;)
+# 
+# wq_has_sal.df &lt;- wq_has_sal.df %&gt;%
+#   filter(concat==&quot;cb2.21984-08-07&quot;)
+# 
+# jackie_salzones.df &lt;- jackie_salzones.df %&gt;%
+#   filter(concat==&quot;cb2.21984-08-07&quot;)
+
 #join jackie salzone values to wq_need_sal by id, but only if sal needed is not an empty dataframe
 if (nrow(wq_need_sal.df) &gt; 1) {
   wq_has_sal.df &lt;- left_join(wq_need_sal.df, jackie_salzones.df, by= c(&quot;concat&quot;, &quot;salzone&quot;))
+  
+  # wq_has_sal.df &lt;- wq_has_sal.df %&gt;%
+  #   select(concat, salzone)
+  
+  #do an anti-join to remove values we are about to replace
+  anti_wq_warm_sal_added.df &lt;- anti_join(wq_warm_sal_added.df, wq_has_sal.df, by= c(&quot;concat&quot;))
 
   #join wq_need_sal to main wq data
-  wq_warm_sal_added.df &lt;- left_join(wq_warm_sal_added., wq_has_sal.df, by= c(&quot;concat&quot;, &quot;salzone&quot;))
+  wq_warm_sal_added.df &lt;- full_join(anti_wq_warm_sal_added.df, wq_has_sal.df)#, by= c(&quot;concat&quot;))
 }</code></pre>
+<pre><code>## Joining, by = c(&quot;station&quot;, &quot;sampledate&quot;, &quot;depth_integrated_value&quot;, &quot;parameter&quot;, &quot;layer&quot;, &quot;concat&quot;, &quot;eventid&quot;, &quot;month&quot;, &quot;season&quot;, &quot;salzone&quot;)</code></pre>
 <p>Convert to a wide format</p>
-<pre class="r"><code>wq_warm.wide &lt;- wq_warm_sal_added.df %&gt;%
-  select(-layer, -depth,-eventid,-concat) %&gt;%
+<pre class="r"><code>wq_warm_sal_added.df &lt;- wq_warm_sal_added.df %&gt;%
+  distinct()
+
+wq_warm.wide &lt;- wq_warm_sal_added.df %&gt;%
+  select(-layer, -eventid,-concat) %&gt;% #-depth,
   spread(parameter, depth_integrated_value)</code></pre>
 <p>remove winter and fall</p>
 <pre class="r"><code>wq_final.df &lt;- wq_warm.wide %&gt;%
@@ -687,8 +748,7 @@ if (nrow(wq_need_sal.df) &gt; 1) {
   rename(carbon = `carbon_(picogram_c_per_cell)`) %&gt;%
   mutate(tsn = as.integer(tsn)) %&gt;%
   mutate(size = case_when(size == &quot;not_applicable&quot;~ as.character(NA), TRUE ~size))</code></pre>
-<pre><code>## Warning in evalq(as.integer(tsn), &lt;environment&gt;): NAs introduced by
-## coercion</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
 <p>bring in phyto taxanomic data that was downloaded from CEDR (originally into phyto.df)</p>
 <pre class="r"><code>col.class.vec &lt;- c(&quot;samplenumber&quot; = &quot;character&quot;,
                    &quot;tsn&quot; = &quot;character&quot;,
@@ -714,9 +774,9 @@ taxa.raw &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/cedr_phy
   mutate(tsn=as.character(tsn)) %&gt;%
   mutate(speccode = as.character(speccode)) %&gt;%
   mutate(reportingvalue = as.integer(reportingvalue)) %&gt;%
-  mutate(samplenumber = as.character(samplenumber))
-
-bay.df &lt;- bay.df %&gt;%
+  mutate(samplenumber = as.character(samplenumber))</code></pre>
+<pre><code>## Warning: NAs introduced by coercion to integer range</code></pre>
+<pre class="r"><code>bay.df &lt;- bay.df %&gt;%
     mutate(size = case_when(size == &quot;not_applicable&quot;~ as.character(NA), TRUE ~size))</code></pre>
 <p>If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon. (currently removes a single value)</p>
 <pre class="r"><code>bay.df &lt;- bay.df %&gt;% 
@@ -933,7 +993,13 @@ bay_wq_merged.df &lt;- left_join(bay_merged.df, wq_final.df, by = c(&quot;concat
   
   mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass * 100) %&gt;% 
   
-  select(-group, -carbon, -nano_micro_biomass) %&gt;%
+  mutate(other_biomass =(case_when(!group %in% c(&quot;cryptophyte&quot;,&quot;cryptophyceae&quot;,&quot;cryptophyta&quot;,&quot;cryptomonads&quot;, &quot;cyanophyte&quot;,&quot;cyanobacteria&quot;, &quot;dinoflagellates&quot;, &quot;diatom&quot; ) ~ nano_micro_biomass, TRUE~0 )) ) %&gt;%
+  
+  mutate(other_biomass_total = sum(other_biomass)) %&gt;%
+  
+  select(-group, -carbon, -nano_micro_biomass, -other_biomass) %&gt;%
+    
+  ungroup() %&gt;%
   distinct()</code></pre>
 <pre class="r"><code>bay_wq_merged_calc.df &lt;- bay_wq_merged_calc.df %&gt;%
   group_by(unique_id) %&gt;%
@@ -965,6 +1031,15 @@ bay_wq_merged_calc.df &lt;- bay_wq_merged_calc.df %&gt;%
   
   distinct() %&gt;%
   ungroup()</code></pre>
+<p>this is a test to determine if biomasses are adding up correctly. If the dataframe <code>test</code> is not empty(look in environemtn tab at test, it should say 0 obs. of x 23 variables) your biomasses aren’t ading up correctly.</p>
+<pre class="r"><code>test &lt;- bay_wq_merged_calc.df %&gt;%
+    #filter(unique_id ==&quot;sbe5_ap_fs1_2013-03-13&quot;) %&gt;%
+  mutate(biomass_total_test = (dinoflagellate_biomass + diatom_biomass +cryptophyte_biomass + cyanophyte_biomass + other_biomass_total)) %&gt;%
+  mutate(biomass_error =abs( total_nano_micro_biomass-biomass_total_test )) %&gt;%
+  filter( biomass_error &gt; .00000001)</code></pre>
+<p>remove other_biomass_total before proceeding</p>
+<pre class="r"><code>bay_wq_merged_calc.df &lt;- bay_wq_merged_calc.df %&gt;%
+  select(-other_biomass_total)</code></pre>
 <p>join the picoplankton data into the bay data and average duplicates and generate picoplankton_abundance</p>
 <pre class="r"><code>picoplankton.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_pico_taxa.csv&quot;)) %&gt;% clean_up() %&gt;%
   rename(pico_reportingvalue = reportingvalue) %&gt;%
@@ -1439,7 +1514,7 @@ surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagella
   select(-rating ,rating)</code></pre>
 <p>Save the final score to directory data/ScoresRatings</p>
 <pre class="r"><code>scores_ratings_final %&gt;% 
-data.table::fwrite(file.path(rprojroot::find_rstudio_root_file(), &quot;data/ScoresRatings&quot;, &quot;final_scores_ratings.csv&quot;))</code></pre>
+data.table::fwrite(file.path(project.dir, &quot;data/ScoresRatings&quot;, &quot;final_scores_ratings.csv&quot;))</code></pre>
 </div>
 <div id="citations" class="section level1">
 <h1>Citations</h1>
