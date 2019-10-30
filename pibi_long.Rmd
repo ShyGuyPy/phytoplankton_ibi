@@ -138,7 +138,7 @@ these varaible should be changed by the user as needed.  Use min_date and max da
 #this is the minimum date to be included
 min_date = "1-01-1970"#
   #"1-1-2013"
-#this is the minimum date to be included, add the variable todays.date intot his variable if you want the most recent data
+#this is the maximum date to be included, add the variable todays.date into this variable if you want the most recent data
 max_date = todays.date#
   #"12-31-2016"
                
@@ -252,7 +252,7 @@ wq.df <- file.path(url.root,
 
   data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
-note: more information about programIds and projectIds canbe found at http://datahub.chesapeakebay.net/API
+note: more information about programIds and projectIds can be found at http://datahub.chesapeakebay.net/API
 
 
 save the dataframe as a csv in the data/waterquality directory
