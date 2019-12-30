@@ -231,14 +231,18 @@ data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
 
 # Water Quality Data
 
-downloading the water quality data is done in a similar manner as the event and sample data
+downloading the water quality data is done in a similar manner as the event and sample data.  this expands the range to allow for the next step in which a 3 day window(on each side) is used to link water quality
+
 ```{r}
 wq.df <- file.path(url.root,
                    "WaterQuality",
                    "WaterQuality",
 
-                   min_date,
-                   max_date,
+                   format(min(phyto.df$sampledate) - days(3), "%m-%d-%Y"),
+                   format(max(phyto.df$sampledate) + days(3), "%m-%d-%Y"), 
+
+                   # min_date,
+                   # max_date,
                    "6",  #programIds
                    "7,23",#"7,16,23,24",  #projectIds
                    "station",
