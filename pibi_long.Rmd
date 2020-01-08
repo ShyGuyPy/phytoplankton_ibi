@@ -280,6 +280,12 @@ wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.cs
 ```
 
 
+
+
+
+
+
+
 3 day window
 
 ```{r}
@@ -341,9 +347,26 @@ stopCluster(cl)
 # env.wide <- env.df %>%
 #   spread(parameter, measurevalue)
 
-event_test.df <- left_join(event.df, env.df, by = c("station", "sampledate")) 
+event.df <- left_join(event.df, env.df, by = c("station", "sampledate",
+                                               "source", "sampletype", "layer", "latitude", "longitude", "totaldepth", "sampletime")) 
 
 ```
+
+
+testing 3 day window
+```{r}
+# print(typeof(event_test.df))
+# 
+# print(typeof(event.df))
+# 
+# sample_slice_after <- event_test.df %>%
+#   filter(sampledate == "1989-06-28")
+# 
+# sample_slice_before <- event.df %>%
+#   filter(sampledate == "1989-06-28")
+```
+
+
 
 
 

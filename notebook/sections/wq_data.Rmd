@@ -97,12 +97,12 @@ filter out all below pycnocline values(after 3 day)
 
 to work with Zach's 3 day window code
 ```{r eval=FALSE}
-wq.df <- wq.df %>%
-  rename(date = sampledate)
+# wq.df <- wq.df %>%
+#   rename(date = sampledate)
 
 ```
 
-removed. better to save the raw data(at teh beginning)
+removed. better to save the raw data(at the beginning)
 ```{r}
 # data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 # 
