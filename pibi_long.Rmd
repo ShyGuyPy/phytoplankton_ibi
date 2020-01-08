@@ -415,15 +415,15 @@ event.df <- event.df %>%
 this is Zach's code for use with use for (I believe) older data that uses older salzone designations,
 it's doing nothing for our current data set (2013-2016)
 ```{r}
-event.df <- event.df %>%
-    mutate(
-         salzone = case_when(
-           salzone %in% c("tf", "fe") ~ "f",
-           salzone %in% c("m", "me") ~ "m",
-           salzone %in% c("o", "oe") ~ "o",
-           salzone %in% c("p", "pe") ~ "p",
-           TRUE ~ as.character(NA)
-         ))
+# event.df <- event.df %>%
+#     mutate(
+#          salzone = case_when(
+#            salzone %in% c("tf", "fe") ~ "f",
+#            salzone %in% c("m", "me") ~ "m",
+#            salzone %in% c("o", "oe") ~ "o",
+#            salzone %in% c("p", "pe") ~ "p",
+#            TRUE ~ as.character(NA)
+#          ))
 ```
 
 filter out all data outside of layers __above pycnocline__ and __water column__ and select only columns we wish to join.
