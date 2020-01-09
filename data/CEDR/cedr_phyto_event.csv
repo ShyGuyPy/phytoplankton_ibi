@@ -2582,8 +2582,8 @@ huc8,catalogingunitdescription,datatype,source,sampletype,sampledate,layer,latit
 ,,phytp,odu/pel,c,1987-11-17t00:00:00,bp,37.58847,-76.16216,12.5,p,15,liter,cb6.1,13,00:00:00
 ,,phytp,odu/pel,c,1987-12-15t00:00:00,ap,37.58847,-76.16216,4.3,p,15,liter,cb6.1,13,00:00:00
 ,,phytp,odu/pel,c,1987-12-15t00:00:00,bp,37.58847,-76.16216,12.5,p,15,liter,cb6.1,13,00:00:00
-,,phytp,odu/pel,c,1988-01-29t00:00:00,ap,37.58847,-76.16216,4.3,me,15,liter,cb6.1,13,00:00:00
 ,,phytp,odu/pel,c,1988-01-29t00:00:00,bp,37.58847,-76.16216,12.5,p,15,liter,cb6.1,13,00:00:00
+,,phytp,odu/pel,c,1988-01-29t00:00:00,ap,37.58847,-76.16216,4.3,me,15,liter,cb6.1,13,00:00:00
 ,,phytp,odu/pel,c,1988-02-25t00:00:00,ap,37.58847,-76.16216,4.3,p,15,liter,cb6.1,13,00:00:00
 ,,phytp,odu/pel,c,1988-02-25t00:00:00,bp,37.58847,-76.16216,12.5,p,15,liter,cb6.1,13,00:00:00
 ,,phytp,odu/pel,c,1988-03-18t00:00:00,ap,37.58847,-76.16216,4.3,p,15,liter,cb6.1,13,00:00:00
@@ -9501,8 +9501,8 @@ huc8,catalogingunitdescription,datatype,source,sampletype,sampledate,layer,latit
 ,,phytp,odu/pel,c,1996-07-11t00:00:00,bp,36.99681,-76.303,19.9,p,15,liter,le5.5,20.4,13:21:00
 ,,phytp,odu/pel,c,1996-07-22t00:00:00,ap,36.99681,-76.303,6.8,p,15,liter,le5.5,20.4,18:00:00
 ,,phytp,odu/pel,c,1996-07-22t00:00:00,bp,36.99681,-76.303,19.9,p,15,liter,le5.5,20.4,18:00:00
-,,phytp,odu/pel,c,1996-08-07t00:00:00,ap,36.99681,-76.303,6.8,p,15,liter,le5.5,20.4,13:54:00
 ,,phytp,odu/pel,c,1996-08-07t00:00:00,bp,36.99681,-76.303,19.9,p,15,liter,le5.5,20.4,13:54:00
+,,phytp,odu/pel,c,1996-08-07t00:00:00,ap,36.99681,-76.303,6.8,p,15,liter,le5.5,20.4,13:54:00
 ,,phytp,odu/pel,c,1996-08-28t00:00:00,ap,36.99681,-76.303,6.8,p,15,liter,le5.5,20.4,14:15:00
 ,,phytp,odu/pel,c,1996-08-28t00:00:00,bp,36.99681,-76.303,19.9,p,15,liter,le5.5,20.4,14:15:00
 ,,phytp,odu/pel,c,1996-09-12t00:00:00,ap,36.99903,-76.31328,6.8,m,15,liter,le5.5-w,20.4,12:45:00
@@ -12798,8 +12798,8 @@ huc8,catalogingunitdescription,datatype,source,sampletype,sampledate,layer,latit
 ,,phytp,odu/pel,c,2007-05-23t00:00:00,bp,36.76987,-76.29605,4.5,m,15,liter,sbe5,5,10:34:00
 ,,phytp,odu/pel,c,2007-06-13t00:00:00,ap,36.76987,-76.29605,3,p,15,liter,sbe5,4,11:14:00
 ,,phytp,odu/pel,c,2007-06-13t00:00:00,bp,36.76987,-76.29605,3.5,p,15,liter,sbe5,4,11:14:00
-,,phytp,odu/pel,c,2007-07-18t00:00:00,bp,36.76987,-76.29605,5.5,m,15,liter,sbe5,6,10:45:00
 ,,phytp,odu/pel,c,2007-07-18t00:00:00,ap,36.76987,-76.29605,2,m,15,liter,sbe5,6,10:45:00
+,,phytp,odu/pel,c,2007-07-18t00:00:00,bp,36.76987,-76.29605,5.5,m,15,liter,sbe5,6,10:45:00
 ,,phytp,odu/pel,c,2007-08-15t00:00:00,ap,36.76987,-76.29605,2,m,15,liter,sbe5,3,10:36:00
 ,,phytp,odu/pel,c,2007-08-15t00:00:00,bp,36.76987,-76.29605,2.5,m,15,liter,sbe5,3,10:36:00
 ,,phytp,odu/pel,c,2007-09-19t00:00:00,ap,36.76987,-76.29605,2,m,15,liter,sbe5,6,10:37:00

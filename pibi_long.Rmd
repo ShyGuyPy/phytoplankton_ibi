@@ -136,7 +136,7 @@ dir.create(file.path(project.dir, "data/itis"),
 these varaible should be changed by the user as needed.  Use min_date and max date to set the date range of the data you want to download.  Note that max date can be set to variable `todays.date` if you want to grab the most up to date data every time you run the download code.  Also, note that the format of the date input into these variables must match with the examples in place below(`xx-xx-xxxx`). 
 ```{r}
 #this is the minimum date to be included
-min_date = "1-01-1970"#
+min_date = "1-01-1970"#"01-01-2018"
   #"1-1-2013"
 #this is the maximum date to be included, add the variable todays.date into this variable if you want the most recent data
 max_date = todays.date#
@@ -238,8 +238,8 @@ wq.df <- file.path(url.root,
                    "WaterQuality",
                    "WaterQuality",
 
-                   format(min(phyto.df$sampledate) - days(3), "%m-%d-%Y"),
-                   format(max(phyto.df$sampledate) + days(3), "%m-%d-%Y"), 
+                   format(as.Date(min(event.df$sampledate)) - days(3), "%m-%d-%Y"),
+                   format(as.Date(max(event.df$sampledate)) + days(3), "%m-%d-%Y"),
 
                    # min_date,
                    # max_date,
@@ -257,7 +257,6 @@ wq.df <- file.path(url.root,
   data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
 note: more information about programIds and projectIds can be found at http://datahub.chesapeakebay.net/API
-
 
 save the dataframe as a csv in the data/waterquality directory
 ```{r}
@@ -289,9 +288,9 @@ wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.cs
 3 day window
 
 ```{r}
-event.sub <- event.df %>% 
-  select(station, sampledate) %>% 
-  distinct() %>% 
+event.sub <- event.df %>%
+  select(station, sampledate) %>%
+  distinct() %>%
   mutate(sampledate = as.Date(sampledate)) %>%
   mutate(lower_date = sampledate - lubridate::days(3),
          upper_date = sampledate + lubridate::days(3))
@@ -335,7 +334,7 @@ env.df <- parLapply(cl, 1:nrow(event.sub), function(row.i) {
   }
   #----------------------------------------------------------------------------
   return(final.df)
-  
+
 }) %>%
   bind_rows() %>%
   filter(!is.na(station))
@@ -347,23 +346,27 @@ stopCluster(cl)
 # env.wide <- env.df %>%
 #   spread(parameter, measurevalue)
 
-event.df <- left_join(event.df, env.df, by = c("station", "sampledate",
-                                               "source", "sampletype", "layer", "latitude", "longitude", "totaldepth", "sampletime")) 
+event.df <- left_join(event.df, env.df, by = c("station", "sampledate"))
+
+
+event.df <- event.df %>%
+  mutate(source = source.x, sampletype = sampletype.x, layer = layer.x, latitude = latitude.x, longitude = longitude.x, totaldepth = totaldepth.x, sampletime = sampletime.x) %>%
+  select( -source.x, -source.y, -sampletype.x, sampletype.y, -layer.x, layer.y, -latitude.x, -latitude.y, -longitude.x, -longitude.y, -totaldepth.x, -totaldepth.y, -sampletime.x, -sampletime.y)
+
 
 ```
 
-
-testing 3 day window
+testing
 ```{r}
-# print(typeof(event_test.df))
-# 
-# print(typeof(event.df))
-# 
-# sample_slice_after <- event_test.df %>%
-#   filter(sampledate == "1989-06-28")
-# 
-# sample_slice_before <- event.df %>%
-#   filter(sampledate == "1989-06-28")
+# event.df %>%
+# data.table::fwrite(file.path(project.dir, "data/ScoresRatings", "event_with3day.csv"))
+```
+
+
+testing
+```{r}
+# event.df %>%
+# data.table::fwrite(file.path(project.dir, "data/ScoresRatings", "event_no3day.csv"))
 ```
 
 
@@ -979,7 +982,19 @@ turn carbon NA's into zeroes and calcualte nano_micro_biomass.
 bay_merged.df <- bay_merged.df %>%
   mutate(carbon = ifelse(is.na(carbon)==TRUE, 0, carbon)) %>%
   mutate(nano_micro_biomass = reportingvalue * carbon / 10 ^ 6) 
+
 ```
+
+
+test
+```{r}
+# problem <- bay_merged.df %>%
+#   filter(station =="et3.1", sampledate ==as.Date("2010-09-20")) %>%
+#   mutate(nano_micro_biomass = case_when(is.na(nano_micro_biomass) ~0, TRUE~nano_micro_biomass)
+#                                ) %>%
+#   mutate(total_nano_micro_biomass = sum(as.integer(nano_micro_biomass))) 
+```
+
 
 merge wq and main data
 ```{r}
@@ -1011,7 +1026,7 @@ bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
 
   group_by(unique_id) %>%
   
-  mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
+  mutate(total_nano_micro_biomass = sum(nano_micro_biomass, na.rm = TRUE)) %>%
   
   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
 
@@ -1045,7 +1060,7 @@ bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
   
   mutate(other_biomass =(case_when(!group %in% c("cryptophyte","cryptophyceae","cryptophyta","cryptomonads", "cyanophyte","cyanobacteria", "dinoflagellates", "diatom" ) ~ nano_micro_biomass, TRUE~0 )) ) %>%
   
-  mutate(other_biomass_total = sum(other_biomass)) %>%
+  mutate(other_biomass_total = sum(other_biomass,na.rm = TRUE)) %>%
   
   select(-group, -carbon, -nano_micro_biomass, -other_biomass) %>%
     
