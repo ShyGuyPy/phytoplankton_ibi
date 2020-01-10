@@ -12798,8 +12798,8 @@ huc8,catalogingunitdescription,datatype,source,sampletype,sampledate,layer,latit
 ,,phytp,odu/pel,c,2007-05-23t00:00:00,bp,36.76987,-76.29605,4.5,m,15,liter,sbe5,5,10:34:00
 ,,phytp,odu/pel,c,2007-06-13t00:00:00,ap,36.76987,-76.29605,3,p,15,liter,sbe5,4,11:14:00
 ,,phytp,odu/pel,c,2007-06-13t00:00:00,bp,36.76987,-76.29605,3.5,p,15,liter,sbe5,4,11:14:00
-,,phytp,odu/pel,c,2007-07-18t00:00:00,bp,36.76987,-76.29605,5.5,m,15,liter,sbe5,6,10:45:00
 ,,phytp,odu/pel,c,2007-07-18t00:00:00,ap,36.76987,-76.29605,2,m,15,liter,sbe5,6,10:45:00
+,,phytp,odu/pel,c,2007-07-18t00:00:00,bp,36.76987,-76.29605,5.5,m,15,liter,sbe5,6,10:45:00
 ,,phytp,odu/pel,c,2007-08-15t00:00:00,ap,36.76987,-76.29605,2,m,15,liter,sbe5,3,10:36:00
 ,,phytp,odu/pel,c,2007-08-15t00:00:00,bp,36.76987,-76.29605,2.5,m,15,liter,sbe5,3,10:36:00
 ,,phytp,odu/pel,c,2007-09-19t00:00:00,ap,36.76987,-76.29605,2,m,15,liter,sbe5,6,10:37:00
