@@ -1,0 +1,1372 @@
+---
+title: "Phytoplankton Index of Biotic Integrity"
+date: "December 21, 2018"
+author:
+  - name: "Zachary M. Smith, zachary.smith2@dec.ny.gov"
+    affiliation: New England Interstate Water Pollution Control Commission
+  - name: "Rikke D. Jepsen, rjepsen@icprb.org"
+    affiliation: Interstate Commission on the Potomac River Basin
+output: 
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+---
+
+###**Introduction**
+
+This R-script and its accompanying documentation describe the method used to calculate the Phytoplankton Index of Biotic Integrity (PIBI) for the Chesapeake Bay and its tidal tributaries. Methodology was obtained from Lacouture et al. (2006), with additional references from Jacqueline M. Johnson’s documentation. Use this document to prepare data from the Chesapeake Bay Program's CEDR database and then calculate the PIBI. Data are extracted from the database using an (Application Programming Interface) API.
+
+###**Before You Get Started**  
+RStudio must be installed on your computer to implement the following R scripts. If RStudio is not installed, it can be downloaded for free from [https://www.rstudio.com/](https://www.rstudio.com/). This [webpage](https://courses.edx.org/courses/UTAustinX/UT.7.01x/3T2014/56c5437b88fa43cf828bff5371c6a924/) details the short installation process. Once R Studio is ready to be used on your computer, copy and paste the R scripts into the RStudio editor and run them. Each time a data frame is created, it can be viewed by typing `View(name)` in the console or by clicking its name in the Environment tab on the right.          
+
+For those who are new to RStudio, please refer to [this](http://www.sthda.com/sthda/RDoc/images/rstudio.png) image for the layout of the RStudio panels. Some helpful R books and webpages are listed below:
+
+* The R Book by Michael J. Crawley  
+* R for Data Science by Hadley Wickham and Garrett Grolemund (https://r4ds.had.co.nz/index.html)
+* Data Camp's free Introduction to R course (https://www.datacamp.com/courses/free-introduction-to-r)
+* An Introduction to R by W.N. Venables, D.M. Smith and the R Core Team   (https://cran.r-project.org/doc/manuals/R-intro.pdf)  
+* Tutorials Point (https://www.tutorialspoint.com/r/r_overview.htm)  
+* Stack Overflow for asking questions or reading answers to questions   
+
+####**Setting Up R Document and Loading Packages** 
+Open RStudio. Create a new RScript (File > New File > R Script), and save it in a location where you would like the scripts to be saved.      
+
+In the code editor (RStudio's upper left quadrant), use `setwd(" ")` to set the working directory to the location where you saved your R Script file. For example, `setwd("C:/Documents/My folder")`. Don't forget to use a forward slash `/` instead of a backward slash `\` in the path name. This is also the location where any CSV files you generate will be saved.  
+
+Load the packages below into the environment. The packages must be installed before they can be opened. To check if a package is already installed, go to the Packages tab (RStudio's lower right quadrant) and either scroll to find it or type in the name in the search bar. To install a package, either use `install.packages("name")` or the Install button in the Packages tab. To open an installed library, use `library(name)`. 
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyr)
+library(data.table)
+library(lubridate)
+library(readxl)
+library(jsonlite)
+library(rprojroot)
+library(ritis)
+library(stringr)
+library(purrr)
+library(lubridate)
+```
+####**Variables Used by the API**
+The variables below represent values found in the Bay Program's [API guide](http://datahub.chesapeakebay.net/API). Unless changes occur to the API's structure, these variables will not need to be changed.
+
+The water quality variable codes are as follows: 
+chla = chlorophyll A
+doc = dissolved organic carbon
+pheo = pheophytin
+
+#### ELABORTATE ON WHAT THESE MEAN AND SHOULD THE WQ PARAMETERS BE ""?
+```{r}
+# The number in the CEDR API that corresponds to picoplankton:
+pico_num = "18"
+
+# The number in the CEDR API that corresponds to phytoplankton:
+phyto_num = "17"
+
+# The parameter codes for water quality variables in the CEDR API:
+chla = 21
+doc = 34 
+pheo = 74 
+salinity = 83
+```
+####**Establish Functions for Data Preparation and API Connection** 
+The `clean_string()` function modifies character objects by 1) removing leading and trailing white spaces, 2) converting all characters to lowercase, and 3) replacing all spaces with an underscore. These corrections eliminate common typos and standardize character objects.
+
+The `clean_up()` function is a wrapper for `clean_string()`. This function applies `clean_string()` to the column headers and character columns of data frames. Again, this process standardizes character values and makes it easier work with the data.
+
+The use of the dir.creat structure ensures that the proper directory structure is in place when pulling data using the API.
+```{r}
+project.dir <- rprojroot::find_rstudio_root_file()
+
+clean_string <- function(x) {
+  x %>% 
+    stringr::str_trim() %>% 
+    tolower() %>% 
+    stringr::str_replace_all("\\s+", " ") %>% 
+    stringr::str_replace_all(" ", "_") %>%  
+    if_else(. == "", as.character(NA), .)
+}
+
+clean_up <- function(x) {
+  x %>% 
+    rename_all(clean_string) %>% 
+    mutate_if(is.character, funs(clean_string))%>% 
+    distinct()
+}
+
+# This variable holds the url for the CEDR API:
+url.root <- "http://datahub.chesapeakebay.net/api.JSON"
+todays.date <- format(Sys.Date(), "%m-%d-%Y")
+
+# The following code generates directories that will be used throughout the scripts:
+dir.create(file.path(project.dir, "data/VA_ODU/"), recursive = TRUE, showWarnings = FALSE)
+
+dir.create(file.path(project.dir, "data/CEDR/"), recursive = TRUE, showWarnings = FALSE)
+
+dir.create(file.path(project.dir, "data/MD_DNR/"), recursive = TRUE, showWarnings = FALSE)
+
+dir.create(file.path(project.dir, "data/water_quality"), recursive = TRUE, showWarnings = FALSE)
+
+dir.create(file.path(project.dir, "data/itis"), recursive = TRUE, showWarnings = FALSE)
+```
+####**Set the Date Range for the Desired Dataset**
+Use `min_date` and `max date` to set the date range of the data you want to download. Note that ending date can be set to variable `todays.date` if you want to extract the most current data every time you run the download code. Also note that the format of the date input into these variables must match with the examples in place below (`mm-dd-yyyy`). 
+```{r}
+# The earliest data to be extracted from CEDR. Change the current date (January 1, 1970) to your desired date. 
+min_date = "01-01-1970"
+
+# The latest date to be extracted from CEDR. Either use a date (mm-dd-yyyy) or use `todays.date` for the most recent data.
+max_date = todays.date
+```
+####**Data Pull Setup**
+Now that the date range has been set, the required inputs for the data pull are established using `station.vec`.
+```{r}
+station.vec <- file.path(url.root,
+                       "LivingResources",
+                       "TidalPlankton",
+                       "Reported",
+                       min_date,
+                       max_date, 
+                       phyto_num,
+                       "Station") %>% 
+  fromJSON() %>% 
+  pull(unique(MonitoringLocationId))
+```
+####**CEDR Data Acquisition**
+Perform the data pull from CEDR using the API. The data are saved in a dataframe called `phyto.df`. 
+```{r}
+phyto.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "Reported",
+                       min_date,
+                       max_date, 
+                      phyto_num,
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+phyto.df %>% 
+  mutate(reportingvalue = as.character(reportingvalue)) %>% 
+data.table::fwrite(file.path(project.dir, "data/CEDR", "cedr_phyto_taxa.csv"))
+
+
+event.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "MonitorEvent",
+                      min_date,
+                      max_date, 
+                      phyto_num,
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+data.table::fwrite(event.df, file.path(project.dir, "data/CEDR", "cedr_phyto_event.csv"))
+```
+####**Dataframe Creation**
+Create a dataframe that contains picoplankton data. Note that the number above "station" will change from 17 to 18, because the ID for picoplankton is 18; phytoplankton is 17. The data are downloaded to the data/CEDR/ directory as a csv using `data.table::fwrite`.
+```{r}
+pico.df <- file.path(url.root,
+                      "LivingResources",
+                      "TidalPlankton",
+                      "Reported",
+                      min_date,
+                      max_date, 
+                      pico_num,
+                      "Station",
+                      paste(station.vec, collapse = ",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+
+pico.df %>% 
+  mutate(reportingvalue = as.character(reportingvalue)) %>% 
+
+  data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
+```
+####**Download and Prepare Water Quality Data**
+Water quality data need to be dowlnoaded next. This is done in a similar manner as the data pull just completed.
+```{r}
+wq.df <- file.path(url.root,
+                   "WaterQuality",
+                   "WaterQuality",
+
+                   min_date,
+                   max_date,
+                   "6",  #programIds
+                   "7,23",#"7,16,23,24",  #projectIds
+                   "station",
+                   paste(station.vec, collapse = ","),
+                   paste(
+                     #these are the parameter variables declared in Functions and Variables section
+                     chla,doc,pheo,salinity
+                     , sep=",")) %>%
+  fromJSON() %>% 
+  clean_up()
+
+  data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
+```
+Save the dataframe as a CSV in the data/waterquality directory.
+```{r}
+data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
+```
+Retrieve the data that was previously stored. 
+```{r}
+phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+pico.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+
+
+wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"), data.table = FALSE, na.strings = c(""))
+```
+Rearrange the water quality data to match the phytoplankton data.
+```{r}
+# Create a unique ID for phytoplankton sampling events that is a concatenation of the sation and sample date. 
+phyto.df <- phyto.df %>%
+  mutate( sampledate =  as.Date(sampledate)) %>%
+  mutate(concat = paste0(station, sampledate))
+
+# Create a unique ID for water quality events that is a concatenation of the station and sample date.
+wq.df <- wq.df %>%
+  mutate( sampledate =  as.Date(sampledate)) %>%
+  mutate(concat = paste0(station, sampledate))
+
+# Create a vector to store the concatinated ids from phytoplankton sampling events.
+concat_vector <- pull(phyto.df, concat)
+
+# Include only the water quality data that have a matching ID with phytoplankton events.
+wq.df <-wq.df %>%
+  filter(concat %in% concat_vector) 
+```
+Select a subset of columns from the water quality data.
+```{r}
+wq.df <- wq.df %>%
+  select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %>% 
+  mutate(sampledate=as.Date(sampledate))
+```
+####**Prep Event Data**
+Convert the sample dates from both phytoplankton data and the event data to date format.
+```{r}
+phyto.df <- phyto.df %>%
+  mutate(sampledate = as.Date(sampledate))
+
+event.df <- event.df %>%
+  mutate(sampledate = as.Date(sampledate))
+```
+this is Zach's code for use with use for (I believe) older data that uses older salzone designations,
+it's doing nothing for our current data set (2013-2016)
+
+**DO WE KEEP THIS???**
+```{r}
+event.df <- event.df %>%
+    mutate(
+         salzone = case_when(
+           salzone %in% c("tf", "fe") ~ "f",
+           salzone %in% c("m", "me") ~ "m",
+           salzone %in% c("o", "oe") ~ "o",
+           salzone %in% c("p", "pe") ~ "p",
+           TRUE ~ as.character(NA)
+         ))
+```
+Filter out all data outside of layers __above pycnocline__ and __water column__ and select only columns that will be joined.
+```{r}
+pdepth.df <- event.df %>%
+  filter(layer %in% c("ap","wc")) %>%
+  select(station, sampledate, pdepth) %>%
+  dplyr::distinct()
+```
+Join the selected event data to the water quality data. Now the dataframe contains water quality information with pycnocline depth (pdepth) data.
+```{r}
+wq_w_pdepth.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
+```
+Determine if the phytoplankton sample depth is above pdepth.
+```{r}
+wq_w_pdepth.df <- wq_w_pdepth.df %>%
+  mutate(above_pdepth = case_when(depth <= pdepth~"Yes",
+                                  depth > pdepth & station %in% c("ret3.1","ret4.3","ret3.1")~"No, but RET",
+                                  depth > pdepth~"No"
+                                  ))
+```
+The `wq_w_pdepth` becomes `wq_above_pdepth` by filtering out data with a depth at or below the pdepth.
+```{r}
+wq_above_pdepth.df <- wq_w_pdepth.df%>%
+  filter(depth <= pdepth) 
+
+wq_above_pdepth.df <- wq_w_pdepth.df%>%
+  filter(depth <= pdepth) 
+
+test_wq_above_pdepth.df <- wq_above_pdepth.df %>%
+  filter(station == "cb3.3c" & sampledate=="1986-04-08")
+```
+Check for missing data, i.e. station and date combinations that are present in `event.df` but are not represtented in `wq_above_pdepth.df` using the `find_missing` function.
+```{r}
+find_missing <- function(data_backbone, source_data, modified_data, step_vector) {
+  missing.df <- anti_join(data_backbone, modified_data, by = c("station","sampledate"))
+  
+  missing.df <-  missing.df %>%
+    mutate( sampledate =  as.Date(sampledate)) %>%
+    mutate(concat = paste0(station, sampledate))
+  
+  source_data <- source_data %>%
+    mutate( sampledate =  as.Date(sampledate)) %>%
+    mutate(concat = paste0(station, sampledate))
+  
+  concat_vector2.vec <- pull(missing.df, concat)
+  
+  missing_full.df <-source_data %>%
+    filter(concat %in% concat_vector2.vec) 
+  
+  modified_data <- modified_data %>%
+  mutate( sampledate =  as.Date(sampledate)) %>%
+  mutate(concat = paste0(station, sampledate))
+
+  final.df <- full_join(modified_data, missing_full.df, by = step_vector)
+                          #c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid"))
+  
+  return(final.df)
+}
+
+# Show the mssing values:
+name_missing <- function(data_backbone, source_data, modified_data, step_vector) {
+  missing.df <- anti_join(data_backbone, modified_data, by = c("station","sampledate"))
+  
+  missing.df <-  missing.df %>%
+    mutate( sampledate =  as.Date(sampledate)) %>%
+    mutate(concat = paste0(station, sampledate))
+  
+  source_data <- source_data %>%
+    mutate( sampledate =  as.Date(sampledate)) %>%
+    mutate(concat = paste0(station, sampledate))
+  
+  concat_vector2.vec <- pull(missing.df, concat)
+  
+  final.df <-source_data %>%
+    filter(concat %in% concat_vector2.vec) 
+  
+    return(final.df)
+}
+
+find_missing_apdepth.vec <- c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid")
+
+wq_above_pdepth.df <- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, find_missing_apdepth.vec)
+
+```
+Generate a new dataframe with a new parameter, surface chloraphyll A (s_chla).
+```{r}
+s_chla.df <- wq_above_pdepth.df %>%
+  filter(layer == "s", 
+         parameter == "chla") %>% 
+  unite(parameter, c("layer", "parameter"), remove = FALSE)
+```
+Average the replicates from s_chla.df to get an average value of surface chlorophyll A and generate a depth-integrated surface chlorophyll A.
+```{r}
+di_s_chla.df <- s_chla.df %>%
+  group_by(station, sampledate, depth) %>%
+  mutate(measurevalue_averaged = mean(measurevalue)) %>%
+  distinct(station, sampledate, depth, eventid, layer, parameter, measurevalue_averaged, concat) %>%
+  ungroup()
+```
+Write mutant entries to file water_quality\cb3.3c_mutants.csv. These are entries that are likely reporting errors and stems from a known issue with station cb3.3c between 1986 and 1991, where a second entry was taken that was vastly different from the first.
+```{r}
+mutants <- di_s_chla.df %>%
+  group_by(concat) %>%
+  filter(station == "cb3.3c" & measurevalue_averaged > 100 & n() >1) %>%
+  data.table::fwrite(file.path(project.dir, "data/water_quality", "cb3.3c_mutants.csv"))  
+
+# Address issues with station cb3.3c. Group by station and average the dupliacte entries, disregarding mutant entries by turning them into zeros.
+di_s_chla.df <- di_s_chla.df %>%  
+  group_by(concat) %>%
+  mutate(test=n()) %>%
+  mutate(measurevalue_averaged = case_when(test >1 &station == "cb3.3c" & measurevalue_averaged > 100~0, 
+                                           TRUE~measurevalue_averaged)) %>%
+  mutate( measurevalue_averaged =(case_when(test>1~mean(measurevalue_averaged),
+                                            TRUE~measurevalue_averaged))) %>%
+
+  select(-test) %>%
+  ungroup() %>%
+  distinct(station, sampledate, layer, parameter, measurevalue_averaged, concat) 
+```
+Find missing values in di_s_chla.df and join them to the dataframe.
+```{r}
+find_missing_schla.vec <- c("station", "sampledate", "layer", "concat", "depth", "parameter", "eventid")
+
+missing_s_chla.df <- name_missing(event.df, wq_above_pdepth.df, di_s_chla.df, find_missing_schla.vec) %>%
+    distinct(eventid, station, sampledate, concat) %>%
+  mutate(parameter =  "s_chla") %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  mutate()
+
+di_s_chla.df <- full_join(di_s_chla.df, missing_s_chla.df, by = c("station", "sampledate", "parameter", "concat"))#"eventid", 
+```
+Averge sample replicates for the rest of the data. 
+```{r}
+wq_above_pdepth.df <- wq_above_pdepth.df %>%
+  group_by(station, sampledate, depth, parameter) %>%
+  mutate(measurevalue_averaged = mean(measurevalue)) %>%
+  distinct(station, sampledate, depth, parameter, measurevalue_averaged) %>%
+  ungroup()
+```
+
+```{r}
+wq_above_pdepth.df <- wq_above_pdepth.df %>%
+  group_by(station, sampledate, parameter) %>%
+  mutate(depth_integrated_value = mean(measurevalue_averaged)) %>%
+  distinct(station, sampledate, depth_integrated_value) %>%
+  ungroup()
+```
+Join surface chloraphyll data to the water quality data. *measurevalued_averaged* is renamed *depth_integrated_value* to match the water quality naming convention.
+```{r}
+di_s_chla.df <- di_s_chla.df %>% 
+  rename(depth_integrated_value = measurevalue_averaged)
+
+wq_all.df <- full_join(wq_above_pdepth.df, di_s_chla.df, by = c("station", "sampledate", "parameter", "depth_integrated_value"))
+```
+Assign a season value to dates between March-May and July-September.
+```{r}
+wq_warm.df <- wq_all.df %>%
+  mutate(month = month(sampledate),
+         season = case_when(
+           month %in% c(3, 4, 5) ~ "spring",
+           month %in% c(7, 8, 9) ~ "summer",
+           TRUE ~ "remove"
+          )) 
+```
+Assign salinity zones (salzones) to each sample.
+```{r}
+wq_sal.df <- wq_warm.df %>%
+  filter(parameter == "salinity")
+
+wq_sal.df <- wq_sal.df %>%
+  mutate(salzone = case_when(
+    parameter == "salinity" & depth_integrated_value > 0 & depth_integrated_value <= 0.5 ~ "F",
+    parameter == "salinity" & depth_integrated_value > .5 &  depth_integrated_value <= 5 ~ "O",
+    parameter == "salinity" & depth_integrated_value > 5 & depth_integrated_value <= 18 ~ "M",
+    parameter == "salinity" & depth_integrated_value > 18~ "P")) %>%
+    mutate(concat = paste0(station, sampledate)) 
+
+wq_sal_id.df <- wq_sal.df %>%
+  distinct(concat, salzone)
+
+wq_warm.df <- wq_warm.df %>%
+    mutate(concat = paste0(station, sampledate))   
+
+wq_warm_sal.df <- left_join(wq_warm.df, wq_sal_id.df, by = c("concat"))
+```
+Find events without salinity data and assign a salinity value when possible. Some samples can be assigned as Fresh Water (F), based on known salinity profiles.
+```{r}
+wq_no_sal.df <- anti_join(wq_warm_sal.df, wq_sal_id.df, by = c("concat"))
+
+wq_sal_fill.df <-  wq_no_sal.df %>%
+  distinct(concat, station, sampledate, season, salzone) %>%
+  mutate(salzone = case_when((station %in% c("cb1.1", "tf2.3", "tf4.2","tf5.5" ) & is.na(salzone)) | (season == "spring" & station %in% c("et5.1", "tf1.5")& is.na(salzone))
+         ~ "F", TRUE ~ salzone  ))
+
+wq_sal_filled.df <- wq_sal_fill.df %>%
+  filter(salzone == "F")
+```
+Add the assigned salzones to the main dataframe.
+```{r}
+wq_warm_sal_added.df <- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c("concat", "salzone","station","sampledate", "season"))
+```
+For samples missing salzone data, import salzones from Jackie Johnson's data and determine if her historical data can be assigned to any missing samples.
+```{r}
+jackie_salzones.df <- readxl::read_excel(file.path(project.dir, "data/Jackie/JMJ_PIBI_Salzone_Data.xlsx"), sheet = "JMJ Salzone+Scores") %>% 
+  clean_up() %>%
+  rename(salzone = ibi_salzone)
+
+jackie_salzones.df <-  jackie_salzones.df %>%
+  mutate(concat = paste0(station, sample_date)) 
+
+wq_need_sal.df <- wq_warm_sal_added.df %>%
+  mutate(year = year(sampledate)) %>%
+  filter(year >= 1984 & year <= 2011 & is.na(salzone))
+
+jackie_salzones.df <- jackie_salzones.df %>%
+  select(concat,salzone)
+
+if (nrow(wq_need_sal.df) > 1) {
+  wq_has_sal.df <- left_join(wq_need_sal.df, jackie_salzones.df, by= c("concat", "salzone"))
+
+  anti_wq_warm_sal_added.df <- anti_join(wq_warm_sal_added.df, wq_has_sal.df, by= c("concat"))
+
+  wq_warm_sal_added.df <- full_join(anti_wq_warm_sal_added.df, wq_has_sal.df)#, by= c("concat"))
+}
+```
+Convert the dataframe from long to wide format.
+```{r}
+wq_warm_sal_added.df <- wq_warm_sal_added.df %>%
+  distinct()
+
+wq_warm.wide <- wq_warm_sal_added.df %>%
+  select(-layer, -eventid,-concat) %>% 
+  spread(parameter, depth_integrated_value)
+```
+Remove winter and autumn samples.
+```{r}
+wq_final.df <- wq_warm.wide %>%
+ filter(season %in% c("spring", "summer"))
+```
+####**Prep Carbon Data**
+Import the carbon data and use the `clean_up()` function on it.
+```{r}
+carbon.df <- data.table::fread(file.path(project.dir, "data/carbon/", "carbon_list_2014.csv")) %>% 
+  clean_up()
+```
+Reformat the carbon data so that it will mesh with the previously-formatted data.
+```{r}
+carbon.df <- carbon.df %>%
+  mutate(tsn =  gsub("(?<![0-9])0+", "", tsn, perl = TRUE)) %>%
+  rename(latinname = lbl) %>%
+  rename(carbon = `carbon_(picogram_c_per_cell)`) %>%
+  mutate(tsn = as.integer(tsn)) %>%
+  mutate(size = case_when(size == "not_applicable"~ as.character(NA), TRUE ~size))
+```
+Bring in taxanomic data associated with phytoplankton data that was downloaded from CEDR.
+```{r}
+col.class.vec <- c("samplenumber" = "character",
+                   "tsn" = "character",
+                   "speccode" = "character")
+
+taxa.raw <- data.table::fread(file.path(project.dir, "data/CEDR/cedr_phyto_taxa.csv"),
+                            data.table = FALSE,
+                            colClasses = col.class.vec,
+                            na.strings = "") %>% 
+
+mutate(sampledate = as.Date(sampledate))
+```
+Filter the data so that only samples from spring and summer and above the pycnocline are kept.
+```{r}
+bay.df <- taxa.raw %>% 
+  filter(layer %in% c("ap", "wc")) %>% 
+  distinct() %>% 
+  mutate(month = month(sampledate),
+         season = case_when(
+           month %in% c(3, 4, 5) ~ "spring",
+           month %in% c(7, 8, 9) ~ "summer",
+           TRUE ~ "remove"
+         )) %>% 
+  filter(season %in% c("spring", "summer")) %>%
+  mutate(tsn=as.character(tsn)) %>%
+  mutate(speccode = as.character(speccode)) %>%
+  mutate(reportingvalue = as.integer(reportingvalue)) %>%
+  mutate(samplenumber = as.character(samplenumber))
+
+bay.df <- bay.df %>%
+    mutate(size = case_when(size == "not_applicable"~ as.character(NA), TRUE ~size))
+```
+If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon.
+```{r}
+bay.df <- bay.df %>% 
+  group_by_at(vars(-reportingvalue)) %>% 
+  summarize(reportingvalue = sum(reportingvalue)) %>% 
+  ungroup()
+```
+Only phytoplankton data (“ph”) is retained for analysis. Additionally, some taxa were not identified to any useful taxonomic rank and are excluded from the analysis.
+```{r}
+bay.df <- bay.df %>% 
+  filter(grepl("ph", method),
+         !latinname %in% c("micro-phytoflagellates",
+                           "microflagellates",
+                           "epiphytic_flagellates",
+                           "hydrodictyon_reticulatum"))
+```
+Assign Taxonomic Serial Numbers (TSNs) to taxa not found in the Integrated Taxonomic Information System (ITIS) database.
+```{r}
+bay.df <- bay.df %>% 
+  mutate(
+    tsn = as.integer(tsn),
+    tsn = case_when(
+      latinname == "navicula_notablis" ~ as.integer(4327),
+      latinname == "pleurosigma_macrum" ~ as.integer(4650),
+      latinname == "pleurosigma_obscurum" ~ as.integer(591383),
+      latinname == "polykrikos_hartmannii" ~ as.integer(331299),
+      latinname == "protoperidinium_aciculiderum" ~ as.integer(10329),
+      latinname == "protoperidinium_paulseni" ~ as.integer(3568),
+      latinname == "scrippsiella_favionese" ~ as.integer(10537),
+      latinname == "tetrastrum_caudatum" ~ as.integer(5691),
+      latinname == "didymocystis" ~ as.integer(5810),
+      latinname == "lauterborniella_elegantissima" ~ as.integer(6097),
+      latinname == "characium_sp." ~ as.integer(5756),
+      latinname == "cylindrospermopsis_sp." ~ as.integer(203689),
+      latinname == "chaetoceros_neogracilis" ~ as.integer(1004011),
+      latinname == "navicula_retusa_cancellata" ~ as.integer(1020372),
+      latinname == "karlodinium_micrum" ~ as.integer(180904),
+      latinname == "lagerheimia" ~ as.integer(6017),
+      latinname == "quadricoccus_euryhalinicus" ~ as.integer(957939),
+      latinname == "scrippsiella_precaria" ~ as.integer(10536),
+      latinname == "psuedosolenia_calcar-avis" ~ as.integer(970064),
+      latinname == "centronella" ~ as.integer(970064),
+      latinname == "amphidinium_tatrae" ~ as.integer(9997),
+      latinname == "navicula_lata" ~ as.integer(4450),
+      latinname == "nitzschia_vitrea_recta" ~ as.integer(5204),
+      latinname == "rhaphoneis_gemmifera" ~ as.integer(3145),
+      latinname == "delphineis_surirella" ~ as.integer(969978),
+      latinname == "navicula_annulata" ~ as.integer(3649),
+      latinname == "proboscia_alata_gracillima" ~ as.integer(610099),
+      latinname == "guinardia_striata" ~ as.integer(2921),
+      latinname == "guinardia_cylindrus" ~ as.integer(2921),
+      latinname == "aphanizomenon_issatschenkoi" ~ as.integer(1191),
+      latinname == "helicotheca_tamesis" ~ as.integer(590815),
+      latinname == "corethron_valdivae" ~ as.integer(2386),
+      latinname == "gonyaulax_conjuncta" ~ as.integer(10359),
+      latinname == "lioloma_delicatulum" ~ as.integer(573597),
+      latinname == "syracosphaera_histrica" ~ as.integer(2234),
+      latinname == "rhizosolenia_formosa" ~ as.integer(2879),
+      latinname == "proboscla_alata_curvirostris" ~ as.integer(610099),
+      latinname == "membraneis_challengeri" ~ as.integer(3648),
+      latinname == "chrysococcus_tesselatus" ~ as.integer(1751),
+      latinname == "rhoicosphenia_abbreviata" ~ as.integer(3633),
+      latinname == "protoperidinium_aciculiferum" ~ as.integer(10340),
+      latinname == "protoperidinium_fimbriatum" ~ as.integer(10340),
+      latinname == "licmophora_inflata" ~ as.integer(3155),
+      latinname == "biddulphia_reticulata" ~ as.integer(2678),
+      latinname == "caloneis_lepidula" ~ as.integer(4369),
+      latinname == "caloneis_trinodis" ~ as.integer(4369),
+      latinname == "amphiprora_cholnokyi" ~ as.integer(4674),
+      latinname == "navicula_interrupta" ~ as.integer(3649),
+      latinname == "cerataulus_radiatus" ~ as.integer(2709),
+      latinname == "gyrosigma_balticum_silimis" ~ as.integer(4623),
+      latinname == "dictyocha_siderea" ~ as.integer(1804),
+      latinname == "odontella_alternans" ~ as.integer(573604),
+      latinname == "nitzschia_vitrea_salinarum" ~ as.integer(5204),
+      latinname == "proboscla_alata_indica" ~ as.integer(610099),
+      latinname == "attheya_decora" ~ as.integer(2876),
+      latinname == "synedra_closterioides" ~ as.integer(970065),
+      latinname == "trinacria_regina" ~ as.integer(2747),
+      latinname == "chattonella" ~ as.integer(969917),
+      latinname == "chattonella_subsalsa" ~ as.integer(969917),
+      latinname == "heterosigma_akashiwo" ~ as.integer(969917),
+      latinname == "vibrio_fisheri" ~ as.integer(959178),
+      TRUE ~ as.integer(tsn)
+    )
+  )
+```
+Check for duplicate values.
+```{r}
+carbon.dups <- carbon.df %>% 
+  group_by(latinname, size) %>% 
+  mutate(count = n()) %>% 
+  ungroup() %>% 
+  filter(count > 1)
+```
+Exclude three taxa that have known duplicates.
+```{r}
+carbon.df <- carbon.df %>% 
+  filter(!(latinname == "chaetoceros_wighami" & is.na(carbon)),
+         !(latinname == "biddulphia" & carbon == 7899.50),
+         !(latinname == "gymnodinium" & carbon == 848))
+```
+Identify all taxa in *bay.df* that do not have a size equivalent in *carbon.df*.
+```{r}
+no.match.df <- anti_join(bay.df, carbon.df, by = c("latinname", "size")) %>% 
+  select(latinname, size) %>% 
+  distinct()
+```
+Find partial matches for taxa in *no.match.df*. Each row in *no.match.df* represents a unique taxon and size combination. The funtion,`lapply`, loops through each row, extracts the unique size string, splits the string into smaller pieces, and attempts to find partial matches with associated size strings in *carbon.df*. The string in *carbon.df* with the most partial matches will be used to replace the size string in *bay.df*.
+```{r}
+partial.match.df <- lapply(1:nrow(no.match.df), function(row.i) {
+  sub.df <- no.match.df %>% 
+    slice(row.i)
+  
+  size.vec <- str_split(sub.df$size, "_") %>% unlist()
+  
+  getmode <- function(v) {
+    uniqv <- unique(v)
+    uniqv[which.max(tabulate(match(v, uniqv)))]
+  }
+  
+  carbon.sub <- carbon.df %>% 
+    filter(latinname == sub.df$latinname) %>% 
+    mutate(row_max_matches = sapply(size.vec, function(size.i) grep(size.i, size)) %>% 
+             unlist() %>% 
+             getmode()) %>% 
+    slice(unique(row_max_matches)) %>% 
+    select(-row_max_matches, -carbon) %>% 
+    rename(new_size = size) %>% 
+    mutate(size = sub.df$size)
+  
+  return(carbon.sub)
+}) %>% 
+  bind_rows()
+```
+Merge *bay.df* with *partial.match.df*.
+```{r}
+bay.df <- left_join(bay.df, partial.match.df, by = c("latinname", "size","tsn")) %>% 
+  mutate(reported_size = size, size = if_else(!is.na(new_size), new_size, size))
+```
+Add the taxon, *Asterionellopsis glacialis* to *carbon.df* with the *Asterionellopsis kariana* carbon value.
+```{r}
+carbon.df <- carbon.df %>%
+  bind_rows(data.frame(latinname = "asterionellopsis_glacialis",
+                       carbon = carbon.df[carbon.df$latinname == "asterionellopsis_kariana", "carbon"],
+                       tsn = 615890,
+                       group = "diatom",
+                       stringsAsFactors = FALSE))
+```
+Assigns TSNs with NA to be zero.
+```{r}
+carbon.df <- carbon.df %>%
+  mutate(tsn = ifelse(is.na(tsn)==TRUE, 0, tsn))
+```
+Changes to bay data to match changes to carbon list. (???)
+```{r}
+bay.df <- bay.df %>%
+  mutate(latinname = ifelse(latinname=="protoperidinium_bipes", "minuscula_bipes", latinname)) %>%
+  mutate(latinname = ifelse(latinname=="woronichinia_naegeliana", "coelosphaerium_naegelianum", latinname)) %>%
+  mutate(latinname = ifelse(latinname=="centritractis_belonophorus", "centratractus_belonophorus", latinname)) %>%
+  mutate(tsn = ifelse(tsn==10210, 10209, tsn)) %>%
+  mutate(tsn = ifelse(latinname=="woronichinia_naegeliana", 0, tsn)) %>%
+  mutate(tsn = ifelse(tsn==2014, 2013, tsn))
+```
+Remove columns that will be replaced with data from the carbon dataframe in the next step.
+```{r}
+bay.df <- bay.df %>%
+  select(-nodc_phyla, -group) 
+```
+Join *bay.df* and *carbon.df*.
+```{r}
+bay_merged.df <- left_join(bay.df, carbon.df, by = c("latinname","size","tsn")) %>%
+  distinct()
+```
+Turn carbon NAs into zeroes and calcualte nano_micro_biomass.  
+```{r}
+bay_merged.df <- bay_merged.df %>%
+  mutate(carbon = ifelse(is.na(carbon)==TRUE, 0, carbon)) %>%
+  mutate(nano_micro_biomass = reportingvalue * carbon / 10 ^ 6) 
+```
+Merge the water quality dataframe with the main data.
+```{r}
+bay_merged.df <-  bay_merged.df %>%
+  mutate(concat = paste0(station, sampledate)) 
+
+wq_final.df <- wq_final.df %>%
+  mutate(concat = paste0(station, sampledate)) 
+
+bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate", "month", "season"))
+```
+####**Calulate Metrics**
+Remove unnecessary columns and filter out salzone entries with NAs.
+```{r}
+bay_wq_merged_calc.df  <-  bay_wq_merged.df %>%
+
+  mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = "_")) %>%
+  select(-reported_size, -surveyid, -fieldactivityid, -source, -sampletype, -gmethod, -tsn, -size, -method, -parameter, -reportingunit, -nodccode, -serialnumber, -month, -new_size, -nodc_phyla, -speccode, -salinity) %>%
+  
+filter(!is.na(salzone)) %>%
+  distinct() 
+```
+Calculate the metrics.
+```{r}
+bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
+
+  group_by(unique_id) %>%
+  
+  mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
+  
+  mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
+
+  
+  mutate(diatom_carbon = case_when(group == "diatom"~ nano_micro_biomass
+                                    , TRUE ~ as.numeric(NA))) %>%
+  mutate(diatom_biomass = case_when(!is.na(diatom_carbon)~ sum(diatom_carbon, na.rm = T)
+                                    , TRUE ~ as.numeric(NA))) %>%
+  
+  
+  mutate(dinoflagellate_carbon = case_when(group == "dinoflagellates"~ nano_micro_biomass
+                                    , TRUE ~ as.numeric(NA))) %>%
+  mutate(dinoflagellate_biomass = case_when(!is.na(dinoflagellate_carbon)~ sum(dinoflagellate_carbon, na.rm = T)
+                                    , TRUE ~ as.numeric(NA))) %>%
+  
+  
+  mutate(cyanophyte_carbon = case_when(group == "cyanophyte"| group == "cyanobacteria"~ nano_micro_biomass
+                                    , TRUE ~ as.numeric(NA))) %>%
+  mutate(cyanophyte_biomass = case_when(!is.na(cyanophyte_carbon)~ sum(cyanophyte_carbon, na.rm = T)
+                                    , TRUE ~ as.numeric(NA))) %>%
+  
+  
+  mutate(cryptophyte_carbon = case_when(group == "cryptophyte" | group == "cryptophyceae" | group == "cryptophyta" | group == "cryptomonads"~ nano_micro_biomass
+                                    , TRUE ~ as.numeric(NA))) %>%
+  mutate(cryptophyte_biomass = case_when(!is.na(cryptophyte_carbon)~ sum(cryptophyte_carbon, na.rm = T)
+                                    , TRUE ~ as.numeric(NA))) %>%
+  
+  select(-diatom_carbon, -dinoflagellate_carbon, -cyanophyte_carbon, -cryptophyte_carbon) %>%
+  
+  mutate(percent_cryptophyte_biomass = cryptophyte_biomass/total_nano_micro_biomass * 100) %>% 
+  
+  mutate(other_biomass =(case_when(!group %in% c("cryptophyte","cryptophyceae","cryptophyta","cryptomonads", "cyanophyte","cyanobacteria", "dinoflagellates", "diatom" ) ~ nano_micro_biomass, TRUE~0 )) ) %>%
+  
+  mutate(other_biomass_total = sum(other_biomass)) %>%
+  
+  select(-group, -carbon, -nano_micro_biomass, -other_biomass) %>%
+    
+  ungroup() %>%
+  distinct()
+
+bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
+  group_by(unique_id) %>%
+  mutate(prorocentrum_minimum_abundance = case_when(latinname == "prorocentrum_minimum"~ sum(as.double(reportingvalue)), TRUE ~ as.numeric(NA))) %>%
+  mutate(microcystis_aeruginosa_abundance = case_when(latinname == "microcystis_aeruginosa"~ sum(as.double(reportingvalue)), TRUE ~ as.numeric(NA))) %>%
+
+  mutate(prorocentrum_minimum_abundance = sum(prorocentrum_minimum_abundance, na.rm=T)) %>%
+  mutate(microcystis_aeruginosa_abundance = sum(microcystis_aeruginosa_abundance, na.rm=T)) %>%
+  ungroup() %>%
+  select(-latinname, -reportingvalue) %>%
+  distinct()
+```
+Apply metrics to all applicable rows. (WHAT'S THIS??")
+```{r}
+bay_wq_merged_calc.df[is.na(bay_wq_merged_calc.df)] <- 0
+
+bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
+  
+  group_by(unique_id) %>%
+  
+  mutate(diatom_biomass = max(diatom_biomass, na.rm=T)) %>%
+
+  mutate(cyanophyte_biomass = max(cyanophyte_biomass, na.rm=T)) %>%
+  
+  mutate(dinoflagellate_biomass = max(dinoflagellate_biomass , na.rm=T)) %>%
+
+  mutate(cryptophyte_biomass = max(cryptophyte_biomass, na.rm=T)) %>%
+
+  mutate(percent_cryptophyte_biomass = max(percent_cryptophyte_biomass, na.rm=T)) %>%
+  mutate(percent_cryptophyte_biomass =( case_when(percent_cryptophyte_biomass == "-inf"~as.numeric(NA), TRUE~percent_cryptophyte_biomass))) %>%
+  
+  distinct() %>%
+  ungroup()
+```
+Run a test to determine determine if the biomasses are adding up correctly. Open the *test* dataframe, and if it is not empty, your biomasses aren't ading up correctly.
+```{r}
+test <- bay_wq_merged_calc.df %>%
+  mutate(biomass_total_test = (dinoflagellate_biomass + diatom_biomass +cryptophyte_biomass + cyanophyte_biomass + other_biomass_total)) %>%
+  mutate(biomass_error =abs( total_nano_micro_biomass-biomass_total_test )) %>%
+  filter( biomass_error > .00000001)
+```
+Remove the other_biomass_total column before proceeding.
+```{r}
+bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
+  select(-other_biomass_total)
+```
+Join the picoplankton data into the bay data. Average duplicates and generate picoplankton abundance.
+```{r}
+
+picoplankton.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv")) %>% clean_up() %>%
+  rename(pico_reportingvalue = reportingvalue) %>%
+  select("station", "sampledate", "pico_reportingvalue") %>% 
+  mutate(sampledate=as.Date(sampledate)) %>%
+  mutate(concat = paste0(station, sampledate)) %>%
+  select(-"station",-"sampledate") %>%
+  group_by(concat) %>%
+  mutate(pico_reportingvalue = mean(pico_reportingvalue)) %>%
+  mutate(picoplankton_abundance = sum(pico_reportingvalue)) %>%
+  unique() %>%
+  ungroup()
+
+bay_full_calc.df <- left_join(bay_wq_merged_calc.df, picoplankton.df,   by = c("concat"))
+```
+# Scoring the metrics.
+Rename some of the metrics to fit the following code.
+```{r}
+metrics_prep.df <- bay_full_calc.df %>%
+  rename(pheophytin = pheo) %>% 
+  rename(total_nano_micro_biomass_chla_ratio = carbon_chlorophyll_ratio) %>%
+  rename(pct_cryptophyte = percent_cryptophyte_biomass) %>%
+  rename(surface_chla = s_chla) %>%
+  mutate(salzone = tolower(salzone)) 
+```
+Select only the relevant fields.
+```{r}
+metrics_prep.df <- metrics_prep.df %>%
+  select(unique_id, station, sampledate, samplenumber, season, salzone, total_nano_micro_biomass_chla_ratio,
+                  surface_chla,
+                  chla,
+                  doc,
+                  pheophytin,
+                  total_nano_micro_biomass, 
+                  diatom_biomass,
+                  dinoflagellate_biomass,
+                  cyanophyte_biomass,
+                  cryptophyte_biomass,
+                  pct_cryptophyte,
+                  prorocentrum_minimum_abundance, 
+                  microcystis_aeruginosa_abundance,
+                  picoplankton_abundance) 
+```
+####**Score Spring, Fresh Water**
+```{r}
+score_spring_f <- metrics_prep.df %>% 
+  filter(
+           season == "spring",
+           salzone == "f") %>%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 39.28 ~1,
+      total_nano_micro_biomass_chla_ratio>= 39.28 & total_nano_micro_biomass_chla_ratio <= 41.72 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 41.72 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(surface_chla_score = case_when(
+      surface_chla < 3.42 & surface_chla > 14.45~1,
+      (surface_chla >= 3.42 & surface_chla <= 4.37) |(surface_chla >= 13.98 & surface_chla <= 14.45) ~ 3,
+      surface_chla > 4.37 & surface_chla < 13.98 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(cyanophyte_biomass_score = case_when(
+      cyanophyte_biomass > 23.02 ~ 1,
+      cyanophyte_biomass <= 23.02 ~ as.numeric(NA))) %>%
+  
+  mutate(doc_score = case_when(
+      doc > 2.40 ~ 1,
+      doc >= 2.19 & doc <= 2.40 ~ 3,
+      doc  < 2.19 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_score = case_when(
+      pheophytin > 2.50 ~ 1,
+      pheophytin >= 1.55 & pheophytin <= 2.50 ~ 3,
+      pheophytin < 1.55 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass <= 172.99 | total_nano_micro_biomass > 828.5 ~ 1,
+      total_nano_micro_biomass >= 583.9 & total_nano_micro_biomass <= 828.5 ~ 3,
+      total_nano_micro_biomass > 172.99 & total_nano_micro_biomass < 583.9 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+```
+####**Score Spring, Oligohaline**
+```{r}
+score_spring_o <- metrics_prep.df %>% 
+  filter(season == "spring",
+         salzone == "o") %>%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 18.8 | total_nano_micro_biomass_chla_ratio > 48.6 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 18.8 & total_nano_micro_biomass_chla_ratio <= 21.2 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 21.2 & total_nano_micro_biomass_chla_ratio < 48.6 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+
+  mutate(surface_chla_score = case_when(
+      surface_chla < 6.77 | surface_chla > 33.64 ~ 1,
+      (surface_chla >= 20.93 & surface_chla <= 33.64) |(surface_chla >= 6.77 & surface_chla <= 8.82) ~ 3,
+      surface_chla > 8.82 & surface_chla < 20.93 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+
+  mutate(doc_score = case_when(
+      doc > 3.27 ~ 1,
+      doc >= 2.69 & doc <= 3.27 ~ 3,
+      doc < 2.69 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+
+  mutate(pheophytin_score = case_when(
+      pheophytin > 2.68 ~ 1,
+      pheophytin >= 2.23 & pheophytin <= 2.68 ~ 3,
+      pheophytin < 2.23 ~ 5,
+    TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 133.67 & total_nano_micro_biomass < 426.31 ~ 5,
+      (total_nano_micro_biomass >= 131.37 & total_nano_micro_biomass <= 133.67) | (total_nano_micro_biomass >= 426.31 & total_nano_micro_biomass < 685.81) ~ 3,
+      total_nano_micro_biomass < 131.37 | total_nano_micro_biomass >= 685.81 ~ 1,
+      TRUE ~ as.numeric(NA))) 
+```
+####**Score Spring, Mesohaline*  
+```{r}
+score_spring_m <- metrics_prep.df %>% 
+  filter(
+           season == "spring",
+           salzone == "m") %>%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 45.04 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 45.04 & total_nano_micro_biomass_chla_ratio <= 69.52 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 69.52 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(surface_chla_score = case_when(
+      surface_chla < 2.60 | surface_chla > 8.00 ~ 1,
+      (surface_chla >= 2.60 & surface_chla <= 2.90) |(surface_chla >= 6.17 & surface_chla <= 8.00) ~ 3,
+      surface_chla > 2.90 & surface_chla < 6.17 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  
+  mutate(diatom_biomass_score = case_when(
+      diatom_biomass < 149 | diatom_biomass >= 2513 ~ 1,
+      diatom_biomass >= 149 & diatom_biomass <= 275.4 ~ 3,
+      diatom_biomass > 275.4 & diatom_biomass < 2513 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(dinoflagellate_biomass_score = case_when(
+      dinoflagellate_biomass < 28.3 | dinoflagellate_biomass > 268.2 ~ 1,
+      dinoflagellate_biomass >= 156.9 & dinoflagellate_biomass <= 268.2 ~ 3,
+      dinoflagellate_biomass > 28.3 & dinoflagellate_biomass < 156.9 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_score = case_when(
+      doc > 3.17 ~ 1,
+      doc >= 2.84 & doc <= 3.17 ~ 3,
+      doc < 2.84 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_score = case_when(
+      pheophytin > 1.03 ~ 1,
+      pheophytin >= 1.00 & pheophytin <= 1.03 ~ 3,
+      pheophytin < 1.00 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(prorocentrum_minimum_abundance_score = case_when(
+      prorocentrum_minimum_abundance > 1477600 ~ 1,
+      prorocentrum_minimum_abundance <= 1477600 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 1150 ~ 1,
+      total_nano_micro_biomass <= 1150 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) #%>%
+```
+####**Score Spring, Polyhaline**
+```{r}
+score_spring_p <- metrics_prep.df %>% 
+  filter(
+           season == "spring",
+           salzone == "p") %>%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 71.0 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 71.0 & total_nano_micro_biomass_chla_ratio <= 107.5 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 107.5 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(surface_chla_score = case_when(
+      surface_chla > 4.00 ~ 1,
+      surface_chla >= 2.80 & surface_chla <= 4.00 ~ 3,
+      surface_chla < 2.80 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pct_cryptophyte_score = case_when(
+      pct_cryptophyte > 7.06 ~ 1,
+      pct_cryptophyte >= 4.93 & pct_cryptophyte <= 7.06 ~ 3,
+      pct_cryptophyte < 4.93 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_score = case_when(
+      doc > 2.61 ~ 1,
+      doc >= 2.50 & doc <= 2.61 ~ 3,
+      doc < 2.50 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_score = case_when(
+      pheophytin > 0.90 ~ 1,
+      pheophytin >= 0.55 & pheophytin <= 0.90 ~ 3,
+      pheophytin < 0.55 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(prorocentrum_minimum_abundance_score = case_when(
+      prorocentrum_minimum_abundance > 7488 ~ 1,
+      prorocentrum_minimum_abundance >= 672 & prorocentrum_minimum_abundance <= 7488 ~ 3,
+      prorocentrum_minimum_abundance < 672 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 1061.7 ~ 1,
+      total_nano_micro_biomass <= 1061.7 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) 
+  
+```
+####**Score Summer, Fresh Water**
+```{r}
+score_summer_f <- metrics_prep.df %>% 
+  filter(
+           season == "summer",
+           salzone == "f") %>%
+  
+  mutate(surface_chla_score = case_when(
+      surface_chla > 12.30 ~ 1,
+      (surface_chla >= 12.00 & surface_chla <= 12.30) | surface_chla <= 5.4 ~ 3,
+      surface_chla > 5.40 & surface_chla < 12.00 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(cyanophyte_biomass_score = case_when(
+      cyanophyte_biomass > 67.4 ~ 1,
+      cyanophyte_biomass >= 38.87 & cyanophyte_biomass <= 67.4 ~ 3,
+      cyanophyte_biomass < 38.87 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(diatom_biomass_score = case_when(
+      diatom_biomass > 192.6 ~ 1,
+      diatom_biomass >= 122.1 & diatom_biomass <= 192.6 ~ 3,
+      diatom_biomass < 122.1 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_score = case_when(
+      doc > 3.18 ~ 1,
+      doc >= 2.67 & doc <= 3.18 ~ 3,
+      doc < 2.67 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(microcystis_aeruginosa_abundance_score = case_when(
+      microcystis_aeruginosa_abundance > 262507 ~ 1,
+      microcystis_aeruginosa_abundance <= 262507 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_score = case_when(
+      pheophytin > 4.30 ~ 1,
+      pheophytin >= 2.40 & pheophytin <= 4.30 ~ 3,
+      pheophytin < 2.40 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 555.7 ~ 1,
+      total_nano_micro_biomass < 231.3 ~ 3,
+      total_nano_micro_biomass >= 231.3 & total_nano_micro_biomass <= 555.7 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+```
+####**Score Summer, Oligohaline**
+```{r}
+score_summer_o <- metrics_prep.df %>% 
+  filter(season == "summer",
+         salzone == "o") %>%
+  
+  mutate(surface_chla_score = case_when(
+      surface_chla >= 9.47 ~ 1,
+      surface_chla <= 4.20 ~ 3,
+      surface_chla > 4.20 & surface_chla < 9.47 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(cyanophyte_biomass_score = case_when(
+      cyanophyte_biomass >= 26.55 ~ 1,
+      cyanophyte_biomass < 1.79 ~ 3,
+      cyanophyte_biomass >= 1.79 & cyanophyte_biomass < 26.55 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(diatom_biomass_score = case_when(
+      diatom_biomass >= 126.59 ~ 1,
+      diatom_biomass <= 44.14 ~ 3,
+      diatom_biomass > 44.14 & diatom_biomass < 126.59 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_score = case_when(
+      doc > 4.00 ~ 1,
+      doc >= 3.15 & doc <= 4.00 ~ 3,
+      doc < 3.15 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_score = case_when(
+      pheophytin > 2.81 ~ 1,
+      pheophytin >= 1.58 & pheophytin <= 2.81 ~ 3,
+      pheophytin < 1.58 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+  
+```
+####**Score Summer, Mesohaline**
+```{r}
+score_summer_m <- metrics_prep.df %>% 
+  filter(season == "summer",
+         salzone == "m") %>%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 32.2 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 32.2 & total_nano_micro_biomass_chla_ratio <= 36.9 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 36.9 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+
+  mutate(surface_chla_score = case_when(
+      surface_chla >= 9.74 ~ 1,
+      (surface_chla >= 7.70 & surface_chla < 9.74) | surface_chla <= 4.00 ~ 3,
+      surface_chla > 4.00 & surface_chla < 7.70 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(dinoflagellate_biomass_score = case_when(
+      dinoflagellate_biomass <= 31.22 | dinoflagellate_biomass > 200.92 ~ 1,
+      dinoflagellate_biomass > 31.22 & dinoflagellate_biomass<= 55.98 ~ 3, 
+      dinoflagellate_biomass > 55.98 & dinoflagellate_biomass < 200.92 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_score = case_when(
+      doc > 3.35 ~ 1,
+      doc >= 2.99 & doc <= 3.35 ~ 3,
+      doc < 2.99 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_score = case_when(
+      pheophytin > 1.60 ~ 1,
+      pheophytin >= 1.23 & pheophytin <= 1.60 ~ 3,
+      pheophytin < 1.23 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(picoplankton_abundance_score = case_when(
+      picoplankton_abundance < 352000000 ~ 1,
+      picoplankton_abundance >= 352000000 & picoplankton_abundance <= 598720000 ~ 3,
+      picoplankton_abundance > 598720000 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass > 660 ~ 1,
+      total_nano_micro_biomass <= 660 ~ as.numeric(NA),
+      TRUE ~ as.numeric(NA))) 
+```
+####**Score Summer, Polyhaline**
+```{r}
+score_summer_p <- metrics_prep.df %>% 
+  filter(season == "summer",
+         salzone == "p") %>%
+  
+  mutate(total_nano_micro_biomass_chla_ratio_score = case_when(
+      total_nano_micro_biomass_chla_ratio < 37.7 ~ 1,
+      total_nano_micro_biomass_chla_ratio >= 37.7 & total_nano_micro_biomass_chla_ratio <= 74.5 ~ 3,
+      total_nano_micro_biomass_chla_ratio > 74.5 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+
+  mutate(surface_chla_score = case_when(
+      surface_chla > 5.33 ~ 1,
+      surface_chla >= 4.52 & surface_chla <= 5.33 ~ 3,
+      surface_chla < 4.52 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pct_cryptophyte_score = case_when(
+      pct_cryptophyte > 6.5 ~ 1,
+      pct_cryptophyte >= 3.9 & pct_cryptophyte <= 6.5 ~ 3,
+      pct_cryptophyte< 3.9 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(diatom_biomass_score = case_when(
+      diatom_biomass >= 799 | diatom_biomass < 137 ~ 1,
+      diatom_biomass >= 137 & diatom_biomass <= 181 ~ 3,
+      diatom_biomass > 181 & diatom_biomass < 799 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(dinoflagellate_biomass_score = case_when(
+      dinoflagellate_biomass < 23 | dinoflagellate_biomass >= 544 ~ 1,
+      dinoflagellate_biomass >= 23 & dinoflagellate_biomass <= 37 ~ 3, 
+      dinoflagellate_biomass > 37 & dinoflagellate_biomass < 554 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(doc_score = case_when(
+      doc > 2.80 ~ 1,
+      doc >= 2.58 & doc <= 2.80 ~ 3,
+      doc < 2.58 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(pheophytin_score = case_when(
+      pheophytin > 1.50 ~ 1,
+      pheophytin >= 0.93 & pheophytin <= 1.50 ~ 3,
+      pheophytin < 0.93 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+  mutate(picoplankton_abundance_score = case_when(
+      picoplankton_abundance < 208600000 ~ 1,
+      picoplankton_abundance >= 208600000 & picoplankton_abundance <= 269500000 ~ 3,
+      picoplankton_abundance > 269500000 ~ 5,
+      TRUE ~ as.numeric(NA))) %>%
+  
+    mutate(total_nano_micro_biomass_score = case_when(
+      total_nano_micro_biomass < 181 | total_nano_micro_biomass > 831 ~ 1,
+      (total_nano_micro_biomass >= 181 & total_nano_micro_biomass <= 207) | (total_nano_micro_biomass >= 718 & total_nano_micro_biomass <= 831) ~ 3,
+      total_nano_micro_biomass < 718 ~ 5,
+      TRUE ~ as.numeric(NA))) 
+```
+COmbine the scored metrics into one dataframe, *all_seasons*.
+```{r}
+all_seasons <- bind_rows(score_spring_f, score_spring_o ,score_spring_m, score_spring_p, score_summer_f, score_summer_o, score_summer_m, score_summer_p)
+```
+Put it all together and generate the PIBI.
+```{r}
+options(scipen=999)
+
+all_seasons[is.na(all_seasons)] <- 0 
+
+scores_ratings_final <- all_seasons %>%
+  
+mutate(ibi_score =  case_when(season == "spring" & salzone == "f" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + cyanophyte_biomass_score + doc_score + pheophytin_score + total_nano_micro_biomass_score)/ 6,
+                                
+  season == "spring" & salzone == "o" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + doc_score + pheophytin_score +   total_nano_micro_biomass_score) / 5,
+                                
+  season == "spring" & salzone == "m" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + diatom_biomass_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + prorocentrum_minimum_abundance_score + total_nano_micro_biomass_score) / 8,
+                                
+ season == "spring" & salzone == "p" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + pct_cryptophyte_score + doc_score + pheophytin_score + prorocentrum_minimum_abundance_score + total_nano_micro_biomass_score) / 7,
+                                
+                                
+  season == "summer" & salzone == "f" ~ ( surface_chla_score + cyanophyte_biomass_score + diatom_biomass_score + doc_score + microcystis_aeruginosa_abundance_score + pheophytin_score + total_nano_micro_biomass_score) / 7,
+                                
+  season == "summer" & salzone == "o" ~ (surface_chla_score + cyanophyte_biomass_score + diatom_biomass_score + doc_score + pheophytin_score) / 5,
+                                
+  season == "summer" & salzone == "m" ~ (total_nano_micro_biomass_chla_ratio_score + surface_chla_score + dinoflagellate_biomass_score + doc_score + pheophytin_score+ picoplankton_abundance_score + total_nano_micro_biomass_score) / 7,
+                                
+  season == "summer" & salzone == "p" ~ (total_nano_micro_biomass_chla_ratio_score +
+surface_chla_score + pct_cryptophyte_score + diatom_biomass_score + dinoflagellate_biomass_score + doc_score + pheophytin_score + picoplankton_abundance_score + total_nano_micro_biomass_score) / 9,
+     TRUE~ 0
+  )) 
+```
+Replace zero values in scores with blanks.
+```{r}
+scores_ratings_final <- scores_ratings_final %>%
+  mutate_at(vars(ends_with("_score")), list( 
+  ~case_when(.== 0 ~ " ", TRUE~ as.character(.))))
+```
+####**Generate Ratings**
+Generate ratings based on the scores. Ratings can be poor, fair_poor, fair, fair_good, and good.
+```{r}
+scores_ratings_final <- scores_ratings_final %>%
+  #mutate(ibi_score = round(ibi_score, 2)) %>%
+  mutate(
+      rating = case_when(
+        ibi_score < 2 ~ "poor",
+        ibi_score >= 2 & ibi_score < 2.67 ~ "fair_poor",
+        ibi_score >= 2.67 & ibi_score < 3.33 ~ "fair",
+        ibi_score >= 3.33 & ibi_score < 4 ~ "fair_good",
+        ibi_score >= 4 ~ "good",
+        TRUE ~ "ERROR"))
+```
+Clean up the dataframe before exporting.
+```{r}
+scores_ratings_final <- scores_ratings_final %>%
+  select(-chla) %>%
+  select(-rating ,rating)
+```
+Save the final score to directory data/ScoresRatings
+```{r}
+scores_ratings_final %>% 
+data.table::fwrite(file.path(project.dir, "data/ScoresRatings", "final_scores_ratings.csv"))
+```
+# Citations
+Buchanan, Claire, Richard V. Lacouture, Harold G. Marshall, Marcia Olson, and Jacqueline M. Johnson. 2005. “Phytoplankton Reference Communities for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 28 (1): 138–59.
+
+Chamberlain, Scott. 2017. “Ritis: Integrated Taxonomic Information System Client.”
+
+Cheng, Joe, Bhaskar Karambelkar, and Yihui Xie. 2017. “Leaflet: Create Interactive Web Maps with the JavaScript ’Leaflet’ Library.”
+
+Dowle, Matt, and Arun Srinivasan. 2017. “Data.Table: Extensions of ’Data.Frame‘.”
+
+Grolemund, Garrett, and Hadley Wickham. 2011. “Dates and Times Made Easy with lubridate.” Journal of Statistical Software 40 (3): 1–25.
+
+Henry, Lionel, and Hadley Wickham. 2017. “Purrr: Functional Programming Tools.”
+
+Lacouture, Richard V., Jacqueline M. Johnson, Claire Buchanan, and Harold G. Marshall. 2006. “Phytoplankton Index of Biotic Integrity for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 29 (4): 598–616.
+
+Lang, Duncan T., and the CRAN team. 2016. “RCurl: General Network (HTTP/FTP/...) Client Interface for R.”
+
+Müller, Kirill. 2017. “Rprojroot: Finding Files in Project Subdirectories.”
+
+Ooms, Jeroen. 2014. “The Jsonlite Package: A Practical and Consistent Mapping Between JSON Data and R Objects.”
+
+R Core Team. 2017. “R: A Languag and Environment for Statistical Computing.” Vienna, Austria: R Foundation for Statistical Computing.
+
+Wickham, Hadley. 2009. Ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York.
+
+———. 2017a. “Httr: Tools for Working with URLs and HTTP.”
+
+———. 2017b. “Stringr: Simple, Consistent Wrappers for Common String Operations.”
+
+Wickham, Hadley, and Jennifer Bryan. 2017. “Readxl: Read Excel Files.”
+
+Wickham, Hadley, and Lionel Henry. 2017. “Tidyr: Easily Tidy Data with ’Spread()’ and ’Gather()’ Functions.”
+
+Wickham, Hadley, Romain Francois, Lionel Henry, and Kirill Müller. 2017. “Dplyr: A Grammar of Data Manipulation.”
+
