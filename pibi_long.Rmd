@@ -1086,7 +1086,7 @@ bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
 ```
 
 apply metrics to all rows applicable
-we turn NA's to zero because...
+NA's must be changed to zeros to calculate properly
 ```{r}
 bay_wq_merged_calc.df[is.na(bay_wq_merged_calc.df)] <- 0
 
