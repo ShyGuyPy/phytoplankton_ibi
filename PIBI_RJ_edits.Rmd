@@ -36,6 +36,12 @@ To begin, open RStudio. Create a new RScript (File > New File > R Script), and s
 In the code editor (RStudio's upper left quadrant), use `setwd(" ")` to set the working directory to the location where you saved your R Script file. For example, `setwd("C:/Documents/My folder")`. Don't forget to use a forward slash `/` instead of a backward slash `\` in the path name.
 
 ###**Setup** 
+
+new material: note: it's really hard for me to even know if this advice makes sense or if it's even correct as I'm so used to working in R Studio for all of this
+####**Directories**
+If you are not pulling this project down directly from git or have not saved this document as an R Project, but are working from the R Markdown file, you will need to replicate the directory structure(the dir.create code below automatically generates these, but it requires you work in R studio with this docuemnt set as a project).  You will need to create a data directory.  inside which you will create a directory for carbon(with carbon_list_2014.csv inside), Jackie(with JMJ_PIBI_Salzone_data.xlsx) CEDR, water_quality, ScoresRatings.  
+You will need to replace any instance of project.dir with the root directory you have placed all these directories in.
+
 ####**Load Packages**
 Load the packages below into the environment. The packages must be installed before they can be opened. To check if a package is already installed, go to the Packages tab (RStudio's lower right quadrant) and either scroll to find it or type in the name in the search bar. To install a package, either use `install.packages("name")` or the Install button in the Packages tab. Once installed, load the libraries into the environment. 
 ```{r message=FALSE, warning=FALSE}
@@ -50,6 +56,7 @@ library(ritis)
 library(stringr)
 library(purrr)
 library(lubridate)
+library(parallel)
 ```
 ####**Establish API Variables**
 The variables below represent values found in the Bay Program's API guide. Unless changes occur to the API's structure, these variables will not need to be altered.
@@ -99,7 +106,8 @@ clean_up <- function(x) {
 ```
 Create `url.root`, which represents the root of the CEDR API. All API calls will start with `url.root`. Additionally, use `Sys.Date()` to find today's date, which will be used in the API query. This makes the following script more dynamic because if this script is run in two years, it will then include any data that was added to the CEDR database within those two years.
 
-The subsequent use of the `dir.creat` structure ensures that the proper directory structure is in place when pulling data using the API.
+The subsequent use of the `dir.create` structure ensures that the proper directory structure is in place when pulling data using the API.
+new material: commented out the itis dir.create as I don't think we need it anymore.  We arent't currently using VA_ODU or MD_DNR, but may need to in the future, so I left them in.
 ```{r}
 url.root <- "http://datahub.chesapeakebay.net/api.JSON"
 todays.date <- format(Sys.Date(), "%m-%d-%Y")
@@ -109,11 +117,9 @@ dir.create(file.path(project.dir, "data/VA_ODU/"), recursive = TRUE, showWarning
 
 dir.create(file.path(project.dir, "data/CEDR/"), recursive = TRUE, showWarnings = FALSE)
 
-dir.create(file.path(project.dir, "data/MD_DNR/"), recursive = TRUE, showWarnings = FALSE)
-
 dir.create(file.path(project.dir, "data/water_quality"), recursive = TRUE, showWarnings = FALSE)
 
-dir.create(file.path(project.dir, "data/itis"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(project.dir, "data/carbon"), recursive = TRUE, showWarnings = FALSE)
 ```
 ####**Set Date Range**
 Use `min_date` and `max_date` to set the date range of the data you want to download. Note that ending date can be set to `todays.date` if you want to extract the most current data every time you run the download code. Also note that the format of the date input into these variables must match with the examples in place below (`mm-dd-yyyy`). 
@@ -174,7 +180,6 @@ event.df <- file.path(url.root,
   fromJSON() %>% 
   clean_up()
 
-
 data.table::fwrite(event.df, file.path(project.dir, "data/CEDR", "cedr_phyto_event.csv"))
 ```
 ####**Download Station Information**
@@ -192,7 +197,6 @@ pico.df <- file.path(url.root,
   fromJSON() %>% 
   clean_up()
 
-
 pico.df <- pico.df %>% 
   mutate(reportingvalue = as.character(reportingvalue)) %>% 
 
@@ -200,12 +204,14 @@ pico.df <- pico.df %>%
 ```
 ####**Download Water Quality Data**
 Download chlorophyll a, dissolved organic carbon, and pheophytin water quality data collected from the same stations as the phytoplankton data. Then, the data are exported to the CEDR folder as a csv. 
+
+In some case the water quality data was not collected on the same day as the phytoplankton data. To obtain more phytoplankton sampling events with associated water quality data, Lacouture et al. (2006) used water quality data collected within ± 3 days of the phytoplankton sample date. The first step of the 3-day window is to identify the three days prior to and after the sampling date.  
 ```{r}
 wq.df <- file.path(url.root,
                    "WaterQuality",
                    "WaterQuality",
-                   min_date,
-                   max_date,
+                   format(as.Date(min(event.df$sampledate)) - days(3), "%m-%d-%Y"),
+                   format(as.Date(max(event.df$sampledate)) + days(3), "%m-%d-%Y"),
                    "6",  
                    "7,23",
                    "station",
@@ -218,16 +224,78 @@ wq.df <- file.path(url.root,
 
   data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
-Load the csv files containing the CEDR data that were acquired using the API. 
+Load the csv files containing the CEDR data that were acquired using the API.  
 ```{r}
-phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv")) %>% 
+phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv"),stringsAsFactors = FALSE) %>% 
   clean_up() %>% mutate(sampledate=as.Date(sampledate))
 
-event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_event.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+event.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_event.csv"),stringsAsFactors = FALSE) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
 
-pico.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv")) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
+pico.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"),stringsAsFactors = FALSE) %>% clean_up() %>% mutate(sampledate=as.Date(sampledate))
 
-wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"), data.table = FALSE, na.strings = c(""))
+wq.df <- data.table::fread(file.path(project.dir, "data/water_quality/cedr_wq.csv"),stringsAsFactors = FALSE, data.table = FALSE, na.strings = c("")) %>% clean_up()
+```
+The process to identify water quality dates within the 3-day window of the phytoplankton sampling date can be lengthy. The `parallel` package is used to speed this up.
+
+All of the water quality samples from the same station, within ± 3 days, are found for each station and sample date combination (each row). If there are multiple water quality subsamples within the 3-day window, the sample collected closest to the phytoplankton data is retained. There is a possibility that water quality samples could be collected at equal intervals before and after phytoplankton sampling. For example, water quality samples could have been collected one day before and one day after phytoplankton sampling. In those instances the sample collected prior to the phytoplankton sampling is selected.
+```{r}
+event.sub <- event.df %>%
+  select(station, sampledate) %>%
+  distinct() %>%
+  mutate(sampledate = as.Date(sampledate)) %>%
+  mutate(lower_date = sampledate - lubridate::days(3),
+         upper_date = sampledate + lubridate::days(3))
+
+wq.df <- wq.df %>%
+  mutate(sampledate = as.Date(sampledate))
+
+n.cores <- detectCores() - 1
+cl <- makeCluster(n.cores)
+clusterExport(cl = cl, varlist = c("wq.df", "event.sub"))
+clusterEvalQ(cl, c(library(dplyr))) %>% invisible()
+
+env.df <- parLapply(cl, 1:nrow(event.sub), function(row.i) {
+
+  sub.df <- slice(event.sub, row.i)
+  #----------------------------------------------------------------------------
+  sub.env <- wq.df %>%
+    filter(station == sub.df$station,
+           sampledate >= sub.df$lower_date,
+           sampledate <= sub.df$upper_date
+           )
+  #----------------------------------------------------------------------------
+  if (nrow(sub.env) == 0) return(data.frame(
+    station = NA,
+    sampledate = NA,
+    parameter = NA,
+    measurevalue = NA
+  ))
+  #----------------------------------------------------------------------------
+  final.df <- sub.env %>%
+    mutate(date_diff = sampledate - sub.df$sampledate,
+           abs_date_diff = abs(date_diff),
+           sampledate = sub.df$sampledate) %>%
+    filter(abs_date_diff == min(abs_date_diff))
+  #----------------------------------------------------------------------------
+  if (nrow(final.df) > 1) {
+    final.df <- final.df %>%
+      filter(sampledate == min(sampledate))
+  }
+  #----------------------------------------------------------------------------
+  return(final.df)
+
+}) %>%
+  bind_rows() %>%
+  filter(!is.na(station))
+
+stopCluster(cl)
+
+event.df <- left_join(event.df, env.df, by = c("station", "sampledate"))
+
+
+event.df <- event.df %>%
+  mutate(source = source.x, sampletype = sampletype.x, layer = layer.x, latitude = latitude.x, longitude = longitude.x, totaldepth = totaldepth.x, sampletime = sampletime.x) %>%
+  select( -source.x, -source.y, -sampletype.x, sampletype.y, -layer.x, layer.y, -latitude.x, -latitude.y, -longitude.x, -longitude.y, -totaldepth.x, -totaldepth.y, -sampletime.x, -sampletime.y)
 ```
 Create a unique ID for phytoplankton sampling events that is a concatenation of the station and sample date.
 ```{r}
@@ -318,8 +386,7 @@ find_missing <- function(data_backbone, source_data, modified_data, step_vector)
   mutate(concat = paste0(station, sampledate))
 
   final.df <- full_join(modified_data, missing_full.df, by = step_vector)
-                          #c("station", "sampledate", "layer", "pdepth", "concat", "depth", "parameter", "measurevalue", "above_pdepth", "eventid"))
-  
+
   return(final.df)
 }
 
@@ -760,7 +827,7 @@ bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
 
   group_by(unique_id) %>%
   
-  mutate(total_nano_micro_biomass = sum(nano_micro_biomass)) %>%
+  mutate(total_nano_micro_biomass = sum(nano_micro_biomass, na.rm = T)) %>%
   
   mutate(carbon_chlorophyll_ratio = total_nano_micro_biomass/chla) %>%
 
@@ -794,7 +861,7 @@ bay_wq_merged_calc.df <-  bay_wq_merged_calc.df  %>%
   
   mutate(other_biomass =(case_when(!group %in% c("cryptophyte","cryptophyceae","cryptophyta","cryptomonads", "cyanophyte","cyanobacteria", "dinoflagellates", "diatom" ) ~ nano_micro_biomass, TRUE~0 )) ) %>%
   
-  mutate(other_biomass_total = sum(other_biomass)) %>%
+  mutate(other_biomass_total = sum(other_biomass, na.rm = T)) %>%
   
   select(-group, -carbon, -nano_micro_biomass, -other_biomass) %>%
     
