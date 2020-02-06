@@ -356,27 +356,6 @@ event.df <- event.df %>%
 
 ```
 
-testing
-```{r}
-# event.df %>%
-# data.table::fwrite(file.path(project.dir, "data/ScoresRatings", "event_with3day.csv"))
-```
-
-
-testing
-```{r}
-# event.df %>%
-# data.table::fwrite(file.path(project.dir, "data/ScoresRatings", "event_no3day.csv"))
-```
-
-
-
-
-
-
-
-
-
 reduce the water quality data to match the phytoplankton data
 ```{r}
 #create concatinated id for phyto events
@@ -1086,7 +1065,7 @@ bay_wq_merged_calc.df <- bay_wq_merged_calc.df %>%
 ```
 
 apply metrics to all rows applicable
-we turn NA's to zero because...
+NA's must be changed to zeros to calculate properly
 ```{r}
 bay_wq_merged_calc.df[is.na(bay_wq_merged_calc.df)] <- 0
 
