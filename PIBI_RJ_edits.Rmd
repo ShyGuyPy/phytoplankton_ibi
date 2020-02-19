@@ -1,11 +1,13 @@
 ---
 title: "Calculating the Phytoplankton Index of Biotic Integrity (PIBI)"
-date: "December 21, 2018"
+date: "February 19, 2020"
 author:
   - name: "Luke C. Vawter, lvawter@icprb.org"
     affiliation: Interstate Commission on the Potomac River Basin
   - name: "Zachary M. Smith, zachary.smith2@dec.ny.gov"
     affiliation: New England Interstate Water Pollution Control Commission
+  - name: "With contributions from Rikke Jepsen, rjepsen@icprb.org"
+    affilication: Interstate Commission on the Potomac River Basin
 output:
   html_document:
     df_print: paged
@@ -15,14 +17,14 @@ output:
       collapsed: true
 ---
 ###**Introduction**
-The Phytoplankton Index of Biotic Integrity (PIBI) was developed by Lacouture et al. (2006) for spring and summer phytoplankton samples in each of the four salinity zones of the Chesapeake Bay and its tidal tributaries. Twelve metrics are used to quantify the status of phytoplanton communities relative to water quality, and a narrative rating is assigned to the resulting scores, ranging from "poor" to "good." IBIs, such as the PIBI, are intended to be used as a management tool to evalaute the status of biological communities. 
+The Phytoplankton Index of Biotic Integrity (PIBI) was developed by Lacouture et al. (2006) for spring and summer phytoplankton samples in each of the four salinity zones (fresh water, polyhaline, mesohaline, oligohaline) of the Chesapeake Bay and its tidal tributaries. Twelve metrics are used to quantify the status of phytoplankton communities relative to water quality, and a narrative rating is assigned to the resulting scores, ranging from "poor" to "good." IBIs, such as the PIBI, are intended to be used as a management tool to evalaute the status of biological communities. 
 
-The R-scripts contained in this document describe the method used to calculate the PIBI, following the methodology outlined by Lacouture et al. (2006), with additional references from documentation written by former ICPRB staff member, Jacqueline M. Johnson. The phytoplankton data used are extracted from the Chesapeake Bay Program's Chesapeake Environmental Data Repository (CEDR) using an Application Programming Interface (API).
+The R-scripts contained in this document describe the method used to calculate the PIBI, following the methodology outlined by Lacouture et al. (2006), with additional references from documentation written by former ICPRB staff member, Jacqueline M. Johnson. The code chunks are designed to be copied and pasted into the RStudio editor. In order to keep the scripts organized, it is suggested that the corresponding section header is added and commented out using `#`. The phytoplankton data used are extracted from the Chesapeake Bay Program's Chesapeake Environmental Data Repository (CEDR) using an Application Programming Interface (API).
 
 ###**Working With RStudio**  
-RStudio must be installed on your computer to implement the following R scripts. If RStudio is not installed, it can be downloaded for free from [https://www.rstudio.com/](https://www.rstudio.com/). This [webpage](https://courses.edx.org/courses/UTAustinX/UT.7.01x/3T2014/56c5437b88fa43cf828bff5371c6a924/) details the short installation process. Once R Studio is ready to be used on your computer, copy and paste the scripts into the RStudio editor and run them. Each time a data frame is created, it can be viewed by typing `View(name)` in the console or by clicking its name in the Environment tab on the right.          
+RStudio must be installed on your computer to implement the following R scripts. If RStudio is not installed, it can be downloaded for free from [https://www.rstudio.com/](https://www.rstudio.com/). This [webpage](https://courses.edx.org/courses/UTAustinX/UT.7.01x/3T2014/56c5437b88fa43cf828bff5371c6a924/) details the short installation process. Once RStudio is ready to be used on your computer, copy and paste the scripts into the RStudio editor and run them. Each time a dataframe is created, it can be viewed by typing `View(name)` in the console or by clicking its name in the Environment tab on the right.          
 
-For those who are new to RStudio, please refer to [this](http://www.sthda.com/sthda/RDoc/images/rstudio.png) image for the layout of the RStudio panels. Some helpful R resources are listed below:
+Some helpful R resources are listed below for those new to RStudio:
 
 * The R Book by Michael J. Crawley  
 * R for Data Science by Hadley Wickham and Garrett Grolemund (https://r4ds.had.co.nz/index.html)
@@ -31,19 +33,22 @@ For those who are new to RStudio, please refer to [this](http://www.sthda.com/st
 * Tutorials Point (https://www.tutorialspoint.com/r/r_overview.htm)  
 * Stack Overflow for asking questions or reading answers to questions   
 
-To begin, open RStudio. Create a new RScript (File > New File > R Script), and save it in a location where you would like the scripts and CSVs to be saved.    
-
-In the code editor (RStudio's upper left quadrant), use `setwd(" ")` to set the working directory to the location where you saved your R Script file. For example, `setwd("C:/Documents/My folder")`. Don't forget to use a forward slash `/` instead of a backward slash `\` in the path name.
-
 ###**Setup** 
-
-new material: note: it's really hard for me to even know if this advice makes sense or if it's even correct as I'm so used to working in R Studio for all of this
 ####**Directories**
-If you are not pulling this project down directly from git or have not saved this document as an R Project, but are working from the R Markdown file, you will need to replicate the directory structure(the dir.create code below automatically generates these, but it requires you work in R studio with this docuemnt set as a project).  You will need to create a data directory.  inside which you will create a directory for carbon(with carbon_list_2014.csv inside), Jackie(with JMJ_PIBI_Salzone_data.xlsx) CEDR, water_quality, ScoresRatings.  
-You will need to replace any instance of project.dir with the root directory you have placed all these directories in.
+You will need to create a directory (series of folders) to house the inputs and outputs of this program, as follows:
+
+1. Create a new folder with any name you choose. This will house the main directory structure.
+2. Within the main folder, create an RStudio project. To create the Project, open RStudio and navigate to File > New Project. Save the project in the main folder with any name you choose. 
+3. Open the RProject and create a new RScript (File > New File > R Script), named as you like and also saved to the main folder.
+4. Also in the main folder, create a new folder named "data". Inside the "data" folder, create five new folders, with the names copied exactly:
+    + "carbon" (with carbon_list_2014.csv inside)
+    + "Jackie" (with JMJ_PIBI_Salzone_data.xlsx inside)
+    + "CEDR"   (empty for now)
+    + "water_quality" (empty for now)
+    + "ScoresRatings" (empty for now)
 
 ####**Load Packages**
-Load the packages below into the environment. The packages must be installed before they can be opened. To check if a package is already installed, go to the Packages tab (RStudio's lower right quadrant) and either scroll to find it or type in the name in the search bar. To install a package, either use `install.packages("name")` or the Install button in the Packages tab. Once installed, load the libraries into the environment. 
+The following packages must be installed and loaded into the environment.
 ```{r message=FALSE, warning=FALSE}
 library(dplyr)
 library(tidyr)
@@ -61,18 +66,15 @@ library(parallel)
 ####**Establish API Variables**
 The variables below represent values found in the Bay Program's API guide. Unless changes occur to the API's structure, these variables will not need to be altered.
 
-The water quality variable acronyms are as follows: 
-chla = chlorophyll a
-doc = dissolved organic carbon
-pheo = pheophytin
+  + pico_num = picoplankton
+  + phyto_num = phytoplankton
+  + chla = chlorophyll a
+  + doc = dissolved organic carbon
+  + pheo = pheophytin
 ```{r}
-# The number in the CEDR API that corresponds to picoplankton:
 pico_num = "18"
-
-# The number in the CEDR API that corresponds to phytoplankton:
 phyto_num = "17"
 
-# The parameter codes for water quality variables in the CEDR API:
 chla = 21
 doc = 34 
 pheo = 74 
@@ -84,7 +86,9 @@ Data for this document are located in various files. The object `project.dir` re
 project.dir <- rprojroot::find_rstudio_root_file()
 ```
 ####**Custom Functions** 
-The `clean_string()` function modifies character objects by 1) removing leading and trailing white spaces, 2) converting all characters to lowercase, and 3) replacing all spaces with an underscore. These corrections eliminate common typos and standardize character objects.
+First establish the `clean_string()` function. It modifies character objects by 1) removing leading and trailing white spaces, 2) converting all characters to lowercase, and 3) replacing all spaces with an underscore. These corrections eliminate common typos and standardize character objects.
+
+Then, establish the `clean_up()` function, a wrapper for `clean_string()`. This function applies `clean_string()` to the column headers and character columns of data frames to standardize character values and make it easier to work with the data.
 ```{r}
 clean_string <- function(x) {
   x %>% 
@@ -94,9 +98,7 @@ clean_string <- function(x) {
     stringr::str_replace_all(" ", "_") %>%  
     if_else(. == "", as.character(NA), .)
 }
-```
-The `clean_up()` function is a wrapper for `clean_string()`. This function applies `clean_string()` to the column headers and character columns of data frames. Again, this process standardizes character values and makes it easier work with the data.
-```{r}
+
 clean_up <- function(x) {
   x %>% 
     rename_all(clean_string) %>% 
@@ -104,27 +106,15 @@ clean_up <- function(x) {
     distinct()
 }
 ```
-Create `url.root`, which represents the root of the CEDR API. All API calls will start with `url.root`. Additionally, use `Sys.Date()` to find today's date, which will be used in the API query. This makes the following script more dynamic because if this script is run in two years, it will then include any data that was added to the CEDR database within those two years.
+####**Set Date Range**
+Create `url.root`, which represents the root of the CEDR API. All API calls will start with `url.root`. Additionally, use `Sys.Date()` to find today's date, which will be used in the API query. This makes the following script more dynamic because if this script is run in the future, the imported dataset will include any data that was added to the CEDR database after the initial data pull.
 
-The subsequent use of the `dir.create` structure ensures that the proper directory structure is in place when pulling data using the API.
-new material: commented out the itis dir.create as I don't think we need it anymore.  We arent't currently using VA_ODU or MD_DNR, but may need to in the future, so I left them in.
+Use `min_date` and `max_date` to set the date range of the data you want to download. Note that ending date can be set to `todays.date` if you want to extract the most current data every time you run the download code. Also note that the format of the date input into these variables must match with the examples in place below (`mm-dd-yyyy`). 
 ```{r}
 url.root <- "http://datahub.chesapeakebay.net/api.JSON"
 todays.date <- format(Sys.Date(), "%m-%d-%Y")
 
-# The following code generates directories that will be used throughout the scripts:
-dir.create(file.path(project.dir, "data/VA_ODU/"), recursive = TRUE, showWarnings = FALSE)
-
-dir.create(file.path(project.dir, "data/CEDR/"), recursive = TRUE, showWarnings = FALSE)
-
-dir.create(file.path(project.dir, "data/water_quality"), recursive = TRUE, showWarnings = FALSE)
-
-dir.create(file.path(project.dir, "data/carbon"), recursive = TRUE, showWarnings = FALSE)
-```
-####**Set Date Range**
-Use `min_date` and `max_date` to set the date range of the data you want to download. Note that ending date can be set to `todays.date` if you want to extract the most current data every time you run the download code. Also note that the format of the date input into these variables must match with the examples in place below (`mm-dd-yyyy`). 
-```{r}
-# The earliest data to be extracted from CEDR. Change the current date (January 1, 1970) to your desired date. 
+# The earliest data to be extracted from CEDR. Change the current date (January 1, 1970) to your desired starting date. 
 min_date = "01-01-1970"
 
 # The latest date to be extracted from CEDR. Either use a date (mm-dd-yyyy) or use `todays.date` for the most recent data.
@@ -166,7 +156,7 @@ phyto.df <- phyto.df %>%
 data.table::fwrite(file.path(project.dir, "data/CEDR", "cedr_phyto_taxa.csv"))
 ```
 ####**Download Monitoring Event Data**
-Download all of the monitoring event data associated with the collection of phytoplanton from the CEDR API. Then, the data are exported to the CEDR folder as a csv.
+Download all of the monitoring event data associated with the collection of phytoplanton from the CEDR API. This may take several minutes. Once the data pull is finished, the data are exported to the "CEDR"" folder as a CSV, "cedr_phyto_event.csv". 
 ```{r}
 event.df <- file.path(url.root,
                       "LivingResources",
@@ -183,7 +173,7 @@ event.df <- file.path(url.root,
 data.table::fwrite(event.df, file.path(project.dir, "data/CEDR", "cedr_phyto_event.csv"))
 ```
 ####**Download Station Information**
-Download all of the station data associated with the collection of phytoplankton from the CEDR API. Then, the data are exported to the CEDR folder as a csv.
+Download all of the station data associated with the collection of phytoplankton from the CEDR API. Then, the data are exported to the CEDR folder as a CSV, "cedr_pico_taxa.csv".
 ```{r}
 pico.df <- file.path(url.root,
                       "LivingResources",
@@ -200,12 +190,12 @@ pico.df <- file.path(url.root,
 pico.df <- pico.df %>% 
   mutate(reportingvalue = as.character(reportingvalue)) %>% 
 
-  data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
+data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
 ```
 ####**Download Water Quality Data**
-Download chlorophyll a, dissolved organic carbon, and pheophytin water quality data collected from the same stations as the phytoplankton data. Then, the data are exported to the CEDR folder as a csv. 
+Download chlorophyll a, dissolved organic carbon, and pheophytin water quality data collected from the same stations as the phytoplankton data. Then, the data are exported to the CEDR folder as a CSV, "cedr_wq.csv". 
 
-In some case the water quality data was not collected on the same day as the phytoplankton data. To obtain more phytoplankton sampling events with associated water quality data, Lacouture et al. (2006) used water quality data collected within ± 3 days of the phytoplankton sample date. The first step of the 3-day window is to identify the three days prior to and after the sampling date.  
+In some cases, the water quality data was not collected on the same day as the phytoplankton data. To obtain more phytoplankton sampling events with associated water quality data, Lacouture et al. (2006) used water quality data collected within ± 3 days of the phytoplankton sample date. The first step of this, so-called, 3-day window is to identify the 3 days prior to and after the sampling date.  
 ```{r}
 wq.df <- file.path(url.root,
                    "WaterQuality",
@@ -222,9 +212,9 @@ wq.df <- file.path(url.root,
   fromJSON() %>% 
   clean_up()
 
-  data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
+data.table::fwrite(wq.df, file.path(project.dir, "data/water_quality", "cedr_wq.csv"))
 ```
-Load the csv files containing the CEDR data that were acquired using the API.  
+Load the CSV files containing the CEDR data that were acquired using the API.  
 ```{r}
 phyto.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_phyto_taxa.csv"),stringsAsFactors = FALSE) %>% 
   clean_up() %>% mutate(sampledate=as.Date(sampledate))
@@ -297,13 +287,13 @@ event.df <- event.df %>%
   mutate(source = source.x, sampletype = sampletype.x, layer = layer.x, latitude = latitude.x, longitude = longitude.x, totaldepth = totaldepth.x, sampletime = sampletime.x) %>%
   select( -source.x, -source.y, -sampletype.x, sampletype.y, -layer.x, layer.y, -latitude.x, -latitude.y, -longitude.x, -longitude.y, -totaldepth.x, -totaldepth.y, -sampletime.x, -sampletime.y)
 ```
-Create a unique ID for phytoplankton sampling events that is a concatenation of the station and sample date.
+Create a unique ID for phytoplankton sampling events. The ID is a concatenation of the station and sample date.
 ```{r}
 phyto.df <- phyto.df %>%
   mutate( sampledate =  as.Date(sampledate)) %>%
   mutate(concat = paste0(station, sampledate))
 ```
-Create a unique ID for water quality events that is a concatenation of the station and sample date.
+Create a unique ID for water quality events. The ID is a concatenation of the station and sample date.
 ```{r}
 wq.df <- wq.df %>%
   mutate( sampledate =  as.Date(sampledate)) %>%
@@ -344,7 +334,7 @@ Join the selected event data to the water quality data. Now the dataframe contai
 ```{r}
 wq_w_pdepth.df <- left_join(wq.df, pdepth.df, by = c("station", "sampledate"))
 ```
-Determine if the phytoplankton sample depth is above pdepth.
+Determine if the phytoplankton sample depth is above the pdepth.
 ```{r}
 wq_w_pdepth.df <- wq_w_pdepth.df %>%
   mutate(above_pdepth = case_when(depth <= pdepth ~"Yes",
@@ -352,7 +342,7 @@ wq_w_pdepth.df <- wq_w_pdepth.df %>%
                                   depth > pdepth ~"No"
                                   ))
 ```
-The `wq_w_pdepth` becomes `wq_above_pdepth` by filtering out data with a depth at or below the pdepth.
+Data with a depth at or below the pdepth is filtered out.
 ```{r}
 wq_above_pdepth.df <- wq_w_pdepth.df%>%
   filter(depth <= pdepth) 
@@ -363,7 +353,7 @@ wq_above_pdepth.df <- wq_w_pdepth.df%>%
 test_wq_above_pdepth.df <- wq_above_pdepth.df %>%
   filter(station == "cb3.3c" & sampledate=="1986-04-08")
 ```
-Check for missing data, i.e. station and date combinations that are present in `event.df` but are not represtented in `wq_above_pdepth.df` using the `find_missing` function.
+Check for missing data, i.e., station and date combinations that are present in `event.df` but are not represtented in `wq_above_pdepth.df` using the `find_missing` function.
 ```{r}
 find_missing <- function(data_backbone, source_data, modified_data, step_vector) {
   missing.df <- anti_join(data_backbone, modified_data, by = c("station","sampledate"))
@@ -414,7 +404,7 @@ find_missing_apdepth.vec <- c("station", "sampledate", "layer", "pdepth", "conca
 
 wq_above_pdepth.df <- find_missing(event.df, wq_w_pdepth.df, wq_above_pdepth.df, find_missing_apdepth.vec)
 ```
-Generate a new dataframe with a new parameter, surface chloraphyll a (s_chla).
+Generate a new dataframe with surface chloraphyll a (s_chla) data.
 ```{r}
 s_chla.df <- wq_above_pdepth.df %>%
   filter(layer == "s", 
@@ -429,7 +419,7 @@ di_s_chla.df <- s_chla.df %>%
   distinct(station, sampledate, depth, eventid, layer, parameter, measurevalue_averaged, concat) %>%
   ungroup()
 ```
-Export the entries with errors as a csv titled water_quality\cb3.3c_mutants.csv. These are entries that are likely reporting errors stemming from a known issue with station cb3.3c between 1986 and 1991, where a second entry was taken that was vastly different from the first.
+Export the entries with errors as a CSV ("cb3.3c_mutants.csv"). These are entries that are likely reporting errors stemming from a known issue with station cb3.3c between 1986 and 1991, where a second entry was taken that was vastly different from the first.
 ```{r}
 mutants <- di_s_chla.df %>%
   group_by(concat) %>%
@@ -461,7 +451,7 @@ missing_s_chla.df <- name_missing(event.df, wq_above_pdepth.df, di_s_chla.df, fi
 
 di_s_chla.df <- full_join(di_s_chla.df, missing_s_chla.df, by = c("station", "sampledate", "parameter", "concat"))#"eventid", 
 ```
-Average sample replicates for the rest of the data. 
+Average sample replicates. 
 ```{r}
 wq_above_pdepth.df <- wq_above_pdepth.df %>%
   group_by(station, sampledate, depth, parameter) %>%
@@ -477,7 +467,7 @@ wq_above_pdepth.df <- wq_above_pdepth.df %>%
   distinct(station, sampledate, depth_integrated_value) %>%
   ungroup()
 ```
-Join surface chloraphyll data to the water quality data. `measurevalued_averaged` is renamed `depth_integrated_value` to match the water quality naming convention.
+Join surface chloraphyll data to the water quality data.
 ```{r}
 di_s_chla.df <- di_s_chla.df %>% 
   rename(depth_integrated_value = measurevalue_averaged)
@@ -526,7 +516,7 @@ wq_no_sal.df <- anti_join(wq_warm_sal.df, wq_sal_id.df, by = c("concat"))
 
 wq_sal_fill.df <-  wq_no_sal.df %>%
   distinct(concat, station, sampledate, season, salzone) %>%
-  mutate(salzone = case_when((station %in% c("cb1.1", "tf2.3", "tf4.2","tf5.5" ) & is.na(salzone)) | (season == "spring" & station %in% c("et5.1", "tf1.5")& is.na(salzone))
+  mutate(salzone = case_when((station %in% c("cb1.1", "tf2.3", "tf4.2","tf5.5" ) & is.na(salzone)) | (season == "spring" & station %in% c("et5.1", "tf1.5") & is.na(salzone))
          ~ "F", TRUE ~ salzone  ))
 
 wq_sal_filled.df <- wq_sal_fill.df %>%
@@ -537,7 +527,8 @@ Add the assigned salzones to the main dataframe.
 wq_warm_sal_added.df <- left_join(wq_warm_sal.df, wq_sal_filled.df, by= c("concat", "salzone","station","sampledate", "season"))
 ```
 Import the salinity zone used by Jacqueline M. Johnson of the Chesapeake Bay Program. This will provide a check of salinity zone classification from 10 years ago to the salinity zone classification in CEDR.
-```{r}
+NOTE: a message starting with "Joining, by = ..." may appear when this code chunk is run. This is not an error, and you can proceed with the scripts without issue.
+```{r message=FALSE}
 jackie_salzones.df <- readxl::read_excel(file.path(project.dir, "data/Jackie/JMJ_PIBI_Salzone_Data.xlsx"), sheet = "JMJ Salzone+Scores") %>% 
   clean_up() %>%
   rename(salzone = ibi_salzone)
@@ -580,7 +571,7 @@ A large but incomplete table of taxa size and carbon values is imported from the
 carbon.df <- data.table::fread(file.path(project.dir, "data/carbon/", "carbon_list_2014.csv")) %>% 
   clean_up()
 ```
-Reformat the carbon data so that it will mesh with the previously-formatted data.
+Reformat the carbon data so that it will join with the previously-formatted data.
 ```{r warning=FALSE}
 carbon.df <- carbon.df %>%
   mutate(tsn =  gsub("(?<![0-9])0+", "", tsn, perl = TRUE)) %>%
@@ -589,7 +580,7 @@ carbon.df <- carbon.df %>%
   mutate(tsn = as.integer(tsn)) %>%
   mutate(size = case_when(size == "not_applicable"~ as.character(NA), TRUE ~size))
 ```
-Import taxanomic data associated with phytoplankton data that was downloaded from CEDR.
+Import taxonomic data associated with phytoplankton data that was downloaded from CEDR.
 ```{r}
 col.class.vec <- c("samplenumber" = "character", "tsn" = "character", "speccode" = "character")
 
@@ -601,7 +592,8 @@ taxa.raw <- data.table::fread(file.path(project.dir, "data/CEDR/cedr_phyto_taxa.
 mutate(sampledate = as.Date(sampledate))
 ```
 Filter the data so that only samples collected during spring and summer and above the pycnocline are kept.
-```{r}
+NOTE: a message stating "NAs introduced by coercion to integer range" may appear. This is not an error and you can proceed with the following scripts.
+```{r message=FALSE}
 bay.df <- taxa.raw %>% 
   filter(layer %in% c("ap", "wc")) %>% 
   distinct() %>% 
@@ -636,7 +628,7 @@ bay.df <- bay.df %>%
                            "epiphytic_flagellates",
                            "hydrodictyon_reticulatum"))
 ```
-Update TSNs (final_tsn) for reported taxa (latinname) known to be problematic. Most of these taxa are not in the ITIS database but an upstream taxonomic rank is found in the Integrated Taxonomic Information System (ITIS). For example, the species, Navicula notablis, is not found in ITIS but the genus Navicula is present in ITIS; therefore, the TSN and hierarchy for Navicula is used to represent an incomplete hierarchy for Navicula notablis. For the purposes of this document, these incomplete hierarchies are good enough because the metrics calulated in the Metric Calculation section only requires taxonomic data for the ranks division, phylum, class, and two specific species.
+Update TSNs ("tsn") for reported taxa ("latinname") that are known to be problematic. Most of these taxa are not in the ITIS database but an upstream taxonomic rank is found in the Integrated Taxonomic Information System (ITIS). For example, the species, Navicula notablis, is not found in ITIS but the genus Navicula is present in ITIS; therefore, the TSN and hierarchy for Navicula is used to represent an incomplete hierarchy for Navicula notablis. For the purposes of this document, these incomplete hierarchies are good enough because the metrics calulated in the Metric Calculation section only requires taxonomic data for the ranks division, phylum, class, and two specific species.
 ```{r}
 bay.df <- bay.df %>% 
   mutate(
@@ -715,7 +707,7 @@ carbon.dups <- carbon.df %>%
   ungroup() %>% 
   filter(count > 1)
 ```
-Taxa with duplicate carbon values: *biddulphia*, *chaetoceros wighami*, *gymnodinium*. One of the *chaetoceros wighami* `old_carbon` values is NA, and therefore, is excluded. The selected `old_carbon` values for “biddulphia” and “gymnodinium” appear to be the values used by (Lacouture et al. 2006).
+Taxa with duplicate carbon values: *biddulphia*, *chaetoceros wighami*, *gymnodinium*. One of the *chaetoceros wighami* `old_carbon` values is NA, and therefore, is excluded. The selected `old_carbon` values for *biddulphia* and *gymnodinium* appear to be the values used by (Lacouture et al. 2006).
 ```{r}
 carbon.df <- carbon.df %>% 
   filter(!(latinname == "chaetoceros_wighami" & is.na(carbon)),
@@ -728,7 +720,7 @@ no.match.df <- anti_join(bay.df, carbon.df, by = c("latinname", "size")) %>%
   select(latinname, size) %>% 
   distinct()
 ```
-Attempt to find partial matches for taxa in `no.match.df`. Each row in `no.match.df` represents a unique taxon and size combination. The funtion,`lapply`, loops through each row, extracts the unique size string, splits the string into smaller pieces, and attempts to find partial matches with associated size strings in `carbon.df`. The string in `carbon.df` with the most partial matches will be used to replace the size string in `bay.df`.
+Try to find partial matches for taxa in `no.match.df`. Each row in `no.match.df` represents a unique taxon and size combination. The function,`lapply`, loops through each row, extracts the unique size string, splits the string into smaller pieces, and attempts to find partial matches with associated size strings in `carbon.df`. The string in `carbon.df` with the most partial matches will be used to replace the size string in `bay.df`.
 ```{r}
 partial.match.df <- lapply(1:nrow(no.match.df), function(row.i) {
   sub.df <- no.match.df %>% 
@@ -784,7 +776,7 @@ bay.df <- bay.df %>%
   mutate(tsn = ifelse(latinname=="woronichinia_naegeliana", 0, tsn)) %>%
   mutate(tsn = ifelse(tsn==2014, 2013, tsn))
 ```
-Remove columns that will be replaced with data from the carbon dataframe in the next step.
+Remove columns that will be replaced with data from the `carbon.df` dataframe in the next step.
 ```{r}
 bay.df <- bay.df %>%
   select(-nodc_phyla, -group) 
@@ -1387,7 +1379,7 @@ scores_ratings_final <- scores_ratings_final %>%
   select(-chla) %>%
   select(-rating, rating)
 ```
-Save the final scores to directory.
+Save the final scores to the "Scores/Ratings" folder within your directory.
 ```{r}
 scores_ratings_final %>% 
 data.table::fwrite(file.path(project.dir, "data/ScoresRatings", "final_scores_ratings.csv"))
