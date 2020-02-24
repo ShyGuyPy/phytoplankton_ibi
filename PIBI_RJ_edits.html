@@ -2787,10 +2787,14 @@ Interstate Commission on the Potomac River Basin<br><h4 class="date">February 24
 </div>
 
 
-<p>###<strong>Introduction</strong> The Phytoplankton Index of Biotic Integrity (PIBI) was developed by Lacouture et al. (2006) for spring and summer phytoplankton samples in each of the four salinity zones (fresh water, polyhaline, mesohaline, oligohaline) of the Chesapeake Bay and its tidal tributaries. Twelve metrics are used to quantify the status of phytoplankton communities relative to water quality, and a narrative rating is assigned to the resulting scores, ranging from “poor” to “good.” IBIs, such as the PIBI, are intended to be used as a management tool to evalaute the status of biological communities.</p>
+<div id="introduction" class="section level3">
+<h3><strong>Introduction</strong></h3>
+<p>The Phytoplankton Index of Biotic Integrity (PIBI) was developed by Lacouture et al. (2006) for spring and summer phytoplankton samples in each of the four salinity zones (fresh water, polyhaline, mesohaline, oligohaline) of the Chesapeake Bay and its tidal tributaries. Twelve metrics are used to quantify the status of phytoplankton communities relative to water quality, and a narrative rating is assigned to the resulting scores, ranging from “poor” to “good.” IBIs, such as the PIBI, are intended to be used as a management tool to evalaute the status of biological communities.</p>
 <p>The R-scripts contained in this document describe steps needed to calculate the PIBI, following the methodology outlined by Lacouture et al. (2006), with additional references from documentation written by former ICPRB staff member, Jacqueline M. Johnson. The code chunks are designed to be copied and pasted into the RStudio editor. In order to keep the scripts organized, it is suggested that the corresponding section header is added and commented out using <code>#</code>. The phytoplankton data used are extracted from the Chesapeake Bay Program’s Chesapeake Environmental Data Repository (CEDR) using an Application Programming Interface (API).</p>
-<p>###<strong>Working With RStudio</strong><br />
-RStudio must be installed on your computer to implement the following R scripts. If RStudio is not installed, it can be downloaded for free from <a href="https://www.rstudio.com/">https://www.rstudio.com/</a>. This <a href="https://courses.edx.org/courses/UTAustinX/UT.7.01x/3T2014/56c5437b88fa43cf828bff5371c6a924/">webpage</a> details the short installation process. Once RStudio is ready to be used on your computer, copy and paste the scripts into the RStudio editor and run them. Each time a dataframe is created, it can be viewed by typing <code>View(name)</code> in the console or by clicking its name in the Environment tab on the right.</p>
+</div>
+<div id="working-with-rstudio" class="section level3">
+<h3><strong>Working With RStudio</strong></h3>
+<p>RStudio must be installed on your computer to implement the following R scripts. If RStudio is not installed, it can be downloaded for free from <a href="https://www.rstudio.com/">https://www.rstudio.com/</a>. This <a href="https://courses.edx.org/courses/UTAustinX/UT.7.01x/3T2014/56c5437b88fa43cf828bff5371c6a924/">webpage</a> details the short installation process. Once RStudio is ready to be used on your computer, copy and paste the scripts into the RStudio editor and run them. Each time a dataframe is created, it can be viewed by typing <code>View(name)</code> in the console or by clicking its name in the Environment tab on the right.</p>
 <p>Some helpful R resources are listed below for those new to RStudio:</p>
 <ul>
 <li>The R Book by Michael J. Crawley<br />
@@ -2803,7 +2807,12 @@ RStudio must be installed on your computer to implement the following R scripts.
 </li>
 <li>Stack Overflow for asking questions or reading answers to posted questions</li>
 </ul>
-<p>###<strong>Setup</strong> ####<strong>Directories</strong> You will need to create a directory (series of folders) to house the inputs and outputs of this program, as follows:</p>
+</div>
+<div id="setup" class="section level3">
+<h3><strong>Setup</strong></h3>
+<div id="directories" class="section level4">
+<h4><strong>Directories</strong></h4>
+<p>You will need to create a directory (series of folders) to house the inputs and outputs of this program, as follows:</p>
 <ol style="list-style-type: decimal">
 <li>Create a new folder (referred to as the “main” folder below) with any name you choose. This will house the main directory structure.</li>
 <li>Within the main folder, create an RStudio project. To create the Project, open RStudio and navigate to File &gt; New Project. Save the project in the main folder with any name you choose.</li>
@@ -2817,7 +2826,10 @@ RStudio must be installed on your computer to implement the following R scripts.
 <li>“ScoresRatings” (empty for now)</li>
 </ul></li>
 </ol>
-<p>####<strong>Load Packages</strong> The following packages must be installed and loaded into the environment.</p>
+</div>
+<div id="load-packages" class="section level4">
+<h4><strong>Load Packages</strong></h4>
+<p>The following packages must be installed and loaded into the environment.</p>
 <pre class="r"><code>library(dplyr)
 library(tidyr)
 library(data.table)
@@ -2830,7 +2842,10 @@ library(stringr)
 library(purrr)
 library(lubridate)
 library(parallel)</code></pre>
-<p>####<strong>Establish API Variables</strong> The variables below represent values found in the Bay Program’s API guide. Unless changes occur to the API’s structure, these variables will not need to be altered.</p>
+</div>
+<div id="establish-api-variables" class="section level4">
+<h4><strong>Establish API Variables</strong></h4>
+<p>The variables below represent values found in the Bay Program’s API guide. Unless changes occur to the API’s structure, these variables will not need to be altered.</p>
 <ul>
 <li>pico_num = picoplankton</li>
 <li>phyto_num = phytoplankton</li>
@@ -2845,9 +2860,15 @@ chla = 21
 doc = 34 
 pheo = 74 
 salinity = 83</code></pre>
-<p>####<strong>Establish Directory</strong> Data for this document are located in various files. The object <code>project.dir</code> represents the phytoplankton project directory and will be used as the root of the file path throughout the document.</p>
+</div>
+<div id="establish-directory" class="section level4">
+<h4><strong>Establish Directory</strong></h4>
+<p>Data for this document are located in various files. The object <code>project.dir</code> represents the phytoplankton project directory and will be used as the root of the file path throughout the document.</p>
 <pre class="r"><code>project.dir &lt;- rprojroot::find_rstudio_root_file()</code></pre>
-<p>####<strong>Custom Functions</strong> Two custom functions will be used, but must first be established. Begin with establishing the <code>clean_string()</code> function. It modifies character objects by 1) removing leading and trailing white spaces, 2) converting all characters to lowercase, and 3) replacing all spaces with an underscore. These corrections eliminate common typos and standardize character objects.</p>
+</div>
+<div id="custom-functions" class="section level4">
+<h4><strong>Custom Functions</strong></h4>
+<p>Two custom functions will be used, but must first be established. Begin with establishing the <code>clean_string()</code> function. It modifies character objects by 1) removing leading and trailing white spaces, 2) converting all characters to lowercase, and 3) replacing all spaces with an underscore. These corrections eliminate common typos and standardize character objects.</p>
 <p>Then, establish the <code>clean_up()</code> function, a wrapper for <code>clean_string()</code>. This function applies <code>clean_string()</code> to the column headers and character columns of data frames to standardize character values and make it easier to work with the data.</p>
 <pre class="r"><code>clean_string &lt;- function(x) {
   x %&gt;% 
@@ -2864,7 +2885,10 @@ clean_up &lt;- function(x) {
     mutate_if(is.character, funs(clean_string)) %&gt;% 
     distinct()
 }</code></pre>
-<p>####<strong>Set Date Range</strong> Create <code>url.root</code>, which represents the root of the CEDR API. All API calls will start with <code>url.root</code>. Additionally, use <code>Sys.Date()</code> to find today’s date, which will be used in the API query. This makes the following script more dynamic because if this script is run in the future, the imported dataset will include any data that was added to the CEDR database after the initial data pull.</p>
+</div>
+<div id="set-date-range" class="section level4">
+<h4><strong>Set Date Range</strong></h4>
+<p>Create <code>url.root</code>, which represents the root of the CEDR API. All API calls will start with <code>url.root</code>. Additionally, use <code>Sys.Date()</code> to find today’s date, which will be used in the API query. This makes the following script more dynamic because if this script is run in the future, the imported dataset will include any data that was added to the CEDR database after the initial data pull.</p>
 <p>Use <code>min_date</code> and <code>max_date</code> to set the date range of the data you want to download. Note that ending date can be set to <code>todays.date</code> if you want to extract the most current data every time you run the download code. Also note that the format of the date input into these variables must match with the examples in place below (<code>mm-dd-yyyy</code>).</p>
 <pre class="r"><code>url.root &lt;- &quot;http://datahub.chesapeakebay.net/api.JSON&quot;
 todays.date &lt;- format(Sys.Date(), &quot;%m-%d-%Y&quot;)
@@ -2874,7 +2898,13 @@ min_date = &quot;01-01-1970&quot;
 
 # The latest date to be extracted from CEDR. Either use a date (mm-dd-yyyy) or use `todays.date` for the most recent data.
 max_date = todays.date</code></pre>
-<p>###<strong>Data Acquisition</strong> ####<strong>Download Station Vector</strong> Create a vector of stations (<code>station.vec</code>) that contains phytoplankton data. The vector will be used to query data from the CEDR API in subsequent code chunks.</p>
+</div>
+</div>
+<div id="data-acquisition" class="section level3">
+<h3><strong>Data Acquisition</strong></h3>
+<div id="download-station-vector" class="section level4">
+<h4><strong>Download Station Vector</strong></h4>
+<p>Create a vector of stations (<code>station.vec</code>) that contains phytoplankton data. The vector will be used to query data from the CEDR API in subsequent code chunks.</p>
 <pre class="r"><code>station.vec &lt;- file.path(url.root,
                        &quot;LivingResources&quot;,
                        &quot;TidalPlankton&quot;,
@@ -2885,7 +2915,10 @@ max_date = todays.date</code></pre>
                        &quot;Station&quot;) %&gt;% 
   fromJSON() %&gt;% 
   pull(unique(MonitoringLocationId))</code></pre>
-<p>####<strong>Download Phytoplanton Data</strong> Download all of the phytoplankton data from the CEDR API. Then, the data are exported to the CEDR folder as a CSV.</p>
+</div>
+<div id="download-phytoplanton-data" class="section level4">
+<h4><strong>Download Phytoplanton Data</strong></h4>
+<p>Download all of the phytoplankton data from the CEDR API. Then, the data are exported to the CEDR folder as a CSV.</p>
 <pre class="r"><code>phyto.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
                       &quot;TidalPlankton&quot;,
@@ -2901,7 +2934,10 @@ max_date = todays.date</code></pre>
 phyto.df &lt;- phyto.df %&gt;% 
   mutate(reportingvalue = as.character(reportingvalue)) %&gt;% 
 data.table::fwrite(file.path(project.dir, &quot;data/CEDR&quot;, &quot;cedr_phyto_taxa.csv&quot;))</code></pre>
-<p>####<strong>Download Monitoring Event Data</strong> Download all of the monitoring event data associated with the collection of phytoplanton from the CEDR API. This may take several minutes. Once the data pull is finished, the data are exported to the CEDR folder as a CSV, “cedr_phyto_event.csv”.</p>
+</div>
+<div id="download-monitoring-event-data" class="section level4">
+<h4><strong>Download Monitoring Event Data</strong></h4>
+<p>Download all of the monitoring event data associated with the collection of phytoplanton from the CEDR API. This may take several minutes. Once the data pull is finished, the data are exported to the CEDR folder as a CSV, “cedr_phyto_event.csv”.</p>
 <pre class="r"><code>event.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
                       &quot;TidalPlankton&quot;,
@@ -2915,7 +2951,10 @@ data.table::fwrite(file.path(project.dir, &quot;data/CEDR&quot;, &quot;cedr_phyt
   clean_up()
 
 data.table::fwrite(event.df, file.path(project.dir, &quot;data/CEDR&quot;, &quot;cedr_phyto_event.csv&quot;))</code></pre>
-<p>####<strong>Download Station Information</strong> Download all of the station data associated with the collection of phytoplankton from the CEDR API. Then, the data are exported to the CEDR folder as a CSV, “cedr_pico_taxa.csv”.</p>
+</div>
+<div id="download-station-information" class="section level4">
+<h4><strong>Download Station Information</strong></h4>
+<p>Download all of the station data associated with the collection of phytoplankton from the CEDR API. Then, the data are exported to the CEDR folder as a CSV, “cedr_pico_taxa.csv”.</p>
 <pre class="r"><code>pico.df &lt;- file.path(url.root,
                       &quot;LivingResources&quot;,
                       &quot;TidalPlankton&quot;,
@@ -2932,7 +2971,10 @@ pico.df &lt;- pico.df %&gt;%
   mutate(reportingvalue = as.character(reportingvalue)) %&gt;% 
 
 data.table::fwrite(file.path(project.dir, &quot;data/CEDR/&quot;, &quot;cedr_pico_taxa.csv&quot;))</code></pre>
-<p>####<strong>Download Water Quality Data</strong> Download chlorophyll a, dissolved organic carbon, and pheophytin water quality data collected from the same stations as the phytoplankton data. Then, the data are exported to the CEDR folder as a CSV, “cedr_wq.csv”.</p>
+</div>
+<div id="download-water-quality-data" class="section level4">
+<h4><strong>Download Water Quality Data</strong></h4>
+<p>Download chlorophyll a, dissolved organic carbon, and pheophytin water quality data collected from the same stations as the phytoplankton data. Then, the data are exported to the CEDR folder as a CSV, “cedr_wq.csv”.</p>
 <p>In some cases, the water quality data was not collected on the same day as the phytoplankton data. To obtain more phytoplankton sampling events with associated water quality data, Lacouture et al. (2006) used water quality data collected within ± 3 days of the phytoplankton sample date. The first step of this, so-called, 3-day window is to identify the 3 days prior to and after the sampling date.</p>
 <pre class="r"><code>wq.df &lt;- file.path(url.root,
                    &quot;WaterQuality&quot;,
@@ -3038,7 +3080,11 @@ wq.df &lt;-wq.df %&gt;%
 wq.df &lt;- wq.df %&gt;%
   select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %&gt;% 
   mutate(sampledate=as.Date(sampledate))</code></pre>
-<p>###<strong>Prepare Event Data</strong> Convert the sample dates from both phytoplankton data and the event data to the correct date format. Then, filter data so that only samples taken above the pycnocline and in the water column are included, keeping only the relevant columns. Next, join the selected event data to the water quality data. Now the dataframe contains water quality information with pycnocline depth (pdepth) data. Subsequently, determine if the phytoplankton sample depth is above the pdepth, and filter out data with a depth at or below the pdepth.</p>
+</div>
+</div>
+<div id="prepare-event-data" class="section level3">
+<h3><strong>Prepare Event Data</strong></h3>
+<p>Convert the sample dates from both phytoplankton data and the event data to the correct date format. Then, filter data so that only samples taken above the pycnocline and in the water column are included, keeping only the relevant columns. Next, join the selected event data to the water quality data. Now the dataframe contains water quality information with pycnocline depth (pdepth) data. Subsequently, determine if the phytoplankton sample depth is above the pdepth, and filter out data with a depth at or below the pdepth.</p>
 <pre class="r"><code>phyto.df &lt;- phyto.df %&gt;%
   mutate(sampledate = as.Date(sampledate))
 
@@ -3242,7 +3288,10 @@ wq_warm.wide &lt;- wq_warm_sal_added.df %&gt;%
 
 wq_final.df &lt;- wq_warm.wide %&gt;%
  filter(season %in% c(&quot;spring&quot;, &quot;summer&quot;))</code></pre>
-<p>###<strong>Prepare Carbon Assignments</strong> A large but incomplete table of taxa size and carbon values is imported from the project data directory and reformatted so that it will join with the previously-formatted data. Next, import taxonomic data associated with phytoplankton data that was downloaded from CEDR. Then, filter the data so that only samples collected during spring and summer and above the pycnocline are kept. NOTE: a message stating “NAs introduced by coercion to integer range” may appear. This is not an error and you can proceed with the scripts. If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon. Only phytoplankton data (“ph”) is retained for analysis. Additionally, some taxa were not identified to any useful taxonomic rank and are excluded from the analysis.</p>
+</div>
+<div id="prepare-carbon-assignments" class="section level3">
+<h3><strong>Prepare Carbon Assignments</strong></h3>
+<p>A large but incomplete table of taxa size and carbon values is imported from the project data directory and reformatted so that it will join with the previously-formatted data. Next, import taxonomic data associated with phytoplankton data that was downloaded from CEDR. Then, filter the data so that only samples collected during spring and summer and above the pycnocline are kept. NOTE: a message stating “NAs introduced by coercion to integer range” may appear. This is not an error and you can proceed with the scripts. If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon. Only phytoplankton data (“ph”) is retained for analysis. Additionally, some taxa were not identified to any useful taxonomic rank and are excluded from the analysis.</p>
 <pre class="r"><code>carbon.df &lt;- data.table::fread(file.path(project.dir, &quot;data/carbon/&quot;, &quot;carbon_list_2014.csv&quot;)) %&gt;% 
   clean_up()
 
@@ -3441,7 +3490,10 @@ wq_final.df &lt;- wq_final.df %&gt;%
   mutate(concat = paste0(station, sampledate)) 
 
 bay_wq_merged.df &lt;- left_join(bay_merged.df, wq_final.df, by = c(&quot;concat&quot;, &quot;station&quot;,&quot;sampledate&quot;, &quot;month&quot;, &quot;season&quot;))</code></pre>
-<p>###<strong>Metric Calculations</strong> Remove unnecessary columns and filter out salzone entries with NAs before calculating the metrics. Then, apply metrics to all applicable rows.</p>
+</div>
+<div id="metric-calculations" class="section level3">
+<h3><strong>Metric Calculations</strong></h3>
+<p>Remove unnecessary columns and filter out salzone entries with NAs before calculating the metrics. Then, apply metrics to all applicable rows.</p>
 <pre class="r"><code>bay_wq_merged_calc.df  &lt;-  bay_wq_merged.df %&gt;%
 
   mutate(unique_id = paste(station, layer, samplenumber, sampledate, sep = &quot;_&quot;)) %&gt;%
@@ -3523,7 +3575,10 @@ picoplankton.df &lt;- data.table::fread(file.path(project.dir, &quot;data/CEDR/&
   ungroup()
 
 bay_full_calc.df &lt;- left_join(bay_wq_merged_calc.df, picoplankton.df, by = c(&quot;concat&quot;))</code></pre>
-<p>###<strong>Scoring the metrics</strong> Rename some of the metrics to fit the following code and select only the relevant fields..</p>
+</div>
+<div id="scoring-the-metrics" class="section level3">
+<h3><strong>Scoring the metrics</strong></h3>
+<p>Rename some of the metrics to fit the following code and select only the relevant fields..</p>
 <pre class="r"><code>metrics_prep.df &lt;- bay_full_calc.df %&gt;%
   rename(pheophytin = pheo) %&gt;% 
   rename(total_nano_micro_biomass_chla_ratio = carbon_chlorophyll_ratio) %&gt;%
@@ -3546,7 +3601,8 @@ metrics_prep.df &lt;- metrics_prep.df %&gt;%
                   prorocentrum_minimum_abundance, 
                   microcystis_aeruginosa_abundance,
                   picoplankton_abundance) </code></pre>
-<p>####<strong>Score Spring, Fresh Water</strong></p>
+<div id="score-spring-fresh-water" class="section level4">
+<h4><strong>Score Spring, Fresh Water</strong></h4>
 <pre class="r"><code>score_spring_f &lt;- metrics_prep.df %&gt;% 
   filter(season == &quot;spring&quot;,
          salzone == &quot;f&quot;) %&gt;%
@@ -3584,7 +3640,9 @@ metrics_prep.df &lt;- metrics_prep.df %&gt;%
       total_nano_micro_biomass &gt;= 583.9 &amp; total_nano_micro_biomass &lt;= 828.5 ~ 3,
       total_nano_micro_biomass &gt; 172.99 &amp; total_nano_micro_biomass &lt; 583.9 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
-<p>####<strong>Score Spring, Oligohaline</strong></p>
+</div>
+<div id="score-spring-oligohaline" class="section level4">
+<h4><strong>Score Spring, Oligohaline</strong></h4>
 <pre class="r"><code>score_spring_o &lt;- metrics_prep.df %&gt;% 
   filter(season == &quot;spring&quot;,
          salzone == &quot;o&quot;) %&gt;%
@@ -3618,7 +3676,9 @@ metrics_prep.df &lt;- metrics_prep.df %&gt;%
       (total_nano_micro_biomass &gt;= 131.37 &amp; total_nano_micro_biomass &lt;= 133.67) | (total_nano_micro_biomass &gt;= 426.31 &amp; total_nano_micro_biomass &lt; 685.81) ~ 3,
       total_nano_micro_biomass &gt; 133.67 &amp; total_nano_micro_biomass &lt; 426.31 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
-<p>####<strong>Score Spring, Mesohaline</strong></p>
+</div>
+<div id="score-spring-mesohaline" class="section level4">
+<h4><strong>Score Spring, Mesohaline</strong></h4>
 <pre class="r"><code>score_spring_m &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
@@ -3670,7 +3730,9 @@ metrics_prep.df &lt;- metrics_prep.df %&gt;%
       total_nano_micro_biomass &gt; 1150 ~ 1,
       total_nano_micro_biomass &lt;= 1150 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) </code></pre>
-<p>####<strong>Score Spring, Polyhaline</strong></p>
+</div>
+<div id="score-spring-polyhaline" class="section level4">
+<h4><strong>Score Spring, Polyhaline</strong></h4>
 <pre class="r"><code>score_spring_p &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;spring&quot;,
@@ -3716,7 +3778,9 @@ metrics_prep.df &lt;- metrics_prep.df %&gt;%
       total_nano_micro_biomass &gt; 1061.7 ~ 1,
       total_nano_micro_biomass &lt;= 1061.7 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) </code></pre>
-<p>####<strong>Score Summer, Fresh Water</strong></p>
+</div>
+<div id="score-summer-fresh-water" class="section level4">
+<h4><strong>Score Summer, Fresh Water</strong></h4>
 <pre class="r"><code>score_summer_f &lt;- metrics_prep.df %&gt;% 
   filter(
            season == &quot;summer&quot;,
@@ -3762,7 +3826,9 @@ metrics_prep.df &lt;- metrics_prep.df %&gt;%
       total_nano_micro_biomass &lt; 231.3 ~ 3,
       total_nano_micro_biomass &gt;= 231.3 &amp; total_nano_micro_biomass &lt;= 555.7 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
-<p>####<strong>Score Summer, Oligohaline</strong></p>
+</div>
+<div id="score-summer-oligohaline" class="section level4">
+<h4><strong>Score Summer, Oligohaline</strong></h4>
 <pre class="r"><code>score_summer_o &lt;- metrics_prep.df %&gt;% 
   filter(season == &quot;summer&quot;,
          salzone == &quot;o&quot;) %&gt;%
@@ -3796,7 +3862,9 @@ metrics_prep.df &lt;- metrics_prep.df %&gt;%
       pheophytin &gt;= 1.58 &amp; pheophytin &lt;= 2.81 ~ 3,
       pheophytin &lt; 1.58 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
-<p>####<strong>Score Summer, Mesohaline</strong></p>
+</div>
+<div id="score-summer-mesohaline" class="section level4">
+<h4><strong>Score Summer, Mesohaline</strong></h4>
 <pre class="r"><code>score_summer_m &lt;- metrics_prep.df %&gt;% 
   filter(season == &quot;summer&quot;,
          salzone == &quot;m&quot;) %&gt;%
@@ -3841,7 +3909,9 @@ metrics_prep.df &lt;- metrics_prep.df %&gt;%
       total_nano_micro_biomass &gt; 660 ~ 1,
       total_nano_micro_biomass &lt;= 660 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) </code></pre>
-<p>####<strong>Score Summer, Polyhaline</strong></p>
+</div>
+<div id="score-summer-polyhaline" class="section level4">
+<h4><strong>Score Summer, Polyhaline</strong></h4>
 <pre class="r"><code>score_summer_p &lt;- metrics_prep.df %&gt;% 
   filter(season == &quot;summer&quot;,
          salzone == &quot;p&quot;) %&gt;%
@@ -3899,7 +3969,11 @@ metrics_prep.df &lt;- metrics_prep.df %&gt;%
       (total_nano_micro_biomass &gt;= 181 &amp; total_nano_micro_biomass &lt;= 207) | (total_nano_micro_biomass &gt;= 718 &amp; total_nano_micro_biomass &lt;= 831) ~ 3,
       total_nano_micro_biomass &gt; 207 &amp; total_nano_micro_biomass &lt; 711 ~ 5,
       TRUE ~ as.numeric(NA))) </code></pre>
-<p>###<strong>Combine Scores</strong> Combine the scored metrics into one dataframe, <code>all_seasons</code>. Then, put it all together and generate the PIBI. Finish with replacing zero values in scores with blanks.</p>
+</div>
+</div>
+<div id="combine-scores" class="section level3">
+<h3><strong>Combine Scores</strong></h3>
+<p>Combine the scored metrics into one dataframe, <code>all_seasons</code>. Then, put it all together and generate the PIBI. Finish with replacing zero values in scores with blanks.</p>
 <pre class="r"><code>all_seasons &lt;- bind_rows(score_spring_f, score_spring_o ,score_spring_m, score_spring_p, score_summer_f, score_summer_o, score_summer_m, score_summer_p)
 
 options(scipen=999)
@@ -3934,7 +4008,10 @@ scores_ratings_final[is.na(scores_ratings_final)] &lt;- 0
 
 scores_ratings_final &lt;- scores_ratings_final %&gt;%
   mutate_at(vars(ends_with(&quot;_score&quot;)), list(~case_when(.== 0 ~ &quot; &quot;, TRUE ~ as.character(.))))</code></pre>
-<p>###<strong>Generate Ratings</strong> Generate ratings based on the scores. Ratings are <code>poor</code>, <code>fair_poor</code>, <code>fair</code>, <code>fair_good</code>, and <code>good</code>. Clean up the dataframe, rename some columns, and save the final scores to the “Scores/Ratings” folder within your directory.</p>
+</div>
+<div id="generate-ratings" class="section level3">
+<h3><strong>Generate Ratings</strong></h3>
+<p>Generate ratings based on the scores. Ratings are <code>poor</code>, <code>fair_poor</code>, <code>fair</code>, <code>fair_good</code>, and <code>good</code>. Clean up the dataframe, rename some columns, and save the final scores to the “Scores/Ratings” folder within your directory.</p>
 <pre class="r"><code>scores_ratings_final &lt;- scores_ratings_final %&gt;%
   mutate(
       rating = case_when(
@@ -3964,8 +4041,12 @@ scores_ratings_final &lt;- scores_ratings_final %&gt;%
 
 scores_ratings_final %&gt;% 
 data.table::fwrite(file.path(project.dir, &quot;data/ScoresRatings&quot;, &quot;final_scores_ratings.csv&quot;))</code></pre>
-<p>###<strong>Citations</strong> Buchanan, Claire, Richard V. Lacouture, Harold G. Marshall, Marcia Olson, and Jacqueline M. Johnson. 2005. “Phytoplankton Reference Communities for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 28 (1): 138–59.</p>
+</div>
+<div id="citations" class="section level3">
+<h3><strong>Citations</strong></h3>
+<p>Buchanan, Claire, Richard V. Lacouture, Harold G. Marshall, Marcia Olson, and Jacqueline M. Johnson. 2005. “Phytoplankton Reference Communities for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 28 (1): 138–59.</p>
 <p>Lacouture, Richard V., Jacqueline M. Johnson, Claire Buchanan, and Harold G. Marshall. 2006. “Phytoplankton Index of Biotic Integrity for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 29 (4): 598–616.</p>
+</div>
 
 
 

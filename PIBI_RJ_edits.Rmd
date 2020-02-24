@@ -16,12 +16,12 @@ output:
     toc_float:
       collapsed: true
 ---
-###**Introduction**
+### **Introduction**
 The Phytoplankton Index of Biotic Integrity (PIBI) was developed by Lacouture et al. (2006) for spring and summer phytoplankton samples in each of the four salinity zones (fresh water, polyhaline, mesohaline, oligohaline) of the Chesapeake Bay and its tidal tributaries. Twelve metrics are used to quantify the status of phytoplankton communities relative to water quality, and a narrative rating is assigned to the resulting scores, ranging from "poor" to "good." IBIs, such as the PIBI, are intended to be used as a management tool to evalaute the status of biological communities. 
 
 The R-scripts contained in this document describe steps needed to calculate the PIBI, following the methodology outlined by Lacouture et al. (2006), with additional references from documentation written by former ICPRB staff member, Jacqueline M. Johnson. The code chunks are designed to be copied and pasted into the RStudio editor. In order to keep the scripts organized, it is suggested that the corresponding section header is added and commented out using `#`. The phytoplankton data used are extracted from the Chesapeake Bay Program's Chesapeake Environmental Data Repository (CEDR) using an Application Programming Interface (API).
 
-###**Working With RStudio**  
+### **Working With RStudio**  
 RStudio must be installed on your computer to implement the following R scripts. If RStudio is not installed, it can be downloaded for free from [https://www.rstudio.com/](https://www.rstudio.com/). This [webpage](https://courses.edx.org/courses/UTAustinX/UT.7.01x/3T2014/56c5437b88fa43cf828bff5371c6a924/) details the short installation process. Once RStudio is ready to be used on your computer, copy and paste the scripts into the RStudio editor and run them. Each time a dataframe is created, it can be viewed by typing `View(name)` in the console or by clicking its name in the Environment tab on the right.          
 
 Some helpful R resources are listed below for those new to RStudio:
@@ -33,8 +33,8 @@ Some helpful R resources are listed below for those new to RStudio:
 * Tutorials Point (https://www.tutorialspoint.com/r/r_overview.htm)  
 * Stack Overflow for asking questions or reading answers to posted questions   
 
-###**Setup** 
-####**Directories**
+### **Setup** 
+#### **Directories**
 You will need to create a directory (series of folders) to house the inputs and outputs of this program, as follows:
 
 1. Create a new folder (referred to as the "main" folder below) with any name you choose. This will house the main directory structure.
@@ -47,7 +47,7 @@ You will need to create a directory (series of folders) to house the inputs and 
     + "water_quality" (empty for now)
     + "ScoresRatings" (empty for now)
 
-####**Load Packages**
+#### **Load Packages**
 The following packages must be installed and loaded into the environment.
 ```{r message=FALSE, warning=FALSE}
 library(dplyr)
@@ -63,7 +63,7 @@ library(purrr)
 library(lubridate)
 library(parallel)
 ```
-####**Establish API Variables**
+#### **Establish API Variables**
 The variables below represent values found in the Bay Program's API guide. Unless changes occur to the API's structure, these variables will not need to be altered.
 
   + pico_num = picoplankton
@@ -80,12 +80,12 @@ doc = 34
 pheo = 74 
 salinity = 83
 ```
-####**Establish Directory**
+#### **Establish Directory**
 Data for this document are located in various files. The object `project.dir` represents the phytoplankton project directory and will be used as the root of the file path throughout the document.
 ```{r}
 project.dir <- rprojroot::find_rstudio_root_file()
 ```
-####**Custom Functions** 
+#### **Custom Functions** 
 Two custom functions will be used, but must first be established. Begin with establishing the `clean_string()` function. It modifies character objects by 1) removing leading and trailing white spaces, 2) converting all characters to lowercase, and 3) replacing all spaces with an underscore. These corrections eliminate common typos and standardize character objects.
 
 Then, establish the `clean_up()` function, a wrapper for `clean_string()`. This function applies `clean_string()` to the column headers and character columns of data frames to standardize character values and make it easier to work with the data.
@@ -106,7 +106,7 @@ clean_up <- function(x) {
     distinct()
 }
 ```
-####**Set Date Range**
+#### **Set Date Range**
 Create `url.root`, which represents the root of the CEDR API. All API calls will start with `url.root`. Additionally, use `Sys.Date()` to find today's date, which will be used in the API query. This makes the following script more dynamic because if this script is run in the future, the imported dataset will include any data that was added to the CEDR database after the initial data pull.
 
 Use `min_date` and `max_date` to set the date range of the data you want to download. Note that ending date can be set to `todays.date` if you want to extract the most current data every time you run the download code. Also note that the format of the date input into these variables must match with the examples in place below (`mm-dd-yyyy`). 
@@ -120,8 +120,8 @@ min_date = "01-01-1970"
 # The latest date to be extracted from CEDR. Either use a date (mm-dd-yyyy) or use `todays.date` for the most recent data.
 max_date = todays.date
 ```
-###**Data Acquisition**
-####**Download Station Vector**
+### **Data Acquisition**
+#### **Download Station Vector**
 Create a vector of stations (`station.vec`) that contains phytoplankton data. The vector will be used to query data from the CEDR API in subsequent code chunks.
 ```{r}
 station.vec <- file.path(url.root,
@@ -135,7 +135,7 @@ station.vec <- file.path(url.root,
   fromJSON() %>% 
   pull(unique(MonitoringLocationId))
 ```
-####**Download Phytoplanton Data**
+#### **Download Phytoplanton Data**
 Download all of the phytoplankton data from the CEDR API. Then, the data are exported to the CEDR folder as a CSV.
 ```{r warning=FALSE, error=FALSE}
 phyto.df <- file.path(url.root,
@@ -154,7 +154,7 @@ phyto.df <- phyto.df %>%
   mutate(reportingvalue = as.character(reportingvalue)) %>% 
 data.table::fwrite(file.path(project.dir, "data/CEDR", "cedr_phyto_taxa.csv"))
 ```
-####**Download Monitoring Event Data**
+#### **Download Monitoring Event Data**
 Download all of the monitoring event data associated with the collection of phytoplanton from the CEDR API. This may take several minutes. Once the data pull is finished, the data are exported to the CEDR folder as a CSV, "cedr_phyto_event.csv". 
 ```{r}
 event.df <- file.path(url.root,
@@ -171,7 +171,7 @@ event.df <- file.path(url.root,
 
 data.table::fwrite(event.df, file.path(project.dir, "data/CEDR", "cedr_phyto_event.csv"))
 ```
-####**Download Station Information**
+#### **Download Station Information**
 Download all of the station data associated with the collection of phytoplankton from the CEDR API. Then, the data are exported to the CEDR folder as a CSV, "cedr_pico_taxa.csv".
 ```{r}
 pico.df <- file.path(url.root,
@@ -191,7 +191,7 @@ pico.df <- pico.df %>%
 
 data.table::fwrite(file.path(project.dir, "data/CEDR/", "cedr_pico_taxa.csv"))
 ```
-####**Download Water Quality Data**
+#### **Download Water Quality Data**
 Download chlorophyll a, dissolved organic carbon, and pheophytin water quality data collected from the same stations as the phytoplankton data. Then, the data are exported to the CEDR folder as a CSV, "cedr_wq.csv". 
 
 In some cases, the water quality data was not collected on the same day as the phytoplankton data. To obtain more phytoplankton sampling events with associated water quality data, Lacouture et al. (2006) used water quality data collected within ± 3 days of the phytoplankton sample date. The first step of this, so-called, 3-day window is to identify the 3 days prior to and after the sampling date.  
@@ -307,7 +307,7 @@ wq.df <- wq.df %>%
   select(station, sampledate, layer, depth, parameter, measurevalue, eventid) %>% 
   mutate(sampledate=as.Date(sampledate))
 ```
-###**Prepare Event Data**
+### **Prepare Event Data**
 Convert the sample dates from both phytoplankton data and the event data to the correct date format. Then, filter data so that only samples taken above the pycnocline and in the water column are included, keeping only the relevant columns. Next, join the selected event data to the water quality data. Now the dataframe contains water quality information with pycnocline depth (pdepth) data. Subsequently, determine if the phytoplankton sample depth is above the pdepth, and filter out data with a depth at or below the pdepth. 
 ```{r}
 phyto.df <- phyto.df %>%
@@ -528,7 +528,7 @@ wq_warm.wide <- wq_warm_sal_added.df %>%
 wq_final.df <- wq_warm.wide %>%
  filter(season %in% c("spring", "summer"))
 ```
-###**Prepare Carbon Assignments**
+### **Prepare Carbon Assignments**
 A large but incomplete table of taxa size and carbon values is imported from the project data directory and reformatted so that it will join with the previously-formatted data. Next, import taxonomic data associated with phytoplankton data that was downloaded from CEDR. Then, filter the data so that only samples collected during spring and summer and above the pycnocline are kept. NOTE: a message stating "NAs introduced by coercion to integer range" may appear. This is not an error and you can proceed with the scripts. If there are multiple taxa with the same taxonomic name, then the reporting values should be summed. Each row should represent a unique taxon. Only phytoplankton data (“ph”) is retained for analysis. Additionally, some taxa were not identified to any useful taxonomic rank and are excluded from the analysis.
 ```{r warning=FALSE, message=FALSE}
 carbon.df <- data.table::fread(file.path(project.dir, "data/carbon/", "carbon_list_2014.csv")) %>% 
@@ -736,7 +736,7 @@ wq_final.df <- wq_final.df %>%
 
 bay_wq_merged.df <- left_join(bay_merged.df, wq_final.df, by = c("concat", "station","sampledate", "month", "season"))
 ```
-###**Metric Calculations**
+### **Metric Calculations**
 Remove unnecessary columns and filter out salzone entries with NAs before calculating the metrics. Then, apply metrics to all applicable rows.
 ```{r}
 bay_wq_merged_calc.df  <-  bay_wq_merged.df %>%
@@ -823,7 +823,7 @@ picoplankton.df <- data.table::fread(file.path(project.dir, "data/CEDR/", "cedr_
 
 bay_full_calc.df <- left_join(bay_wq_merged_calc.df, picoplankton.df, by = c("concat"))
 ```
-###**Scoring the metrics**
+### **Scoring the metrics**
 Rename some of the metrics to fit the following code and select only the relevant fields..
 ```{r}
 metrics_prep.df <- bay_full_calc.df %>%
@@ -849,7 +849,7 @@ metrics_prep.df <- metrics_prep.df %>%
                   microcystis_aeruginosa_abundance,
                   picoplankton_abundance) 
 ```
-####**Score Spring, Fresh Water**
+#### **Score Spring, Fresh Water**
 ```{r}
 score_spring_f <- metrics_prep.df %>% 
   filter(season == "spring",
@@ -889,7 +889,7 @@ score_spring_f <- metrics_prep.df %>%
       total_nano_micro_biomass > 172.99 & total_nano_micro_biomass < 583.9 ~ 5,
       TRUE ~ as.numeric(NA))) 
 ```
-####**Score Spring, Oligohaline**
+#### **Score Spring, Oligohaline**
 ```{r}
 score_spring_o <- metrics_prep.df %>% 
   filter(season == "spring",
@@ -925,7 +925,7 @@ score_spring_o <- metrics_prep.df %>%
       total_nano_micro_biomass > 133.67 & total_nano_micro_biomass < 426.31 ~ 5,
       TRUE ~ as.numeric(NA))) 
 ```
-####**Score Spring, Mesohaline**  
+#### **Score Spring, Mesohaline**  
 ```{r}
 score_spring_m <- metrics_prep.df %>% 
   filter(
@@ -979,7 +979,7 @@ score_spring_m <- metrics_prep.df %>%
       total_nano_micro_biomass <= 1150 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) 
 ```
-####**Score Spring, Polyhaline**
+#### **Score Spring, Polyhaline**
 ```{r}
 score_spring_p <- metrics_prep.df %>% 
   filter(
@@ -1028,7 +1028,7 @@ score_spring_p <- metrics_prep.df %>%
       TRUE ~ as.numeric(NA))) 
   
 ```
-####**Score Summer, Fresh Water**
+#### **Score Summer, Fresh Water**
 ```{r}
 score_summer_f <- metrics_prep.df %>% 
   filter(
@@ -1076,7 +1076,7 @@ score_summer_f <- metrics_prep.df %>%
       total_nano_micro_biomass >= 231.3 & total_nano_micro_biomass <= 555.7 ~ 5,
       TRUE ~ as.numeric(NA))) 
 ```
-####**Score Summer, Oligohaline**
+#### **Score Summer, Oligohaline**
 ```{r}
 score_summer_o <- metrics_prep.df %>% 
   filter(season == "summer",
@@ -1112,7 +1112,7 @@ score_summer_o <- metrics_prep.df %>%
       pheophytin < 1.58 ~ 5,
       TRUE ~ as.numeric(NA))) 
 ```
-####**Score Summer, Mesohaline**
+#### **Score Summer, Mesohaline**
 ```{r}
 score_summer_m <- metrics_prep.df %>% 
   filter(season == "summer",
@@ -1159,7 +1159,7 @@ score_summer_m <- metrics_prep.df %>%
       total_nano_micro_biomass <= 660 ~ as.numeric(NA),
       TRUE ~ as.numeric(NA))) 
 ```
-####**Score Summer, Polyhaline**
+#### **Score Summer, Polyhaline**
 ```{r}
 score_summer_p <- metrics_prep.df %>% 
   filter(season == "summer",
@@ -1219,7 +1219,7 @@ score_summer_p <- metrics_prep.df %>%
       total_nano_micro_biomass > 207 & total_nano_micro_biomass < 711 ~ 5,
       TRUE ~ as.numeric(NA))) 
 ```
-###**Combine Scores**
+### **Combine Scores**
 Combine the scored metrics into one dataframe, `all_seasons`. Then, put it all together and generate the PIBI. Finish with replacing zero values in scores with blanks.
 ```{r}
 all_seasons <- bind_rows(score_spring_f, score_spring_o ,score_spring_m, score_spring_p, score_summer_f, score_summer_o, score_summer_m, score_summer_p)
@@ -1257,7 +1257,7 @@ scores_ratings_final[is.na(scores_ratings_final)] <- 0
 scores_ratings_final <- scores_ratings_final %>%
   mutate_at(vars(ends_with("_score")), list(~case_when(.== 0 ~ " ", TRUE ~ as.character(.))))
 ```
-###**Generate Ratings**
+### **Generate Ratings**
 Generate ratings based on the scores. Ratings are `poor`, `fair_poor`, `fair`, `fair_good`, and `good`. Clean up the dataframe, rename some columns, and save the final scores to the "Scores/Ratings" folder within your directory.
 ```{r}
 scores_ratings_final <- scores_ratings_final %>%
@@ -1290,7 +1290,7 @@ scores_ratings_final <- scores_ratings_final %>%
 scores_ratings_final %>% 
 data.table::fwrite(file.path(project.dir, "data/ScoresRatings", "final_scores_ratings.csv"))
 ```
-###**Citations**
+### **Citations**
 Buchanan, Claire, Richard V. Lacouture, Harold G. Marshall, Marcia Olson, and Jacqueline M. Johnson. 2005. “Phytoplankton Reference Communities for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 28 (1): 138–59.
 
 Lacouture, Richard V., Jacqueline M. Johnson, Claire Buchanan, and Harold G. Marshall. 2006. “Phytoplankton Index of Biotic Integrity for Chesapeake Bay and Its Tidal Tributaries.” Estuaries and Coasts 29 (4): 598–616.
